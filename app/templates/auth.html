@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Вход — verevery{% endblock %}
+
+{% block head %}
+<style>
+  .auth-page { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 40px 20px; }
+  .auth-inner { max-width: 400px; margin: 0 auto; width: 100%; }
+  .auth-logo { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); text-align: center; margin-bottom: 40px; }
+  .auth-logo span { color: var(--accent); }
+  .auth-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; color: var(--dark); margin-bottom: 8px; text-align: center; }
+  .auth-sub { font-size: 13px; font-weight: 300; color: var(--muted); text-align: center; margin-bottom: 32px; line-height: 1.6; }
+  .auth-card { background: var(--white); border: 1px solid var(--beige); border-radius: 20px; padding: 28px 24px; }
+  .field-label { font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+  .field-input {
+    width: 100%; padding: 14px 18px; margin-bottom: 16px;
+    background: var(--white); border: 1px solid var(--beige);
+    border-radius: 12px; font-family: 'Exo 2', sans-serif;
+    font-size: 15px; font-weight: 300; color: var(--dark);
+    outline: none; transition: border-color 0.2s;
+  }
+  .field-input:focus { border-color: var(--accent); }
+  .field-input::placeholder { color: var(--sand); }
+  .auth-note { font-size: 11px; font-weight: 300; color: var(--sand); text-align: center; margin-top: 14px; line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-inner">
+    <div class="auth-logo">vere<span>very</span></div>
+    <h1 class="auth-title">Вход</h1>
+    <p class="auth-sub">Введите номер телефона — мы отправим код для входа</p>
+    <div class="auth-card">
+      <label class="field-label">Номер телефона</label>
+      <input class="field-input" type="tel" placeholder="+7 900 000 00 00" id="phone-input">
+      <a href="#" class="btn-primary" id="btn-send">Получить код</a>
+      <p class="auth-note">Код действует 10 минут</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('btn-send').addEventListener('click', function(e) {
+  e.preventDefault();
+  alert('Авторизация будет подключена на Этапе 5');
+});
+</script>
+{% endblock %}

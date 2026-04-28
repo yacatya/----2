@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Колода для пар — Полный доступ{% endblock %}
+
+{% block head %}
+<style>
+  body { padding-top: 0; }
+  .nav-buy {
+    background: rgba(250,247,242,0.94); backdrop-filter: blur(16px);
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--beige); position: sticky; top: 0; z-index: 10;
+  }
+  .page { padding: 36px 20px 60px; }
+  .inner { max-width: 480px; margin: 0 auto; }
+  .page-title { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 500; line-height: 1.15; color: var(--dark); margin-bottom: 28px; }
+  .page-title em { color: var(--accent); font-style: italic; }
+  .why-block { background: var(--beige); border-radius: 20px; padding: 24px; margin-bottom: 16px; }
+  .why-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: block; }
+  .why-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; line-height: 1.25; color: var(--dark); margin-bottom: 10px; }
+  .why-text { font-size: 13px; font-weight: 300; line-height: 1.7; color: var(--muted); }
+  .price-card { background: var(--dark); border-radius: 24px; padding: 28px 24px; margin-bottom: 16px; }
+  .price-label { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(250,247,242,0.35); margin-bottom: 8px; display: block; }
+  .price-value { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1; color: var(--cream); margin-bottom: 4px; }
+  .price-note { font-size: 12px; font-weight: 300; color: rgba(250,247,242,0.35); margin-bottom: 24px; }
+  .divider { height: 1px; background: rgba(250,247,242,0.08); margin-bottom: 20px; }
+  .includes { display: flex; flex-direction: column; gap: 13px; margin-bottom: 28px; }
+  .include-item { display: flex; align-items: flex-start; gap: 12px; }
+  .include-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--light-accent); flex-shrink: 0; margin-top: 7px; }
+  .include-text { font-size: 13px; font-weight: 300; line-height: 1.55; color: rgba(250,247,242,0.7); }
+  .include-text strong { font-weight: 500; color: rgba(250,247,242,0.9); }
+  .email-wrap { margin-bottom: 10px; }
+  .email-label { font-size: 11px; font-weight: 300; color: rgba(250,247,242,0.45); margin-bottom: 8px; display: block; line-height: 1.5; }
+  .email-input {
+    width: 100%; padding: 14px 18px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(250,247,242,0.15);
+    border-radius: 12px;
+    font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 300;
+    color: var(--cream); transition: border-color 0.2s; outline: none;
+  }
+  .email-input::placeholder { color: rgba(250,247,242,0.25); }
+  .email-input:focus { border-color: var(--light-accent); }
+  .btn-wrap { margin-bottom: 14px; }
+  .btn-buy {
+    display: block; width: 100%; padding: 17px 24px;
+    background: var(--accent); color: white; border: none;
+    border-radius: 50px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+    cursor: pointer; text-align: center; text-decoration: none; transition: background 0.2s;
+  }
+  .btn-buy:hover { background: var(--light-accent); }
+  .legal { font-size: 11px; font-weight: 300; line-height: 1.6; color: rgba(250,247,242,0.3); text-align: center; }
+  .legal a { color: rgba(250,247,242,0.4); text-decoration: underline; }
+  footer { padding: 20px; text-align: center; font-size: 11px; font-weight: 300; color: var(--sand); border-top: 1px solid var(--beige); margin-top: 8px; }
+  footer a { color: var(--sand); text-decoration: none; }
+</style>
+{% endblock %}
+
+{% block nav %}
+<nav class="nav-buy">
+  <a href="/" class="logo">vere<span>very</span></a>
+  <a href="/free" class="nav-back">← Назад</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="inner">
+    <span class="label">Полный доступ</span>
+    <h1 class="page-title">Колода<br>для <em>пар.</em></h1>
+
+    <div class="why-block">
+      <span class="why-label">Почему это работает</span>
+      <div class="why-title">Не просто вопросы —<br>выверенный маршрут</div>
+      <p class="why-text">В основе каждой карточки лежат принципы доказательной психологии и нейробиологии отношений. Карточки объясняют что происходит с вами и вашим партнёром — и направляют туда, где становится лучше.</p>
+    </div>
+
+    <div class="price-card">
+      <span class="price-label">Стоимость</span>
+      <div class="price-value">690 ₽</div>
+      <p class="price-note">Постоянный доступ · Без подписки</p>
+      <div class="divider"></div>
+      <div class="includes">
+        <div class="include-item"><div class="include-dot"></div><div class="include-text"><strong>60 карточек</strong> — три блока: Действие, Вопрос, Забота</div></div>
+        <div class="include-item"><div class="include-dot"></div><div class="include-text"><strong>Научная база</strong> — объяснение по кнопке на каждой карточке: зачем, что в мозге, к чему приведёт</div></div>
+        <div class="include-item"><div class="include-dot"></div><div class="include-text"><strong>Карточки адаптированы</strong> под формат экрана — удобно открывать в любой момент</div></div>
+        <div class="include-item"><div class="include-dot"></div><div class="include-text"><strong>Мгновенный доступ навсегда</strong> — ничего не нужно скачивать</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="email-wrap">
+        <span class="email-label">На этот адрес мы отправим вашу личную ссылку на колоду</span>
+        <input class="email-input" type="email" placeholder="ваш@email.ru" id="email-input">
+      </div>
+      <div class="btn-wrap">
+        <a href="#" class="btn-buy" id="btn-pay">Оплатить 690 ₽</a>
+      </div>
+      <p class="legal">Нажимая кнопку, вы принимаете условия <a href="/offer">публичной оферты</a> и даёте согласие на обработку <a href="/privacy">персональных данных</a></p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="/free">← Попробовать бесплатно</a>
+  &nbsp;·&nbsp;
+  © 2024 verevery
+</footer>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getUtm() {
+  var m = document.cookie.match(/utm_source=([^;]+)/);
+  return m ? m[1] : 'direct';
+}
+document.getElementById('btn-pay').addEventListener('click', function(e) {
+  e.preventDefault();
+  var email = document.getElementById('email-input').value.trim();
+  if (!email || !email.includes('@')) {
+    var inp = document.getElementById('email-input');
+    inp.style.borderColor = 'rgba(255,100,100,0.5)';
+    inp.focus();
+    return;
+  }
+  alert('Оплата будет подключена после регистрации в ЮКассе');
+});
+</script>
+{% endblock %}
