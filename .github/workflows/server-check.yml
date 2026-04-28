@@ -1,0 +1,69 @@
+name: Этап 0 — Проверка сервера
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Проверка сервера
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash << 'ENDSSH'
+            echo "===== СИСТЕМА ====="
+            uname -a
+            lsb_release -a 2>/dev/null
+
+            echo ""
+            echo "===== PYTHON ====="
+            python3 --version 2>&1 || echo "python3 не установлен"
+            pip3 --version 2>&1 || echo "pip3 не установлен"
+            which python3 2>&1
+
+            echo ""
+            echo "===== FLASK / GUNICORN ====="
+            pip3 show flask 2>&1 | head -3 || echo "Flask не установлен"
+            pip3 show gunicorn 2>&1 | head -3 || echo "gunicorn не установлен"
+            which gunicorn 2>&1 || echo "gunicorn не найден в PATH"
+
+            echo ""
+            echo "===== NGINX ====="
+            nginx -v 2>&1 || echo "nginx не установлен"
+            systemctl is-active nginx 2>&1
+
+            echo ""
+            echo "===== SUPERVISOR ====="
+            supervisord --version 2>&1 || echo "supervisor не установлен"
+
+            echo ""
+            echo "===== SYSTEMD сервис verevery ====="
+            systemctl status verevery 2>&1 || echo "Сервис verevery не существует"
+
+            echo ""
+            echo "===== СТРУКТУРА /opt/verevery ====="
+            ls -la /opt/verevery/ 2>/dev/null || echo "Папка /opt/verevery не существует"
+
+            echo ""
+            echo "===== СТРУКТУРА /opt ====="
+            ls -la /opt/
+
+            echo ""
+            echo "===== ОТКРЫТЫЕ ПОРТЫ ====="
+            ss -tlnp 2>/dev/null | head -20 || netstat -tlnp 2>/dev/null | head -20
+
+            echo ""
+            echo "===== NGINX КОНФИГИ ====="
+            ls /etc/nginx/sites-enabled/ 2>/dev/null || echo "Нет sites-enabled"
+            ls /etc/nginx/conf.d/ 2>/dev/null || echo "Нет conf.d"
+
+            echo ""
+            echo "===== СВОБОДНОЕ МЕСТО ====="
+            df -h /
+          ENDSSH
