@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ближе — карточки для двоих</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Exo+2:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --white: #FFFFFF;
+    --beige: #EDE6DA;
+    --sand: #D4C8B5;
+    --dark: #2A2118;
+    --muted: #8C7E72;
+    --accent: #A67C52;
+    --light-accent: #C9A97A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--cream); font-family: 'Exo 2', sans-serif; color: var(--dark); }
+
+  /* NAV */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(250,247,242,0.94); backdrop-filter: blur(16px);
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--dark); text-decoration: none; }
+  .logo span { color: var(--accent); }
+  .nav-btn {
+    font-size: 12px; font-weight: 500; padding: 7px 16px;
+    border-radius: 50px; border: 1px solid var(--sand);
+    background: transparent; color: var(--dark); cursor: pointer;
+    font-family: 'Exo 2', sans-serif; text-decoration: none;
+    transition: all 0.2s; display: inline-block;
+  }
+  .nav-btn:hover { background: var(--dark); color: white; border-color: var(--dark); }
+
+  /* SECTIONS */
+  .section { padding: 48px 20px; }
+  .section-inner { max-width: 480px; margin: 0 auto; }
+  .section-cream { background: var(--cream); }
+  .section-beige { background: var(--beige); }
+  .section-dark { background: var(--dark); }
+
+  .label {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--sand); margin-bottom: 10px; display: block;
+  }
+  .label-light { color: rgba(250,247,242,0.5); }
+  .h2 { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 500; line-height: 1.15; }
+  .h3 { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; line-height: 1.2; }
+  .body-text { font-size: 14px; font-weight: 300; line-height: 1.75; color: var(--muted); }
+  .body-text-light { color: rgba(250,247,242,0.65); }
+
+  /* HERO */
+  .hero { padding: 100px 20px 48px; }
+  .hero-inner { max-width: 480px; margin: 0 auto; }
+  .hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 44px; font-weight: 500; line-height: 1.1;
+    color: var(--dark); margin-bottom: 20px;
+  }
+  .hero-title em { color: var(--accent); font-style: italic; }
+  .hero-text { font-size: 14px; font-weight: 300; line-height: 1.75; color: var(--muted); margin-bottom: 32px; }
+  .hero-meta {
+    display: flex; gap: 20px; margin-bottom: 36px;
+    font-size: 12px; font-weight: 300; color: var(--muted);
+  }
+  .hero-meta-item { display: flex; align-items: center; gap: 6px; }
+  .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--light-accent); flex-shrink: 0; }
+
+  /* BUTTONS */
+  .btn-primary {
+    display: block; width: 100%; padding: 16px 24px;
+    background: var(--dark); color: white; border: none;
+    border-radius: 50px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+    cursor: pointer; text-align: center; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-accent {
+    display: block; width: 100%; padding: 16px 24px;
+    background: var(--accent); color: white; border: none;
+    border-radius: 50px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+    cursor: pointer; text-align: center; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-accent:hover { background: var(--dark); }
+  .btn-outline {
+    display: block; width: 100%; padding: 16px 24px;
+    background: transparent; color: var(--dark);
+    border: 1px solid var(--sand); border-radius: 50px;
+    font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 500;
+    letter-spacing: 0.5px; cursor: pointer; text-align: center;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .btn-outline:hover { background: var(--dark); color: white; border-color: var(--dark); }
+  .btn-outline-light {
+    display: block; width: 100%; padding: 16px 24px;
+    background: transparent; color: rgba(250,247,242,0.85);
+    border: 1px solid rgba(250,247,242,0.25); border-radius: 50px;
+    font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 500;
+    letter-spacing: 0.5px; cursor: pointer; text-align: center;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .btn-outline-light:hover { background: rgba(250,247,242,0.1); }
+
+  /* CARDS SWIPE */
+  .cards-section { padding: 0 0 48px; }
+  .cards-label { padding: 32px 20px 20px; max-width: 480px; margin: 0 auto; }
+  .swipe-wrap { position: relative; overflow: hidden; touch-action: pan-y; }
+  .swipe-track { display: flex; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
+  .card-slide { min-width: 100%; padding: 0 20px; }
+  .card-body {
+    background: var(--white); border: 1px solid var(--beige);
+    border-radius: 20px; padding: 28px 24px;
+    box-shadow: 0 2px 24px rgba(42,33,24,0.07);
+    max-width: 480px; margin: 0 auto; position: relative;
+  }
+  .card-tag {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 16px;
+  }
+  .card-tag-dot { width: 16px; height: 3px; border-radius: 2px; background: currentColor; }
+  .card-level {
+    font-size: 10px; font-weight: 400; color: var(--sand);
+    letter-spacing: 1px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px; margin-bottom: 14px;
+  }
+  .level-pip { width: 6px; height: 6px; border-radius: 50%; background: var(--light-accent); }
+  .card-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 500; line-height: 1.4;
+    color: var(--dark); margin-bottom: 16px;
+  }
+  .card-hint {
+    font-size: 12px; font-weight: 300; color: var(--muted);
+    font-style: italic; line-height: 1.65;
+    padding-top: 16px; border-top: 1px solid var(--beige);
+  }
+  .card-num-row {
+    display: flex; justify-content: flex-end;
+    padding: 10px 20px 0; max-width: 480px; margin: 0 auto;
+    font-size: 11px; font-weight: 300; color: var(--sand); letter-spacing: 1px;
+  }
+
+  /* CARD DETAIL BUTTONS — внутри карточки */
+  .card-buttons {
+    display: flex; gap: 8px; margin-top: 16px; padding-top: 16px;
+    border-top: 1px solid var(--beige);
+  }
+  .btn-detail {
+    flex: 1; padding: 9px 4px; border-radius: 50px;
+    border: 1px solid var(--sand); background: transparent;
+    font-family: 'Exo 2', sans-serif; font-size: 10px; font-weight: 500;
+    letter-spacing: 0.3px; color: var(--dark); cursor: pointer;
+    text-align: center; transition: all 0.2s;
+  }
+  .btn-detail.active { background: var(--dark); color: white; border-color: var(--dark); }
+
+  /* DOTS */
+  .dots { display: flex; justify-content: center; gap: 5px; padding: 16px 0 0; }
+  .dot { height: 6px; border-radius: 3px; background: var(--sand); transition: all 0.3s; width: 6px; }
+  .dot.active { width: 20px; background: var(--dark); }
+  .swipe-hint { text-align: center; font-size: 10px; font-weight: 300; color: var(--sand); padding: 8px 0 0; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* WHAT'S INSIDE */
+  .blocks-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+  .block-item {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(250,247,242,0.12);
+    border-radius: 16px; padding: 18px 20px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .block-marker-v { width: 4px; border-radius: 2px; flex-shrink: 0; margin-top: 3px; }
+  .marker-h { height: 36px; }
+  .block-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 500; color: rgba(250,247,242,0.9); margin-bottom: 4px; }
+  .block-desc { font-size: 12px; font-weight: 300; color: rgba(250,247,242,0.5); line-height: 1.6; }
+
+  /* ABOUT */
+  .about-quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 400; font-style: italic;
+    line-height: 1.4; color: var(--dark); margin-bottom: 20px;
+  }
+  .about-source { font-size: 11px; font-weight: 300; color: var(--sand); letter-spacing: 1px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(42,33,24,0.3);
+    z-index: 200; display: none; align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: var(--cream); border-radius: 24px 24px 0 0;
+    width: 100%; max-height: 78vh; overflow-y: auto;
+    padding: 0 24px 40px;
+    animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal-handle { width: 36px; height: 3px; background: var(--sand); border-radius: 2px; margin: 14px auto 20px; }
+  .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--dark); margin-bottom: 14px; }
+  .modal-text { font-size: 13px; font-weight: 300; line-height: 1.78; color: var(--muted); }
+  .modal-text strong { font-weight: 500; color: var(--dark); }
+  .modal-item { margin-bottom: 12px; padding-left: 14px; border-left: 2px solid var(--light-accent); }
+  .modal-result { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--beige); font-style: italic; }
+
+  /* CTA SECTION */
+  .price-tag {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 48px; font-weight: 500; color: var(--cream);
+    margin-bottom: 4px;
+  }
+  .price-sub { font-size: 12px; font-weight: 300; color: rgba(250,247,242,0.5); margin-bottom: 32px; }
+  .cta-list { margin-bottom: 32px; display: flex; flex-direction: column; gap: 10px; }
+  .cta-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; font-weight: 300; color: rgba(250,247,242,0.75); line-height: 1.5; }
+  .cta-check { color: var(--light-accent); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  /* FOOTER */
+  footer { padding: 24px 20px; text-align: center; font-size: 11px; font-weight: 300; color: var(--sand); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="#" class="logo">vere<span>very</span></a>
+  <a href="#buy" class="nav-btn">Полный доступ</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero section-cream">
+  <div class="hero-inner">
+    <span class="label">Начни с малого — всего одна карточка в день</span>
+    <h1 class="hero-title">Колода<br>для <em>пар.</em></h1>
+    <p class="hero-text">
+      Говорите о важном. Чувствуйте друг друга. Будьте ближе.
+    </p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><span class="hero-dot"></span>60 карточек</div>
+      <div class="hero-meta-item"><span class="hero-dot"></span>3 блока</div>
+      <div class="hero-meta-item"><span class="hero-dot"></span>Доказательная база</div>
+    </div>
+    <a href="#cards" class="btn-outline">Попробовать бесплатно</a>
+  </div>
+</section>
+
+<!-- FREE CARDS -->
+<section class="section-beige cards-section" id="cards">
+  <div class="cards-label">
+    <span class="label">Попробуйте бесплатно</span>
+    <div class="h3">5 карточек — прямо сейчас</div>
+  </div>
+
+  <div class="swipe-wrap" id="swipe-wrap">
+    <div class="swipe-track" id="swipe-track"></div>
+  </div>
+
+  <div class="card-num-row"><span id="card-num">1 / 5</span></div>
+  <div class="dots" id="dots"></div>
+  <p class="swipe-hint">← свайп →</p>
+</section>
+
+<!-- WHAT'S INSIDE -->
+<section class="section section-dark">
+  <div class="section-inner">
+    <span class="label label-light">Полная версия</span>
+    <h2 class="h2" style="color:rgba(250,247,242,0.9); margin-bottom:12px;">60 карточек.<br>Три блока.</h2>
+    <p class="body-text body-text-light" style="margin-bottom:0;">
+      Опирается на исследования Готтмана, эмоционально-фокусированную терапию
+      Сью Джонсон, теорию привязанности и нейробиологию близости.
+    </p>
+    <div class="blocks-grid">
+      <div class="block-item">
+        <div class="block-marker-v marker-h" style="background:var(--accent)"></div>
+        <div>
+          <div class="block-title">Действие</div>
+          <div class="block-desc">20 заданий для восстановления физического и эмоционального контакта. Прогулка, объятие, письмо, танец — малые жесты с большим смыслом.</div>
+        </div>
+      </div>
+      <div class="block-item">
+        <div class="block-marker-v marker-h" style="background:var(--muted)"></div>
+        <div>
+          <div class="block-title">Вопрос</div>
+          <div class="block-desc">20 вопросов для выстраивания диалога. Мягкие, безопасные — помогают говорить о чувствах без обвинений и прийти к выводам самостоятельно.</div>
+        </div>
+      </div>
+      <div class="block-item">
+        <div class="block-marker-v marker-h" style="background:var(--light-accent)"></div>
+        <div>
+          <div class="block-title">Забота</div>
+          <div class="block-desc">20 фраз для выражения тепла и признания. Те слова, которые живут внутри — но редко произносятся вслух.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="section section-cream">
+  <div class="section-inner">
+    <span class="label">Как это работает</span>
+    <p class="about-quote">«Отношения не ломаются в один момент. Они остывают постепенно — в рутине, в молчании, в непонимании.»</p>
+    <p class="body-text" style="margin-bottom:20px;">
+      На каждой карточке есть кнопки — объяснения: Зачем совершать эти действия,
+      что происходит в мозге, доказательная база к чему это приведёт.
+      Вам не нужно быть готовыми. Нужно просто начать.
+    </p>
+    <p class="about-source">Научная база: Готтман · Сью Джонсон · Боулби · КПТ · Терапия принятия</p>
+  </div>
+</section>
+
+<!-- CTA / BUY -->
+<section class="section section-dark" id="buy">
+  <div class="section-inner">
+    <span class="label label-light">Полный доступ</span>
+    <div class="price-tag">690 ₽</div>
+    <p class="price-sub">Постоянный доступ с телефона</p>
+    <div class="cta-list">
+      <div class="cta-item"><span class="cta-check">✓</span>Все 60 карточек — три блока</div>
+      <div class="cta-item"><span class="cta-check">✓</span>Свайп на телефоне — удобно и всегда под рукой</div>
+      <div class="cta-item"><span class="cta-check">✓</span>Научная база — по кнопке на каждой карточке</div>
+      <div class="cta-item"><span class="cta-check">✓</span>Без скачивания — открываете по ссылке</div>
+      <div class="cta-item"><span class="cta-check">✓</span>Доступ навсегда</div>
+    </div>
+    <a href="#" class="btn-accent" onclick="handleBuy()">Получить полный доступ</a>
+    <p style="text-align:center; font-size:11px; font-weight:300; color:rgba(250,247,242,0.3); margin-top:16px;">
+      Оплата картой или СБП · Чек автоматически
+    </p>
+  </div>
+</section>
+
+<footer>
+  © 2024 verevery · Карточки для двоих
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-text" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ─── UTM COOKIE ───────────────────────────────────────────
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const utm = params.get('utm') || params.get('utm_source') || params.get('utm_campaign');
+  if (utm) {
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 60);
+    document.cookie = `utm_source=${utm}; expires=${expires.toUTCString()}; path=/`;
+  }
+})();
+
+function getUtm() {
+  const match = document.cookie.match(/utm_source=([^;]+)/);
+  return match ? match[1] : 'direct';
+}
+
+function handleBuy() {
+  const utm = getUtm();
+  // Перенаправить на страницу оплаты с UTM
+  window.location.href = `/buy?utm=${utm}`;
+}
+
+// ─── FREE CARDS DATA ──────────────────────────────────────
+const freeCards = [
+  {
+    tag: 'ДЕЙСТВИЕ', tagColor: 'var(--accent)',
+    level: 'Лёгкий',
+    text: 'Напишите партнёру короткую записку от руки — одно предложение. Положите туда, где он найдёт её в течение дня: в карман, в сумку, рядом с кофе. Не предупреждайте.',
+    hint: '',
+    why: 'Неожиданный знак внимания разрывает паттерн «невидимости», который накапливается в рутине. Записка говорит: «я думал(а) о тебе, когда тебя не было рядом» — это один из самых сильных сигналов привязанности.',
+    brain: '<div class="modal-item"><strong>Дофамин</strong> — неожиданное приятное событие даёт более сильный выброс, чем ожидаемое</div><div class="modal-item"><strong>Окситоцин</strong> — активируется через осознание заботы и внимания</div><div class="modal-item"><strong>Серотонин</strong> — ощущение значимости и «меня видят» стабилизирует эмоциональный фон</div>',
+    science: '<div class="modal-item"><strong>Готтман:</strong> «биды для контакта» — малые жесты внимания — главный строительный материал доверия.</div><div class="modal-item"><strong>Позитивная психология (Селигман):</strong> неожиданные акты доброты имеют более длительный эффект, чем запланированные.</div><div class="modal-result">Партнёр чувствует себя замеченным и важным. Создаёт положительный след на весь день.</div>'
+  },
+  {
+    tag: 'ЗАБОТА', tagColor: 'var(--light-accent)',
+    level: 'Лёгкий',
+    text: 'Я рада(д), что ты есть. Просто — что ты существуешь.',
+    hint: 'Не «спасибо за что-то». Просто — за то, что есть.',
+    why: 'Это самая базовая форма принятия — не «ты хорошо справляешься», не «ты мне помогаешь», а «я рада(д) что ты есть». Она не зависит от достижений, поведения или настроения. Это безусловное присутствие.',
+    brain: '<div class="modal-item"><strong>Окситоцин</strong> — безусловное принятие вызывает его мощный выброс</div><div class="modal-item"><strong>Миндалина</strong> — снижает активность: угрозы нет, можно расслабиться</div><div class="modal-item"><strong>Серотонин</strong> — ощущение «я нужен(на) просто потому что я есть» — один из сильнейших стабилизаторов</div>',
+    science: '<div class="modal-item"><strong>Боулби:</strong> безусловное принятие — основа безопасной привязанности.</div><div class="modal-item"><strong>Карл Роджерс:</strong> «безусловное позитивное отношение» как условие психологического здоровья.</div><div class="modal-result">Один из самых глубоко действующих комплиментов. Просто — тепло. Просто — принятие.</div>'
+  },
+  {
+    tag: 'ВОПРОС', tagColor: 'var(--muted)',
+    level: 'Лёгкий',
+    text: 'Когда ты чувствуешь, что тебя любят — что именно происходит? Что я делаю или говорю, и ты думаешь: «да, вот оно»?',
+    hint: 'Конкретно. Не «когда ты добрый» — а что именно.',
+    why: 'Большинство конфликтов в парах — это не отсутствие любви, а несовпадение языков её выражения. Один дарит подарки, другой ждёт слов. Этот вопрос помогает напрямую, без обид, сказать: «вот как я чувствую любовь».',
+    brain: '<div class="modal-item"><strong>Окситоцин</strong> — осознание и называние своих потребностей в безопасной обстановке снижает тревогу привязанности</div><div class="modal-item"><strong>Префронтальная кора</strong> — вербализация потребностей переводит их из импульсивной зоны в осознанную</div><div class="modal-item"><strong>Зеркальные нейроны</strong> — партнёр, слушая, физически «примеряет» описанный опыт на себя</div>',
+    science: '<div class="modal-item"><strong>Гэри Чэпмен:</strong> теория пяти языков любви — пары часто «говорят» на разных языках не из равнодушия, а из незнания.</div><div class="modal-item"><strong>Эмоционально-фокусированная терапия (Сью Джонсон):</strong> прямое выражение потребностей — ключевой терапевтический навык.</div><div class="modal-result">Партнёр получает конкретное руководство — без телепатии и догадок. Растёт ощущение «меня понимают».</div>'
+  },
+  {
+    tag: 'ВОПРОС', tagColor: 'var(--muted)',
+    level: 'Лёгкий',
+    text: 'В какие моменты ты чувствуешь себя собой — свободным(ой), живым(ой), настоящим(ой)? Что происходит в эти моменты?',
+    hint: 'Вспомни конкретную ситуацию, если можешь.',
+    why: 'Этот вопрос исследует то, что даёт человеку ощущение подлинности. Он раскрывает ценности: что для человека значит «быть собой». Может оказаться, что партнёру нужно личное пространство — и это абсолютно нормально.',
+    brain: '<div class="modal-item"><strong>Сеть пассивного режима</strong> — активируется при размышлении о себе и своей идентичности</div><div class="modal-item"><strong>Серотонин</strong> — ощущение аутентичности и принятия связано с его устойчивым уровнем</div><div class="modal-item"><strong>Дофамин</strong> — воспоминание о состоянии свободы запускает желание его воспроизвести</div>',
+    science: '<div class="modal-item"><strong>Терапия принятия и ответственности:</strong> контакт с подлинным «я» и ценностями — основа психологического здоровья.</div><div class="modal-item"><strong>Деси и Райан:</strong> автономия — базовая психологическая потребность человека.</div><div class="modal-result">Партнёр узнаёт, в каких условиях другой чувствует себя живым. Близость не означает растворение — она означает пространство для обоих.</div>'
+  },
+  {
+    tag: 'ЗАБОТА', tagColor: 'var(--light-accent)',
+    level: 'Лёгкий',
+    text: 'Я смотрю на тебя — и мне хорошо.',
+    hint: 'Скажи это просто. Без повода. Пусть это будет правдой прямо сейчас.',
+    why: 'В рутине мы перестаём видеть партнёра — он становится «фоном». Эта фраза возвращает взгляд. Она говорит: «я вижу тебя. Прямо сейчас. И ты мне нравишься». Это один из самых простых и самых недооценённых актов близости.',
+    brain: '<div class="modal-item"><strong>Дофамин</strong> — неожиданный комплимент вызывает всплеск, особенно если давно не звучал</div><div class="modal-item"><strong>Серотонин</strong> — ощущение принятия стабилизирует самооценку</div><div class="modal-item"><strong>Окситоцин</strong> — взгляд с восхищением активирует систему привязанности у обоих</div>',
+    science: '<div class="modal-item"><strong>Готтман:</strong> «восхищение и уважение» — фундамент здоровых отношений, второй уровень Дома Звука.</div><div class="modal-item"><strong>Рейс и Шейвер:</strong> ощущение «меня видят» напрямую связано с удовлетворённостью отношениями.</div><div class="modal-result">Партнёр чувствует себя замеченным и желанным. Один взгляд и одна фраза могут изменить тон всего вечера.</div>'
+  }
+];
+
+// ─── BUILD CARDS ──────────────────────────────────────────
+let currentIndex = 0;
+let startX = 0;
+
+function buildCards() {
+  const track = document.getElementById('swipe-track');
+  const dots = document.getElementById('dots');
+  track.innerHTML = '';
+  dots.innerHTML = '';
+
+  freeCards.forEach((card, i) => {
+    const slide = document.createElement('div');
+    slide.className = 'card-slide';
+    slide.innerHTML = `
+      <div class="card-body">
+        <div class="card-tag" style="color:${card.tagColor}">
+          <span class="card-tag-dot" style="background:${card.tagColor}"></span>
+          ${card.tag}
+        </div>
+        <div class="card-level"><span class="level-pip"></span>${card.level}</div>
+        <div class="card-text">${card.text}</div>
+        ${card.hint ? `<div class="card-hint">${card.hint}</div>` : ''}
+        <div class="card-buttons">
+          <button class="btn-detail" onclick="openModal('why',this)">Зачем это</button>
+          <button class="btn-detail" onclick="openModal('brain',this)">Мозг</button>
+          <button class="btn-detail" onclick="openModal('science',this)">Наука</button>
+        </div>
+      </div>`;
+    track.appendChild(slide);
+
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dots.appendChild(dot);
+  });
+}
+
+function goToCard(index) {
+  if (index < 0 || index >= freeCards.length) return;
+  currentIndex = index;
+  document.getElementById('swipe-track').style.transform = `translateX(-${index * 100}%)`;
+  document.getElementById('card-num').textContent = `${index + 1} / ${freeCards.length}`;
+  document.querySelectorAll('.dots .dot').forEach((d, i) => d.classList.toggle('active', i === index));
+  closeModalSilent();
+  document.querySelectorAll('.btn-detail').forEach(b => b.classList.remove('active'));
+}
+
+// SWIPE
+const wrap = document.getElementById('swipe-wrap');
+wrap.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+wrap.addEventListener('touchend', e => {
+  const diff = startX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 48) {
+    if (diff > 0) goToCard(currentIndex + 1);
+    else goToCard(currentIndex - 1);
+  }
+}, { passive: true });
+
+// MODAL
+function openModal(type, btn) {
+  const card = freeCards[currentIndex];
+  const map = { why: ['Зачем это', card.why], brain: ['Что происходит в мозге', card.brain], science: ['Научная база', card.science] };
+  document.getElementById('modal-title').textContent = map[type][0];
+  document.getElementById('modal-body').innerHTML = map[type][1];
+  document.getElementById('modal').classList.add('open');
+  // Сбрасываем только кнопки текущей карточки
+  btn.closest('.card-buttons').querySelectorAll('.btn-detail').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) closeModalSilent();
+}
+function closeModalSilent() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+buildCards();
+</script>
+</body>
+</html>

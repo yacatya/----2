@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Колода для пар — Полный доступ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Exo+2:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --white: #FFFFFF;
+    --beige: #EDE6DA;
+    --sand: #D4C8B5;
+    --dark: #2A2118;
+    --muted: #8C7E72;
+    --accent: #A67C52;
+    --light-accent: #C9A97A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--cream); font-family: 'Exo 2', sans-serif; color: var(--dark); }
+
+  /* NAV */
+  .nav {
+    background: rgba(250,247,242,0.94); backdrop-filter: blur(16px);
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--beige); position: sticky; top: 0; z-index: 10;
+  }
+  .logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--dark); text-decoration: none; }
+  .logo span { color: var(--accent); }
+  .nav-back {
+    font-size: 12px; font-weight: 400; color: var(--muted);
+    padding: 6px 14px; border-radius: 50px; border: 1px solid var(--sand);
+    background: transparent; font-family: 'Exo 2', sans-serif;
+    text-decoration: none; transition: all 0.2s; display: inline-block;
+  }
+  .nav-back:hover { background: var(--dark); color: white; border-color: var(--dark); }
+
+  /* LAYOUT */
+  .page { padding: 36px 20px 60px; }
+  .inner { max-width: 480px; margin: 0 auto; }
+
+  /* LABEL + TITLE */
+  .label {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--sand); margin-bottom: 10px; display: block;
+  }
+  .page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 34px; font-weight: 500; line-height: 1.15;
+    color: var(--dark); margin-bottom: 28px;
+  }
+  .page-title em { color: var(--accent); font-style: italic; }
+
+  /* WHY IT WORKS — светлый блок */
+  .why-block {
+    background: var(--beige);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .why-label {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px; display: block;
+  }
+  .why-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 500; line-height: 1.25;
+    color: var(--dark); margin-bottom: 10px;
+  }
+  .why-text {
+    font-size: 13px; font-weight: 300; line-height: 1.7; color: var(--muted);
+  }
+
+  /* PRICE CARD — тёмный блок */
+  .price-card {
+    background: var(--dark);
+    border-radius: 24px;
+    padding: 28px 24px;
+    margin-bottom: 16px;
+  }
+  .price-label {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: rgba(250,247,242,0.35); margin-bottom: 8px; display: block;
+  }
+  .price-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px; font-weight: 500; line-height: 1;
+    color: var(--cream); margin-bottom: 4px;
+  }
+  .price-note {
+    font-size: 12px; font-weight: 300;
+    color: rgba(250,247,242,0.35); margin-bottom: 24px;
+  }
+  .divider { height: 1px; background: rgba(250,247,242,0.08); margin-bottom: 20px; }
+
+  /* INCLUDES */
+  .includes { display: flex; flex-direction: column; gap: 13px; margin-bottom: 28px; }
+  .include-item { display: flex; align-items: flex-start; gap: 12px; }
+  .include-dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--light-accent); flex-shrink: 0; margin-top: 7px;
+  }
+  .include-text { font-size: 13px; font-weight: 300; line-height: 1.55; color: rgba(250,247,242,0.7); }
+  .include-text strong { font-weight: 500; color: rgba(250,247,242,0.9); }
+
+  /* EMAIL INPUT */
+  .email-wrap { margin-bottom: 10px; }
+  .email-label {
+    font-size: 11px; font-weight: 300; color: rgba(250,247,242,0.45);
+    margin-bottom: 8px; display: block; line-height: 1.5;
+  }
+  .email-input {
+    width: 100%; padding: 14px 18px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(250,247,242,0.15);
+    border-radius: 12px;
+    font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 300;
+    color: var(--cream);
+    transition: border-color 0.2s; outline: none;
+  }
+  .email-input::placeholder { color: rgba(250,247,242,0.25); }
+  .email-input:focus { border-color: var(--light-accent); }
+
+  /* BUY BUTTON */
+  .btn-wrap { margin-bottom: 14px; }
+  .btn-pre {
+    font-size: 11px; font-weight: 300;
+    color: rgba(250,247,242,0.4);
+    text-align: center; margin-bottom: 8px; display: block;
+  }
+  .btn-buy {
+    display: block; width: 100%; padding: 17px 24px;
+    background: var(--accent); color: white; border: none;
+    border-radius: 50px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+    cursor: pointer; text-align: center; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-buy:hover { background: var(--light-accent); }
+
+  /* LEGAL */
+  .legal {
+    font-size: 11px; font-weight: 300; line-height: 1.6;
+    color: rgba(250,247,242,0.3); text-align: center;
+  }
+  .legal a { color: rgba(250,247,242,0.4); text-decoration: underline; }
+
+  /* BLOCKS PREVIEW — белый блок */
+  .blocks-preview {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .blocks-preview-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px; font-weight: 500; color: var(--dark);
+    margin-bottom: 4px;
+  }
+  .blocks-preview-sub {
+    font-size: 12px; font-weight: 300; color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .block-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--beige); }
+  .block-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .block-row:first-of-type { padding-top: 0; }
+  .block-bar { width: 4px; height: 36px; border-radius: 2px; flex-shrink: 0; }
+  .block-row-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 19px; font-weight: 500;
+  }
+  .block-row-desc { font-size: 11px; font-weight: 300; color: var(--muted); margin-top: 2px; }
+
+  /* FOOTER */
+  footer {
+    padding: 20px; text-align: center;
+    font-size: 11px; font-weight: 300; color: var(--sand);
+    border-top: 1px solid var(--beige); margin-top: 8px;
+  }
+  footer a { color: var(--sand); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="#" class="logo">vere<span>very</span></a>
+  <a href="/free" class="nav-back">← Назад</a>
+</nav>
+
+<div class="page">
+  <div class="inner">
+
+    <span class="label">Полный доступ</span>
+    <h1 class="page-title">Колода<br>для <em>пар.</em></h1>
+
+    <!-- WHY IT WORKS -->
+    <div class="why-block">
+      <span class="why-label">Почему это работает</span>
+      <div class="why-title">Не просто вопросы —<br>выверенный маршрут</div>
+      <p class="why-text">
+        В основе каждой карточки лежат принципы доказательной психологии
+        и нейробиологии отношений. Карточки объясняют что происходит с вами
+        и вашим партнёром — и направляют туда, где становится лучше.
+      </p>
+    </div>
+
+    <!-- PRICE CARD -->
+    <div class="price-card">
+      <span class="price-label">Стоимость</span>
+      <div class="price-value">690 ₽</div>
+      <p class="price-note">Постоянный доступ · Без подписки</p>
+
+      <div class="divider"></div>
+
+      <div class="includes">
+        <div class="include-item">
+          <div class="include-dot"></div>
+          <div class="include-text"><strong>60 карточек</strong> — три блока: Действие, Вопрос, Забота</div>
+        </div>
+        <div class="include-item">
+          <div class="include-dot"></div>
+          <div class="include-text"><strong>Научная база</strong> — объяснение по кнопке на каждой карточке: зачем, что в мозге, к чему приведёт</div>
+        </div>
+        <div class="include-item">
+          <div class="include-dot"></div>
+          <div class="include-text"><strong>Карточки адаптированы</strong> под формат экрана — удобно открывать в любой момент</div>
+        </div>
+        <div class="include-item">
+          <div class="include-dot"></div>
+          <div class="include-text"><strong>Мгновенный доступ навсегда</strong> — ничего не нужно скачивать. Ваша колода всегда доступна по личной ссылке</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- EMAIL -->
+      <div class="email-wrap">
+        <span class="email-label">На этот адрес мы отправим вашу личную ссылку на колоду</span>
+        <input class="email-input" type="email" placeholder="ваш@email.ru" id="email-input">
+      </div>
+
+      <!-- BUY BUTTON -->
+      <div class="btn-wrap">
+        <a href="#" class="btn-buy" onclick="handleBuy()">Оплатить 690 ₽</a>
+      </div>
+
+      <!-- LEGAL -->
+      <p class="legal">
+        Нажимая кнопку, вы принимаете условия
+        <a href="/offer">публичной оферты</a>
+        и даёте согласие на обработку
+        <a href="/privacy">персональных данных</a>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <a href="/free">← Попробовать бесплатно</a>
+  &nbsp;·&nbsp;
+  © 2024 verevery
+</footer>
+
+<script>
+function getUtm() {
+  const match = document.cookie.match(/utm_source=([^;]+)/);
+  return match ? match[1] : 'direct';
+}
+
+function handleBuy() {
+  const email = document.getElementById('email-input').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('email-input').focus();
+    document.getElementById('email-input').style.borderColor = 'rgba(255,100,100,0.5)';
+    return false;
+  }
+  const utm = getUtm();
+  // Здесь будет вызов ЮКассы
+  // window.location.href = `/payment?email=${encodeURIComponent(email)}&utm=${utm}`;
+  alert('Оплата подключится после регистрации в ЮКассе');
+  return false;
+}
+</script>
+</body>
+</html>
