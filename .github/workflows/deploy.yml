@@ -41,7 +41,7 @@ jobs:
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/
 
           scp -i ~/.ssh/id_rsa \
-            app/__init__.py app/routes.py \
+            app/__init__.py app/routes.py app/db.py \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/
 
           scp -i ~/.ssh/id_rsa \
@@ -76,9 +76,12 @@ jobs:
               printf 'SECRET_KEY=verevery-change-me\nADMIN_PASSWORD=admin123\n' > .env
             fi
             grep -q ADMIN_PASSWORD .env || echo 'ADMIN_PASSWORD=admin123' >> .env
+            grep -q RESEND_API_KEY .env || echo 'RESEND_API_KEY=placeholder' >> .env
+            grep -q RESEND_FROM .env || echo 'RESEND_FROM=noreply@verevery.ru' >> .env
+            grep -q BASE_URL .env || echo 'BASE_URL=https://verevery.ru' >> .env
 
-            echo "=== Installing Flask + gunicorn ==="
-            venv/bin/pip install Flask==3.0.3 gunicorn==22.0.0 --quiet
+            echo "=== Installing dependencies ==="
+            venv/bin/pip install Flask==3.0.3 gunicorn==22.0.0 resend==2.4.0 --quiet
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true

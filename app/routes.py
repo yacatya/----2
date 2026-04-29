@@ -1,7 +1,10 @@
 import json
 import os
+import secrets
+from datetime import datetime, timedelta
 from functools import wraps
-from flask import Blueprint, render_template, redirect, url_for, session, request, jsonify
+from flask import (Blueprint, render_template, redirect, url_for,
+                   session, request, jsonify, make_response)
 
 main = Blueprint('main', __name__)
 
@@ -14,6 +17,8 @@ BLOCK_INFO = {
     'question': {'label': 'ВОПРОС',   'color': 'var(--muted)',        'name': 'Вопрос'},
     'care':     {'label': 'ЗАБОТА',   'color': 'var(--light-accent)', 'name': 'Забота'},
 }
+
+# ── Helpers ────────────────────────────────────────────────
 
 def load_block(block):
     with open(os.path.join(DATA_DIR, f'cards_{block}.json'), encoding='utf-8') as f:
@@ -34,6 +39,51 @@ def load_content():
 def save_content(content):
     with open(os.path.join(DATA_DIR, 'content.json'), 'w', encoding='utf-8') as f:
         json.dump(content, f, ensure_ascii=False, indent=2)
+
+def send_magic_link(email, token):
+    import resend
+    resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    base_url = os.environ.get('BASE_URL', 'https://verevery.ru')
+    link = f"{base_url}/auth/verify?token={token}"
+    html = f"""<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8">
+<style>
+  body {{ font-family: 'Georgia', serif; background: #FAF7F2; margin: 0; padding: 40px 20px; }}
+  .wrap {{ max-width: 480px; margin: 0 auto; background: #fff;
+           border-radius: 20px; padding: 40px 36px; border: 1px solid #EDE6DA; }}
+  .logo {{ font-size: 22px; color: #2A2118; margin-bottom: 8px; }}
+  .logo span {{ color: #A67C52; }}
+  .label {{ font-family: sans-serif; font-size: 10px; letter-spacing: 2px;
+             text-transform: uppercase; color: #D4C8B5; margin-bottom: 28px; display: block; }}
+  h1 {{ font-size: 26px; font-weight: 500; color: #2A2118; margin-bottom: 12px; line-height: 1.3; }}
+  p {{ font-family: sans-serif; font-size: 14px; font-weight: 300;
+       line-height: 1.7; color: #8C7E72; margin-bottom: 28px; }}
+  .btn {{ display: inline-block; padding: 16px 36px; background: #A67C52;
+          color: #fff; text-decoration: none; border-radius: 50px;
+          font-family: sans-serif; font-size: 14px; font-weight: 500; }}
+  .link {{ font-family: sans-serif; font-size: 11px; color: #D4C8B5;
+            margin-top: 24px; word-break: break-all; }}
+  .footer {{ font-family: sans-serif; font-size: 11px; color: #D4C8B5;
+              margin-top: 32px; padding-top: 20px; border-top: 1px solid #EDE6DA; }}
+</style></head>
+<body><div class="wrap">
+  <div class="logo">vere<span>very</span></div>
+  <span class="label">Вход в колоду</span>
+  <h1>Ваша ссылка для входа</h1>
+  <p>Нажмите кнопку ниже, чтобы войти в свою колоду.<br>
+     Ссылка действует 24 часа.</p>
+  <a href="{link}" class="btn">Открыть колоду →</a>
+  <div class="link">Или скопируйте ссылку: {link}</div>
+  <div class="footer">Если вы не запрашивали вход — просто проигнорируйте это письмо.</div>
+</div></body></html>"""
+
+    resend.Emails.send({
+        "from": os.environ.get('RESEND_FROM', 'noreply@verevery.ru'),
+        "to": [email],
+        "subject": "Ваша ссылка для входа — verevery",
+        "html": html,
+    })
 
 def admin_required(f):
     @wraps(f)
@@ -78,9 +128,86 @@ def cards():
         blocks[block] = {**info, 'cards': load_block(block)}
     return render_template('cards.html', blocks=blocks)
 
+# ── Auth routes ─────────────────────────────────────────────
+
 @main.route('/auth')
 def auth():
-    return render_template('auth.html')
+    if 'user_id' in session:
+        return redirect(url_for('main.cards'))
+    return render_template('auth.html', step='email', error=None)
+
+@main.route('/auth/send', methods=['POST'])
+def auth_send():
+    from .db import get_db
+    email = request.form.get('email', '').strip().lower()
+    if not email or '@' not in email:
+        return render_template('auth.html', step='email', error='Введите корректный email')
+
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+
+    db = get_db()
+    # clean up old unused tokens for this email
+    db.execute("DELETE FROM magic_tokens WHERE email = ? AND used = 0", (email,))
+    db.execute(
+        "INSERT INTO magic_tokens (email, token, expires_at) VALUES (?, ?, ?)",
+        (email, token, expires_at.isoformat())
+    )
+    db.commit()
+    db.close()
+
+    try:
+        send_magic_link(email, token)
+    except Exception as e:
+        return render_template('auth.html', step='email',
+                               error=f'Ошибка отправки письма. Попробуйте ещё раз.')
+
+    return render_template('auth.html', step='sent', email=email)
+
+@main.route('/auth/verify')
+def auth_verify():
+    from .db import get_db
+    token = request.args.get('token', '')
+    if not token:
+        return render_template('auth.html', step='email', error='Ссылка недействительна')
+
+    db = get_db()
+    row = db.execute(
+        "SELECT * FROM magic_tokens WHERE token = ? AND used = 0",
+        (token,)
+    ).fetchone()
+
+    if not row:
+        db.close()
+        return render_template('auth.html', step='email',
+                               error='Ссылка уже использована или недействительна')
+
+    if datetime.utcnow() > datetime.fromisoformat(row['expires_at']):
+        db.execute("DELETE FROM magic_tokens WHERE token = ?", (token,))
+        db.commit()
+        db.close()
+        return render_template('auth.html', step='email',
+                               error='Ссылка истекла. Запросите новую.')
+
+    email = row['email']
+    # mark token as used
+    db.execute("UPDATE magic_tokens SET used = 1 WHERE token = ?", (token,))
+    # upsert user
+    db.execute("INSERT OR IGNORE INTO users (email) VALUES (?)", (email,))
+    db.commit()
+    user = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    db.close()
+
+    session.permanent = True
+    session['user_id'] = user['id']
+    session['user_email'] = email
+    return redirect(url_for('main.cards'))
+
+@main.route('/auth/logout')
+def auth_logout():
+    session.pop('user_id', None)
+    session.pop('user_email', None)
+    return redirect(url_for('main.free'))
 
 # ── Admin routes ────────────────────────────────────────────
 
@@ -150,7 +277,6 @@ def admin_save_card():
                 if key in data:
                     cards[i][key] = data[key]
             if 'brain' in data:
-                # brain comes as newline-separated string, split into list
                 cards[i]['brain'] = [line for line in data['brain'].split('\n') if line.strip()]
             save_block(block, cards)
             return jsonify({'ok': True})

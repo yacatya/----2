@@ -1,52 +1,132 @@
-{% extends "base.html" %}
-{% block title %}Вход — verevery{% endblock %}
-
-{% block head %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вход — verevery</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Exo+2:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  .auth-page { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 40px 20px; }
-  .auth-inner { max-width: 400px; margin: 0 auto; width: 100%; }
-  .auth-logo { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); text-align: center; margin-bottom: 40px; }
-  .auth-logo span { color: var(--accent); }
-  .auth-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; color: var(--dark); margin-bottom: 8px; text-align: center; }
-  .auth-sub { font-size: 13px; font-weight: 300; color: var(--muted); text-align: center; margin-bottom: 32px; line-height: 1.6; }
-  .auth-card { background: var(--white); border: 1px solid var(--beige); border-radius: 20px; padding: 28px 24px; }
-  .field-label { font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
-  .field-input {
-    width: 100%; padding: 14px 18px; margin-bottom: 16px;
-    background: var(--white); border: 1px solid var(--beige);
-    border-radius: 12px; font-family: 'Exo 2', sans-serif;
-    font-size: 15px; font-weight: 300; color: var(--dark);
-    outline: none; transition: border-color 0.2s;
+  :root {
+    --cream: #FAF7F2; --white: #FFFFFF; --beige: #EDE6DA; --sand: #D4C8B5;
+    --dark: #2A2118; --muted: #8C7E72; --accent: #A67C52; --light-accent: #C9A97A;
   }
-  .field-input:focus { border-color: var(--accent); }
-  .field-input::placeholder { color: var(--sand); }
-  .auth-note { font-size: 11px; font-weight: 300; color: var(--sand); text-align: center; margin-top: 14px; line-height: 1.6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--cream); font-family: 'Exo 2', sans-serif; color: var(--dark);
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: var(--white); border: 1px solid var(--beige);
+    border-radius: 24px; padding: 40px 32px;
+    width: 100%; max-width: 400px;
+    box-shadow: 0 4px 32px rgba(42,33,24,0.07);
+  }
+  .logo {
+    font-family: 'Cormorant Garamond', serif; font-size: 22px;
+    color: var(--dark); text-decoration: none; display: block; margin-bottom: 6px;
+  }
+  .logo span { color: var(--accent); }
+  .card-label {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--sand); display: block; margin-bottom: 28px;
+  }
+  .card-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500;
+    color: var(--dark); margin-bottom: 10px; line-height: 1.25;
+  }
+  .card-text {
+    font-size: 13px; font-weight: 300; line-height: 1.7;
+    color: var(--muted); margin-bottom: 28px;
+  }
+  .field-label {
+    font-size: 11px; font-weight: 400; color: var(--muted);
+    display: block; margin-bottom: 8px;
+  }
+  .email-input {
+    width: 100%; padding: 14px 18px;
+    background: var(--cream); border: 1px solid var(--beige);
+    border-radius: 12px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 300; color: var(--dark);
+    outline: none; transition: border-color 0.2s; margin-bottom: 14px;
+  }
+  .email-input::placeholder { color: var(--sand); }
+  .email-input:focus { border-color: var(--accent); }
+  .btn-send {
+    display: block; width: 100%; padding: 15px;
+    background: var(--dark); color: white; border: none;
+    border-radius: 50px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;
+    text-align: center;
+  }
+  .btn-send:hover { background: var(--accent); }
+  .error {
+    font-size: 12px; font-weight: 300; color: #c0392b;
+    margin-bottom: 14px; padding: 10px 14px;
+    background: rgba(192,57,43,0.06); border-radius: 10px;
+  }
+  .sent-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--beige); display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin-bottom: 20px;
+  }
+  .email-highlight {
+    font-weight: 500; color: var(--dark);
+    background: var(--beige); padding: 2px 8px; border-radius: 6px;
+  }
+  .resend-link {
+    display: block; text-align: center; margin-top: 20px;
+    font-size: 12px; font-weight: 300; color: var(--muted);
+  }
+  .resend-link a { color: var(--accent); text-decoration: none; }
+  .resend-link a:hover { text-decoration: underline; }
+  .footer-note {
+    margin-top: 24px; font-size: 11px; font-weight: 300;
+    color: var(--sand); text-align: center; line-height: 1.6;
+  }
+  .footer-note a { color: var(--accent); text-decoration: none; }
 </style>
-{% endblock %}
+</head>
+<body>
+<div class="card">
+  <a href="/" class="logo">vere<span>very</span></a>
 
-{% block nav %}{% endblock %}
+  {% if step == 'email' %}
+    <span class="card-label">Вход в колоду</span>
+    <div class="card-title">Введите ваш email</div>
+    <p class="card-text">Мы отправим письмо со ссылкой для входа — никаких паролей.</p>
 
-{% block content %}
-<div class="auth-page">
-  <div class="auth-inner">
-    <div class="auth-logo">vere<span>very</span></div>
-    <h1 class="auth-title">Вход</h1>
-    <p class="auth-sub">Введите номер телефона — мы отправим код для входа</p>
-    <div class="auth-card">
-      <label class="field-label">Номер телефона</label>
-      <input class="field-input" type="tel" placeholder="+7 900 000 00 00" id="phone-input">
-      <a href="#" class="btn-primary" id="btn-send">Получить код</a>
-      <p class="auth-note">Код действует 10 минут</p>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/auth/send">
+      <label class="field-label" for="email">Email</label>
+      <input class="email-input" type="email" id="email" name="email"
+             placeholder="ваш@email.ru" required autofocus>
+      <button type="submit" class="btn-send">Получить ссылку для входа</button>
+    </form>
+
+    <div class="footer-note">
+      Ссылка действует 24 часа.<br>
+      Нет доступа? <a href="/buy">Купить колоду за 690 ₽</a>
     </div>
-  </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-document.getElementById('btn-send').addEventListener('click', function(e) {
-  e.preventDefault();
-  alert('Авторизация будет подключена на Этапе 5');
-});
-</script>
-{% endblock %}
+  {% elif step == 'sent' %}
+    <span class="card-label">Письмо отправлено</span>
+    <div class="sent-icon">✉</div>
+    <div class="card-title">Проверьте почту</div>
+    <p class="card-text">
+      Мы отправили ссылку для входа на <span class="email-highlight">{{ email }}</span>.
+      Просто нажмите кнопку в письме — и вы сразу попадёте в колоду.
+    </p>
+    <p class="card-text" style="margin-bottom:0;">
+      Письмо может прийти через 1–2 минуты. Проверьте папку «Спам», если не видите.
+    </p>
+    <div class="resend-link">
+      Не получили? <a href="/auth">Запросить ещё раз</a>
+    </div>
+  {% endif %}
+</div>
+</body>
+</html>
