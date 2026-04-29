@@ -119,6 +119,14 @@ def buy():
     content = load_content()
     return render_template('buy.html', c=content['buy'])
 
+@main.route('/offer')
+def offer():
+    return render_template('offer.html')
+
+@main.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
 @main.route('/cards')
 def cards():
     if 'user_id' not in session:
