@@ -76,7 +76,8 @@ jobs:
               printf 'SECRET_KEY=verevery-change-me\nADMIN_PASSWORD=admin123\n' > .env
             fi
             grep -q ADMIN_PASSWORD .env || echo 'ADMIN_PASSWORD=admin123' >> .env
-            grep -q RESEND_API_KEY .env || echo 'RESEND_API_KEY=placeholder' >> .env
+            sed -i '/^RESEND_API_KEY/d' .env
+            echo 'RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}' >> .env
             grep -q RESEND_FROM .env || echo 'RESEND_FROM=noreply@verevery.ru' >> .env
             grep -q BASE_URL .env || echo 'BASE_URL=https://verevery.ru' >> .env
 
