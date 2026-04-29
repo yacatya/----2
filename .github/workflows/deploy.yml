@@ -1,0 +1,83 @@
+name: Deploy - verevery.ru
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'run.py'
+      - 'requirements.txt'
+      - 'app/**'
+      - 'cards_*.json'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Prepare server directories
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "mkdir -p /opt/verevery/app/templates /opt/verevery/app/data"
+
+      - name: Stop service
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "systemctl stop verevery || true"
+
+      - name: Upload Flask app
+        run: |
+          scp -i ~/.ssh/id_rsa \
+            run.py requirements.txt \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/
+
+          scp -i ~/.ssh/id_rsa \
+            app/__init__.py app/routes.py \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/
+
+          scp -i ~/.ssh/id_rsa \
+            app/templates/base.html \
+            app/templates/free.html \
+            app/templates/buy.html \
+            app/templates/cards.html \
+            app/templates/auth.html \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/templates/
+
+          scp -i ~/.ssh/id_rsa \
+            cards_action.json cards_question.json cards_care.json \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/data/
+
+      - name: Install deps, update service, restart
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash << 'ENDSSH'
+            set -e
+            cd /opt/verevery
+
+            echo "=== Installing Flask + gunicorn ==="
+            venv/bin/pip install Flask==3.0.3 gunicorn==22.0.0 --quiet
+
+            echo "=== Fixing permissions ==="
+            chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
+
+            echo "=== Writing systemd service ==="
+            printf '[Unit]\nDescription=verevery Flask app\nAfter=network.target\n\n[Service]\nUser=verevery\nGroup=verevery\nWorkingDirectory=/opt/verevery\nEnvironmentFile=/opt/verevery/.env\nExecStart=/opt/verevery/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --access-logfile - run:app\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/verevery.service
+
+            systemctl daemon-reload
+            systemctl start verevery
+            sleep 3
+
+            echo "=== Service status ==="
+            systemctl status verevery --no-pager
+
+            echo "=== Test HTTP ==="
+            curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ || echo "curl failed"
+          ENDSSH
