@@ -78,7 +78,8 @@ jobs:
             grep -q ADMIN_PASSWORD .env || echo 'ADMIN_PASSWORD=admin123' >> .env
             sed -i '/^RESEND_API_KEY/d' .env
             echo 'RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}' >> .env
-            grep -q RESEND_FROM .env || echo 'RESEND_FROM=noreply@verevery.ru' >> .env
+            sed -i '/^RESEND_FROM/d' .env
+            echo 'RESEND_FROM=onboarding@resend.dev' >> .env
             grep -q BASE_URL .env || echo 'BASE_URL=https://verevery.ru' >> .env
 
             echo "=== Installing dependencies ==="
