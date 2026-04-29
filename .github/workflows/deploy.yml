@@ -1,4 +1,4 @@
-name: Deploy — verevery.ru
+name: Deploy - verevery.ru
 
 on:
   workflow_dispatch:
@@ -68,24 +68,8 @@ jobs:
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
 
-            echo "=== Updating systemd service ==="
-            cat > /etc/systemd/system/verevery.service << 'EOF'
-[Unit]
-Description=verevery Flask app
-After=network.target
-
-[Service]
-User=verevery
-Group=verevery
-WorkingDirectory=/opt/verevery
-EnvironmentFile=/opt/verevery/.env
-ExecStart=/opt/verevery/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --access-logfile - run:app
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-EOF
+            echo "=== Writing systemd service ==="
+            printf '[Unit]\nDescription=verevery Flask app\nAfter=network.target\n\n[Service]\nUser=verevery\nGroup=verevery\nWorkingDirectory=/opt/verevery\nEnvironmentFile=/opt/verevery/.env\nExecStart=/opt/verevery/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --access-logfile - run:app\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/verevery.service
 
             systemctl daemon-reload
             systemctl start verevery
