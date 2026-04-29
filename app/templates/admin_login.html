@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админка — verevery</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Exo+2:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2; --white: #FFFFFF; --beige: #EDE6DA; --sand: #D4C8B5;
+    --dark: #2A2118; --muted: #8C7E72; --accent: #A67C52; --light-accent: #C9A97A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--cream); font-family: 'Exo 2', sans-serif; color: var(--dark);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-card {
+    background: var(--white); border: 1px solid var(--beige);
+    border-radius: 24px; padding: 40px 32px; width: 100%; max-width: 360px;
+    box-shadow: 0 4px 32px rgba(42,33,24,0.08);
+  }
+  .logo { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); margin-bottom: 8px; display: block; }
+  .logo span { color: var(--accent); }
+  .login-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--sand); margin-bottom: 28px; display: block; }
+  label { font-size: 11px; font-weight: 400; color: var(--muted); display: block; margin-bottom: 8px; }
+  input[type=password] {
+    width: 100%; padding: 14px 18px;
+    background: var(--cream); border: 1px solid var(--beige);
+    border-radius: 12px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 300; color: var(--dark);
+    outline: none; transition: border-color 0.2s; margin-bottom: 16px;
+  }
+  input[type=password]:focus { border-color: var(--accent); }
+  .btn-login {
+    display: block; width: 100%; padding: 15px;
+    background: var(--dark); color: white; border: none;
+    border-radius: 50px; font-family: 'Exo 2', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;
+  }
+  .btn-login:hover { background: var(--accent); }
+  .error { font-size: 12px; font-weight: 300; color: #c0392b; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <span class="logo">vere<span>very</span></span>
+  <span class="login-label">Панель управления</span>
+  <form method="POST">
+    <label for="password">Пароль</label>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <input type="password" id="password" name="password" placeholder="••••••••" autofocus>
+    <button type="submit" class="btn-login">Войти</button>
+  </form>
+</div>
+</body>
+</html>

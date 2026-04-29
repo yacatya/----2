@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Ближе — карточки для двоих{% endblock %}
+{% block title %}{{ c.page_title }}{% endblock %}
 
 {% block head %}
 <style>
@@ -61,85 +61,81 @@
 </style>
 {% endblock %}
 
-{% block nav_right %}<a href="#buy" class="nav-btn">Полный доступ</a>{% endblock %}
+{% block nav_right %}<a href="#buy" class="nav-btn">{{ c.nav_btn }}</a>{% endblock %}
 
 {% block content %}
 <section class="hero section-cream">
   <div class="hero-inner">
-    <span class="label">Начни с малого — всего одна карточка в день</span>
-    <h1 class="hero-title">Колода<br>для <em>пар.</em></h1>
-    <p class="hero-text">Говорите о важном. Чувствуйте друг друга. Будьте ближе.</p>
+    <span class="label">{{ c.hero_label }}</span>
+    <h1 class="hero-title">{{ c.hero_title }}<br>для <em>{{ c.hero_title_em }}</em></h1>
+    <p class="hero-text">{{ c.hero_text }}</p>
     <div class="hero-meta">
-      <div class="hero-meta-item"><span class="hero-dot"></span>60 карточек</div>
-      <div class="hero-meta-item"><span class="hero-dot"></span>3 блока</div>
-      <div class="hero-meta-item"><span class="hero-dot"></span>Доказательная база</div>
+      {% for item in c.hero_meta %}
+      <div class="hero-meta-item"><span class="hero-dot"></span>{{ item }}</div>
+      {% endfor %}
     </div>
-    <a href="#cards" class="btn-outline">Попробовать бесплатно</a>
+    <a href="#cards" class="btn-outline">{{ c.hero_btn }}</a>
   </div>
 </section>
 
 <section class="section-beige cards-section" id="cards">
   <div class="cards-label">
-    <span class="label">Попробуйте бесплатно</span>
-    <div class="h3">5 карточек — прямо сейчас</div>
+    <span class="label">{{ c.cards_label }}</span>
+    <div class="h3">{{ c.cards_subtitle }}</div>
   </div>
   <div class="swipe-wrap" id="swipe-wrap">
     <div class="swipe-track" id="swipe-track"></div>
   </div>
   <div class="card-num-row"><span id="card-num">1 / 5</span></div>
   <div class="dots" id="dots"></div>
-  <p class="swipe-hint">← свайп →</p>
+  <p class="swipe-hint">{{ c.swipe_hint }}</p>
 </section>
 
 <section class="section section-dark">
   <div class="section-inner">
-    <span class="label label-light">Полная версия</span>
-    <h2 class="h2" style="color:rgba(250,247,242,0.9); margin-bottom:12px;">60 карточек.<br>Три блока.</h2>
-    <p class="body-text body-text-light" style="margin-bottom:0;">Опирается на исследования Готтмана, эмоционально-фокусированную терапию Сью Джонсон, теорию привязанности и нейробиологию близости.</p>
+    <span class="label label-light">{{ c.blocks_label }}</span>
+    <h2 class="h2" style="color:rgba(250,247,242,0.9); margin-bottom:12px; white-space:pre-line;">{{ c.blocks_title }}</h2>
+    <p class="body-text body-text-light" style="margin-bottom:0;">{{ c.blocks_text }}</p>
     <div class="blocks-grid">
+      {% set block_colors = ['var(--accent)', 'var(--muted)', 'var(--light-accent)'] %}
+      {% for block in c.blocks %}
       <div class="block-item">
-        <div class="block-marker-v" style="background:var(--accent)"></div>
-        <div><div class="block-title">Действие</div><div class="block-desc">20 заданий для восстановления физического и эмоционального контакта. Прогулка, объятие, письмо, танец — малые жесты с большим смыслом.</div></div>
+        <div class="block-marker-v" style="background:{{ block_colors[loop.index0] }}"></div>
+        <div>
+          <div class="block-title">{{ block.title }}</div>
+          <div class="block-desc">{{ block.desc }}</div>
+        </div>
       </div>
-      <div class="block-item">
-        <div class="block-marker-v" style="background:var(--muted)"></div>
-        <div><div class="block-title">Вопрос</div><div class="block-desc">20 вопросов для выстраивания диалога. Мягкие, безопасные — помогают говорить о чувствах без обвинений и прийти к выводам самостоятельно.</div></div>
-      </div>
-      <div class="block-item">
-        <div class="block-marker-v" style="background:var(--light-accent)"></div>
-        <div><div class="block-title">Забота</div><div class="block-desc">20 фраз для выражения тепла и признания. Те слова, которые живут внутри — но редко произносятся вслух.</div></div>
-      </div>
+      {% endfor %}
     </div>
   </div>
 </section>
 
 <section class="section section-cream">
   <div class="section-inner">
-    <span class="label">Как это работает</span>
-    <p class="about-quote">«Отношения не ломаются в один момент. Они остывают постепенно — в рутине, в молчании, в непонимании.»</p>
-    <p class="body-text" style="margin-bottom:20px;">На каждой карточке есть кнопки-объяснения: Зачем это, что происходит в мозге, доказательная база. Вам не нужно быть готовыми. Нужно просто начать.</p>
-    <p class="about-source">Научная база: Готтман · Сью Джонсон · Боулби · КПТ · Терапия принятия</p>
+    <span class="label">{{ c.about_label }}</span>
+    <p class="about-quote">{{ c.about_quote }}</p>
+    <p class="body-text" style="margin-bottom:20px;">{{ c.about_text }}</p>
+    <p class="about-source">{{ c.about_source }}</p>
   </div>
 </section>
 
 <section class="section section-dark" id="buy">
   <div class="section-inner">
-    <span class="label label-light">Полный доступ</span>
-    <div class="price-tag">690 ₽</div>
-    <p class="price-sub">Постоянный доступ с телефона</p>
+    <span class="label label-light">{{ c.cta_label }}</span>
+    <div class="price-tag">{{ c.cta_price }}</div>
+    <p class="price-sub">{{ c.cta_price_sub }}</p>
     <div class="cta-list">
-      <div class="cta-item"><span class="cta-check">✓</span>Все 60 карточек — три блока</div>
-      <div class="cta-item"><span class="cta-check">✓</span>Свайп на телефоне — удобно и всегда под рукой</div>
-      <div class="cta-item"><span class="cta-check">✓</span>Научная база — по кнопке на каждой карточке</div>
-      <div class="cta-item"><span class="cta-check">✓</span>Без скачивания — открываете по ссылке</div>
-      <div class="cta-item"><span class="cta-check">✓</span>Доступ навсегда</div>
+      {% for item in c.cta_items %}
+      <div class="cta-item"><span class="cta-check">✓</span>{{ item }}</div>
+      {% endfor %}
     </div>
-    <a href="/buy" class="btn-accent" id="btn-buy">Получить полный доступ</a>
-    <p style="text-align:center; font-size:11px; font-weight:300; color:rgba(250,247,242,0.3); margin-top:16px;">Оплата картой или СБП · Чек автоматически</p>
+    <a href="/buy" class="btn-accent" id="btn-buy">{{ c.cta_btn }}</a>
+    <p style="text-align:center; font-size:11px; font-weight:300; color:rgba(250,247,242,0.3); margin-top:16px;">{{ c.cta_note }}</p>
   </div>
 </section>
 
-<footer>© 2024 verevery · Карточки для двоих</footer>
+<footer>{{ c.footer }}</footer>
 
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal-sheet" onclick="event.stopPropagation()">

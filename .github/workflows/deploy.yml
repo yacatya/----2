@@ -50,10 +50,16 @@ jobs:
             app/templates/buy.html \
             app/templates/cards.html \
             app/templates/auth.html \
+            app/templates/admin_login.html \
+            app/templates/admin.html \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/templates/
 
           scp -i ~/.ssh/id_rsa \
             cards_action.json cards_question.json cards_care.json \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/data/
+
+          scp -i ~/.ssh/id_rsa \
+            app/data/content.json \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/data/
 
       - name: Install deps, update service, restart
@@ -66,7 +72,10 @@ jobs:
             python3 -m venv venv 2>/dev/null || true
 
             echo "=== Ensure .env exists ==="
-            test -f .env || printf 'SECRET_KEY=verevery-change-me\n' > .env
+            if [ ! -f .env ]; then
+              printf 'SECRET_KEY=verevery-change-me\nADMIN_PASSWORD=admin123\n' > .env
+            fi
+            grep -q ADMIN_PASSWORD .env || echo 'ADMIN_PASSWORD=admin123' >> .env
 
             echo "=== Installing Flask + gunicorn ==="
             venv/bin/pip install Flask==3.0.3 gunicorn==22.0.0 --quiet

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админка — verevery</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500&family=Exo+2:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #FAF7F2; --white: #FFFFFF; --beige: #EDE6DA; --sand: #D4C8B5;
+  --dark: #2A2118; --muted: #8C7E72; --accent: #A67C52; --light-accent: #C9A97A;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--cream); font-family: 'Exo 2', sans-serif; color: var(--dark); }
+
+/* NAV */
+.admin-nav {
+  background: var(--dark); padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.admin-logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: rgba(250,247,242,0.9); }
+.admin-logo span { color: var(--light-accent); }
+.admin-nav-right { display: flex; align-items: center; gap: 12px; }
+.admin-hint { font-size: 11px; color: rgba(250,247,242,0.4); }
+.btn-logout {
+  font-size: 11px; font-weight: 400; color: rgba(250,247,242,0.5);
+  padding: 6px 14px; border-radius: 50px;
+  border: 1px solid rgba(250,247,242,0.15);
+  background: transparent; font-family: 'Exo 2', sans-serif;
+  text-decoration: none; transition: all 0.2s; cursor: pointer;
+}
+.btn-logout:hover { border-color: rgba(250,247,242,0.4); color: rgba(250,247,242,0.9); }
+
+/* TABS */
+.tabs-bar {
+  background: var(--white); border-bottom: 1px solid var(--beige);
+  padding: 0 24px; display: flex; gap: 0; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.tabs-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 14px 18px; font-size: 12px; font-weight: 400; color: var(--muted);
+  border: none; background: none; cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+  font-family: 'Exo 2', sans-serif;
+}
+.tab-btn.active { color: var(--dark); border-bottom-color: var(--accent); font-weight: 500; }
+.tab-btn:hover:not(.active) { color: var(--dark); }
+
+/* CONTENT */
+.tab-panel { display: none; padding: 28px 24px 60px; max-width: 760px; margin: 0 auto; }
+.tab-panel.active { display: block; }
+
+/* SECTION GROUPS */
+.section-group {
+  background: var(--white); border: 1px solid var(--beige);
+  border-radius: 16px; padding: 24px; margin-bottom: 16px;
+}
+.section-group-title {
+  font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 500;
+  color: var(--dark); margin-bottom: 18px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--beige);
+}
+
+/* FIELDS */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.field-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block;
+}
+.field input[type=text],
+.field textarea {
+  width: 100%; padding: 11px 14px;
+  background: var(--cream); border: 1px solid var(--beige);
+  border-radius: 12px; font-family: 'Exo 2', sans-serif;
+  font-size: 13px; font-weight: 300; color: var(--dark);
+  outline: none; transition: border-color 0.2s; resize: vertical;
+}
+.field input[type=text]:focus,
+.field textarea:focus { border-color: var(--accent); }
+.field textarea { min-height: 80px; line-height: 1.6; }
+.field textarea.tall { min-height: 120px; }
+.field textarea.short { min-height: 56px; }
+.field select {
+  padding: 11px 14px; background: var(--cream); border: 1px solid var(--beige);
+  border-radius: 12px; font-family: 'Exo 2', sans-serif;
+  font-size: 13px; font-weight: 300; color: var(--dark);
+  outline: none; cursor: pointer;
+}
+
+.fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* SAVE BTN */
+.btn-save {
+  display: inline-block; padding: 11px 28px;
+  background: var(--accent); color: white; border: none;
+  border-radius: 50px; font-family: 'Exo 2', sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s;
+  margin-top: 20px;
+}
+.btn-save:hover { background: var(--dark); }
+.btn-save:disabled { background: var(--sand); cursor: default; }
+.save-ok { display: none; font-size: 12px; font-weight: 300; color: var(--accent); margin-left: 12px; }
+.save-ok.show { display: inline; }
+.save-err { display: none; font-size: 12px; font-weight: 300; color: #c0392b; margin-left: 12px; }
+.save-err.show { display: inline; }
+
+/* ACCORDION (cards) */
+.accordion { display: flex; flex-direction: column; gap: 8px; }
+.acc-item { background: var(--white); border: 1px solid var(--beige); border-radius: 14px; overflow: hidden; }
+.acc-head {
+  padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.acc-head:hover { background: var(--cream); }
+.acc-id { font-size: 10px; letter-spacing: 1.5px; color: var(--sand); margin-right: 10px; flex-shrink: 0; }
+.acc-title { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 500; color: var(--dark); flex: 1; }
+.acc-level { font-size: 10px; color: var(--muted); margin-right: 12px; }
+.acc-arrow { font-size: 12px; color: var(--sand); transition: transform 0.2s; }
+.acc-item.open .acc-arrow { transform: rotate(180deg); }
+.acc-body { display: none; padding: 0 20px 20px; border-top: 1px solid var(--beige); }
+.acc-item.open .acc-body { display: block; }
+.acc-body .field:first-child { margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<nav class="admin-nav">
+  <span class="admin-logo">vere<span>very</span> · админка</span>
+  <div class="admin-nav-right">
+    <span class="admin-hint">Все изменения сохраняются сразу</span>
+    <a href="/admin/logout" class="btn-logout">Выйти</a>
+  </div>
+</nav>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="showTab('free')">Страница /free</button>
+  <button class="tab-btn" onclick="showTab('buy')">Страница /buy</button>
+  <button class="tab-btn" onclick="showTab('action')">Действие (20)</button>
+  <button class="tab-btn" onclick="showTab('question')">Вопрос (20)</button>
+  <button class="tab-btn" onclick="showTab('care')">Забота (20)</button>
+</div>
+
+<!-- ═══════════════ TAB: /free ═══════════════ -->
+<div class="tab-panel active" id="tab-free">
+
+  <div class="section-group">
+    <div class="section-group-title">Герой (самый верх страницы)</div>
+    <div class="field"><span class="field-label">Надзаголовок</span>
+      <input type="text" data-page="free" data-field="hero_label" value="{{ content.free.hero_label }}"></div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Заголовок</span>
+        <input type="text" data-page="free" data-field="hero_title" value="{{ content.free.hero_title }}"></div>
+      <div class="field"><span class="field-label">Курсив после «для»</span>
+        <input type="text" data-page="free" data-field="hero_title_em" value="{{ content.free.hero_title_em }}"></div>
+    </div>
+    <div class="field"><span class="field-label">Подзаголовок</span>
+      <input type="text" data-page="free" data-field="hero_text" value="{{ content.free.hero_text }}"></div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Метка 1</span>
+        <input type="text" data-page="free" data-field="hero_meta.0" value="{{ content.free.hero_meta[0] }}"></div>
+      <div class="field"><span class="field-label">Метка 2</span>
+        <input type="text" data-page="free" data-field="hero_meta.1" value="{{ content.free.hero_meta[1] }}"></div>
+    </div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Метка 3</span>
+        <input type="text" data-page="free" data-field="hero_meta.2" value="{{ content.free.hero_meta[2] }}"></div>
+      <div class="field"><span class="field-label">Кнопка «Попробовать»</span>
+        <input type="text" data-page="free" data-field="hero_btn" value="{{ content.free.hero_btn }}"></div>
+    </div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Раздел карточек</div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Надпись над карточками</span>
+        <input type="text" data-page="free" data-field="cards_label" value="{{ content.free.cards_label }}"></div>
+      <div class="field"><span class="field-label">Подзаголовок</span>
+        <input type="text" data-page="free" data-field="cards_subtitle" value="{{ content.free.cards_subtitle }}"></div>
+    </div>
+    <div class="field"><span class="field-label">Подсказка свайпа</span>
+      <input type="text" data-page="free" data-field="swipe_hint" value="{{ content.free.swipe_hint }}"></div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Тёмный раздел «60 карточек»</div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Надзаголовок</span>
+        <input type="text" data-page="free" data-field="blocks_label" value="{{ content.free.blocks_label }}"></div>
+    </div>
+    <div class="field"><span class="field-label">Заголовок (каждая строка с новой)</span>
+      <textarea class="short" data-page="free" data-field="blocks_title">{{ content.free.blocks_title }}</textarea></div>
+    <div class="field"><span class="field-label">Текст под заголовком</span>
+      <textarea data-page="free" data-field="blocks_text">{{ content.free.blocks_text }}</textarea></div>
+    {% set bcolors = ['Действие', 'Вопрос', 'Забота'] %}
+    {% for i in range(3) %}
+    <div class="section-group" style="background:var(--cream); margin-top:12px; margin-bottom:0;">
+      <div class="section-group-title" style="font-size:14px;">Блок: {{ bcolors[i] }}</div>
+      <div class="field"><span class="field-label">Название блока</span>
+        <input type="text" data-page="free" data-field="blocks.{{ i }}.title" value="{{ content.free.blocks[i].title }}"></div>
+      <div class="field"><span class="field-label">Описание</span>
+        <textarea class="short" data-page="free" data-field="blocks.{{ i }}.desc">{{ content.free.blocks[i].desc }}</textarea></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Раздел «Как это работает»</div>
+    <div class="field"><span class="field-label">Надзаголовок</span>
+      <input type="text" data-page="free" data-field="about_label" value="{{ content.free.about_label }}"></div>
+    <div class="field"><span class="field-label">Цитата</span>
+      <textarea class="short" data-page="free" data-field="about_quote">{{ content.free.about_quote }}</textarea></div>
+    <div class="field"><span class="field-label">Текст</span>
+      <textarea data-page="free" data-field="about_text">{{ content.free.about_text }}</textarea></div>
+    <div class="field"><span class="field-label">Источники</span>
+      <input type="text" data-page="free" data-field="about_source" value="{{ content.free.about_source }}"></div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Тёмный раздел «Оплата»</div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Надзаголовок</span>
+        <input type="text" data-page="free" data-field="cta_label" value="{{ content.free.cta_label }}"></div>
+      <div class="field"><span class="field-label">Цена</span>
+        <input type="text" data-page="free" data-field="cta_price" value="{{ content.free.cta_price }}"></div>
+    </div>
+    <div class="field"><span class="field-label">Подпись к цене</span>
+      <input type="text" data-page="free" data-field="cta_price_sub" value="{{ content.free.cta_price_sub }}"></div>
+    {% for i in range(content.free.cta_items | length) %}
+    <div class="field"><span class="field-label">Пункт списка {{ i + 1 }}</span>
+      <input type="text" data-page="free" data-field="cta_items.{{ i }}" value="{{ content.free.cta_items[i] }}"></div>
+    {% endfor %}
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Текст кнопки</span>
+        <input type="text" data-page="free" data-field="cta_btn" value="{{ content.free.cta_btn }}"></div>
+      <div class="field"><span class="field-label">Примечание под кнопкой</span>
+        <input type="text" data-page="free" data-field="cta_note" value="{{ content.free.cta_note }}"></div>
+    </div>
+    <div class="field"><span class="field-label">Футер</span>
+      <input type="text" data-page="free" data-field="footer" value="{{ content.free.footer }}"></div>
+  </div>
+
+  <button class="btn-save" onclick="savePage('free', this)">Сохранить /free</button>
+  <span class="save-ok" id="ok-free">✓ Сохранено</span>
+  <span class="save-err" id="err-free">Ошибка сохранения</span>
+</div>
+
+<!-- ═══════════════ TAB: /buy ═══════════════ -->
+<div class="tab-panel" id="tab-buy">
+
+  <div class="section-group">
+    <div class="section-group-title">Заголовок страницы</div>
+    <div class="field"><span class="field-label">Надзаголовок (маленький над заголовком)</span>
+      <input type="text" data-page="buy" data-field="label" value="{{ content.buy.label }}"></div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Заголовок</span>
+        <input type="text" data-page="buy" data-field="title" value="{{ content.buy.title }}"></div>
+      <div class="field"><span class="field-label">Курсив после «для»</span>
+        <input type="text" data-page="buy" data-field="title_em" value="{{ content.buy.title_em }}"></div>
+    </div>
+    <div class="field"><span class="field-label">Кнопка «← Назад» в навигации</span>
+      <input type="text" data-page="buy" data-field="nav_back" value="{{ content.buy.nav_back }}"></div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Бежевый блок «Почему это работает»</div>
+    <div class="field"><span class="field-label">Надзаголовок блока</span>
+      <input type="text" data-page="buy" data-field="why_label" value="{{ content.buy.why_label }}"></div>
+    <div class="field"><span class="field-label">Заголовок блока</span>
+      <input type="text" data-page="buy" data-field="why_title" value="{{ content.buy.why_title }}"></div>
+    <div class="field"><span class="field-label">Текст</span>
+      <textarea data-page="buy" data-field="why_text">{{ content.buy.why_text }}</textarea></div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Тёмный блок «Цена»</div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Надпись «Стоимость»</span>
+        <input type="text" data-page="buy" data-field="price_label" value="{{ content.buy.price_label }}"></div>
+      <div class="field"><span class="field-label">Цена</span>
+        <input type="text" data-page="buy" data-field="price" value="{{ content.buy.price }}"></div>
+    </div>
+    <div class="field"><span class="field-label">Примечание к цене</span>
+      <input type="text" data-page="buy" data-field="price_note" value="{{ content.buy.price_note }}"></div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Список «Что входит»</div>
+    {% for i in range(content.buy.includes | length) %}
+    <div class="section-group" style="background:var(--cream); margin-bottom:10px;">
+      <div class="section-group-title" style="font-size:13px;">Пункт {{ i + 1 }}</div>
+      <div class="field"><span class="field-label">Жирная часть</span>
+        <input type="text" data-page="buy" data-field="includes.{{ i }}.title" value="{{ content.buy.includes[i].title }}"></div>
+      <div class="field"><span class="field-label">Обычный текст</span>
+        <input type="text" data-page="buy" data-field="includes.{{ i }}.text" value="{{ content.buy.includes[i].text }}"></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Email и кнопка оплаты</div>
+    <div class="field"><span class="field-label">Подпись над полем email</span>
+      <input type="text" data-page="buy" data-field="email_label" value="{{ content.buy.email_label }}"></div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Плейсхолдер email</span>
+        <input type="text" data-page="buy" data-field="email_placeholder" value="{{ content.buy.email_placeholder }}"></div>
+      <div class="field"><span class="field-label">Текст кнопки</span>
+        <input type="text" data-page="buy" data-field="btn_text" value="{{ content.buy.btn_text }}"></div>
+    </div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-group-title">Футер</div>
+    <div class="fields-row">
+      <div class="field"><span class="field-label">Ссылка назад</span>
+        <input type="text" data-page="buy" data-field="footer_back" value="{{ content.buy.footer_back }}"></div>
+      <div class="field"><span class="field-label">Текст футера</span>
+        <input type="text" data-page="buy" data-field="footer" value="{{ content.buy.footer }}"></div>
+    </div>
+  </div>
+
+  <button class="btn-save" onclick="savePage('buy', this)">Сохранить /buy</button>
+  <span class="save-ok" id="ok-buy">✓ Сохранено</span>
+  <span class="save-err" id="err-buy">Ошибка сохранения</span>
+</div>
+
+<!-- ═══════════════ TAB: CARDS ═══════════════ -->
+{% for block_key, block_cards in blocks.items() %}
+<div class="tab-panel" id="tab-{{ block_key }}">
+  <div class="accordion">
+    {% for card in block_cards %}
+    <div class="acc-item" id="acc-{{ card.id }}">
+      <div class="acc-head" onclick="toggleAcc('{{ card.id }}')">
+        <span class="acc-id">{{ card.id }}</span>
+        <span class="acc-title">{{ card.title if card.title else card.text[:60] }}...</span>
+        <span class="acc-level">{{ card.level }}</span>
+        <span class="acc-arrow">▼</span>
+      </div>
+      <div class="acc-body">
+        <div class="field"><span class="field-label">Название карточки</span>
+          <input type="text" id="f-{{ card.id }}-title" value="{{ card.title }}"></div>
+        <div class="field"><span class="field-label">Уровень</span>
+          <select id="f-{{ card.id }}-level">
+            <option {% if card.level == 'Лёгкий' %}selected{% endif %}>Лёгкий</option>
+            <option {% if card.level == 'Средний' %}selected{% endif %}>Средний</option>
+            <option {% if card.level == 'Глубокий' %}selected{% endif %}>Глубокий</option>
+          </select></div>
+        <div class="field"><span class="field-label">Текст карточки</span>
+          <textarea class="tall" id="f-{{ card.id }}-text">{{ card.text }}</textarea></div>
+        <div class="field"><span class="field-label">Подсказка (курсив снизу, можно пусто)</span>
+          <textarea class="short" id="f-{{ card.id }}-hint">{{ card.hint }}</textarea></div>
+        <div class="field"><span class="field-label">Зачем это (кнопка на карточке)</span>
+          <textarea id="f-{{ card.id }}-why">{{ card.why }}</textarea></div>
+        <div class="field"><span class="field-label">Мозг (каждый пункт с новой строки)</span>
+          <textarea class="tall" id="f-{{ card.id }}-brain">{{ card.brain | join('\n') }}</textarea></div>
+        <div class="field"><span class="field-label">Наука</span>
+          <textarea id="f-{{ card.id }}-science">{{ card.science }}</textarea></div>
+        <div class="field"><span class="field-label">К чему приведёт</span>
+          <textarea id="f-{{ card.id }}-result">{{ card.result }}</textarea></div>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:16px;">
+          <button class="btn-save" style="margin-top:0" onclick="saveCard('{{ block_key }}', '{{ card.id }}', this)">Сохранить</button>
+          <span class="save-ok" id="ok-{{ card.id }}">✓ Сохранено</span>
+          <span class="save-err" id="err-{{ card.id }}">Ошибка</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function toggleAcc(id) {
+  var item = document.getElementById('acc-' + id);
+  item.classList.toggle('open');
+}
+
+function savePage(page, btn) {
+  var inputs = document.querySelectorAll('#tab-' + page + ' [data-page="' + page + '"]');
+  var ok = document.getElementById('ok-' + page);
+  var err = document.getElementById('err-' + page);
+  btn.disabled = true;
+  var saves = Array.from(inputs).map(function(el) {
+    var field = el.dataset.field;
+    var value = el.tagName === 'TEXTAREA' ? el.value : el.value;
+    return fetch('/admin/save-content', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({page: page, field: field, value: value})
+    }).then(function(r) { return r.json(); });
+  });
+  Promise.all(saves).then(function(results) {
+    btn.disabled = false;
+    var allOk = results.every(function(r) { return r.ok; });
+    ok.style.display = allOk ? 'inline' : 'none';
+    err.style.display = allOk ? 'none' : 'inline';
+    if (allOk) { ok.classList.add('show'); setTimeout(function() { ok.classList.remove('show'); ok.style.display='none'; }, 2500); }
+  }).catch(function() {
+    btn.disabled = false;
+    ok.style.display = 'none';
+    err.style.display = 'inline';
+  });
+}
+
+function saveCard(block, id, btn) {
+  var ok = document.getElementById('ok-' + id);
+  var err = document.getElementById('err-' + id);
+  btn.disabled = true;
+  var data = {
+    block: block, id: id,
+    title:   document.getElementById('f-' + id + '-title').value,
+    level:   document.getElementById('f-' + id + '-level').value,
+    text:    document.getElementById('f-' + id + '-text').value,
+    hint:    document.getElementById('f-' + id + '-hint').value,
+    why:     document.getElementById('f-' + id + '-why').value,
+    brain:   document.getElementById('f-' + id + '-brain').value,
+    science: document.getElementById('f-' + id + '-science').value,
+    result:  document.getElementById('f-' + id + '-result').value
+  };
+  fetch('/admin/save-card', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  }).then(function(r) { return r.json(); })
+  .then(function(r) {
+    btn.disabled = false;
+    if (r.ok) {
+      ok.style.display = 'inline'; err.style.display = 'none';
+      setTimeout(function() { ok.style.display = 'none'; }, 2500);
+    } else {
+      ok.style.display = 'none'; err.style.display = 'inline';
+    }
+  }).catch(function() {
+    btn.disabled = false;
+    ok.style.display = 'none'; err.style.display = 'inline';
+  });
+}
+</script>
+</body>
+</html>
