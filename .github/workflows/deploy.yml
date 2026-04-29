@@ -41,7 +41,7 @@ jobs:
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/
 
           scp -i ~/.ssh/id_rsa \
-            app/__init__.py app/routes.py app/db.py \
+            app/__init__.py app/routes.py app/db.py app/sheets.py \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/
 
           scp -i ~/.ssh/id_rsa \
@@ -81,9 +81,14 @@ jobs:
             sed -i '/^RESEND_FROM/d' .env
             echo 'RESEND_FROM=onboarding@resend.dev' >> .env
             grep -q BASE_URL .env || echo 'BASE_URL=https://verevery.ru' >> .env
+            grep -q YUKASSA_SHOP_ID .env || echo 'YUKASSA_SHOP_ID=placeholder' >> .env
+            grep -q YUKASSA_SECRET_KEY .env || echo 'YUKASSA_SECRET_KEY=placeholder' >> .env
+            grep -q GOOGLE_SHEET_ID .env || echo 'GOOGLE_SHEET_ID=placeholder' >> .env
+            grep -q GOOGLE_CREDENTIALS_JSON .env || echo "GOOGLE_CREDENTIALS_JSON='{}'" >> .env
 
             echo "=== Installing dependencies ==="
-            venv/bin/pip install Flask==3.0.3 gunicorn==22.0.0 resend==2.4.0 --quiet
+            venv/bin/pip install Flask==3.0.3 gunicorn==22.0.0 resend==2.4.0 \
+              google-api-python-client==2.131.0 google-auth==2.29.0 --quiet
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true

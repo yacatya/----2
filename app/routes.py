@@ -209,6 +209,74 @@ def auth_logout():
     session.pop('user_email', None)
     return redirect(url_for('main.free'))
 
+# ── Webhook ЮКассы ───────────────────────────────────────────
+
+def _yukassa_fetch_payment(payment_id):
+    """Получить платёж из ЮКассы по ID для верификации."""
+    import base64
+    import urllib.request
+    shop_id = os.environ.get('YUKASSA_SHOP_ID', '')
+    secret_key = os.environ.get('YUKASSA_SECRET_KEY', '')
+    if not shop_id or not secret_key:
+        return None
+    token = base64.b64encode(f"{shop_id}:{secret_key}".encode()).decode()
+    req = urllib.request.Request(
+        f"https://api.yookassa.ru/v3/payments/{payment_id}",
+        headers={"Authorization": f"Basic {token}", "Content-Type": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        print(f"YuKassa API error: {e}")
+        return None
+
+@main.route('/webhook/payment', methods=['POST'])
+def webhook_payment():
+    from .db import get_db
+    from .sheets import append_sale
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'ok': False}), 400
+
+    event = data.get('event', '')
+    obj = data.get('object', {})
+    payment_id = obj.get('id', '')
+
+    if event != 'payment.succeeded' or not payment_id:
+        return jsonify({'ok': True})  # не наше событие — отвечаем 200
+
+    # Верифицируем через API ЮКассы
+    payment = _yukassa_fetch_payment(payment_id)
+    if not payment or payment.get('status') != 'succeeded':
+        return jsonify({'ok': False, 'error': 'payment not verified'}), 400
+
+    metadata = payment.get('metadata', {})
+    email = metadata.get('email', '').strip().lower()
+    utm = metadata.get('utm_source', 'direct') or 'direct'
+    amount = payment.get('amount', {}).get('value', '690.00')
+
+    if not email:
+        print(f"Webhook: no email in metadata for payment {payment_id}")
+        return jsonify({'ok': False, 'error': 'no email'}), 400
+
+    # Создаём или обновляем пользователя в БД
+    db = get_db()
+    db.execute("INSERT OR IGNORE INTO users (email) VALUES (?)", (email,))
+    db.execute(
+        "UPDATE users SET paid_at = CURRENT_TIMESTAMP WHERE email = ? AND paid_at IS NULL",
+        (email,)
+    )
+    db.commit()
+    db.close()
+
+    # Записываем в Google Sheets
+    append_sale(email, utm, amount)
+
+    print(f"Webhook OK: {email}, utm={utm}, amount={amount}")
+    return jsonify({'ok': True})
+
 # ── Admin routes ────────────────────────────────────────────
 
 @main.route('/admin/login', methods=['GET', 'POST'])
