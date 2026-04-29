@@ -3,7 +3,7 @@ name: Deploy - verevery.ru
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, claude/setup-project-structure-xxKDy]
     paths:
       - 'run.py'
       - 'requirements.txt'
@@ -61,6 +61,12 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash << 'ENDSSH'
             set -e
             cd /opt/verevery
+
+            echo "=== Ensure venv exists ==="
+            python3 -m venv venv 2>/dev/null || true
+
+            echo "=== Ensure .env exists ==="
+            test -f .env || printf 'SECRET_KEY=verevery-change-me\n' > .env
 
             echo "=== Installing Flask + gunicorn ==="
             venv/bin/pip install Flask==3.0.3 gunicorn==22.0.0 --quiet
