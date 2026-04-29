@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Ближе — карточки{% endblock %}
+{% block body_class %}app-mode{% endblock %}
+
+{% block head %}
+<style>
+  .nav-app {
+    position: static;
+    background: rgba(250,247,242,0.96); backdrop-filter: blur(16px);
+    padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid var(--beige);
+  }
+  .nav-back-btn {
+    font-size: 12px; font-weight: 400; color: var(--muted); cursor: pointer;
+    padding: 6px 14px; border: 1px solid var(--sand); border-radius: 50px;
+    background: transparent; font-family: 'Exo 2', sans-serif; transition: all 0.2s;
+    display: none;
+  }
+  .nav-back-btn.visible { display: inline-block; }
+  .nav-back-btn:active { background: var(--dark); color: white; border-color: var(--dark); }
+
+  .screen-blocks { flex: 1; overflow-y: auto; padding: 28px 20px 32px; display: flex; flex-direction: column; }
+  .screen-label { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--sand); margin-bottom: 8px; }
+  .screen-title { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 500; line-height: 1.15; color: var(--dark); margin-bottom: 6px; }
+  .screen-title em { color: var(--accent); font-style: italic; }
+  .screen-sub { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.65; margin-bottom: 32px; }
+  .block-cards { display: flex; flex-direction: column; gap: 12px; }
+  .block-card {
+    background: var(--white); border: 1px solid var(--beige); border-radius: 20px;
+    padding: 20px 18px; cursor: pointer; display: flex; align-items: center;
+    justify-content: space-between; box-shadow: 0 2px 16px rgba(42,33,24,0.05); transition: transform 0.15s;
+  }
+  .block-card:active { transform: scale(0.98); }
+  .block-left { display: flex; align-items: center; gap: 14px; }
+  .block-marker { width: 6px; height: 36px; border-radius: 3px; flex-shrink: 0; }
+  .marker-action { background: var(--accent); }
+  .marker-question { background: var(--muted); }
+  .marker-care { background: var(--light-accent); }
+  .block-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--dark); }
+  .block-count { font-size: 11px; font-weight: 300; color: var(--muted); margin-top: 2px; }
+  .block-arrow { color: var(--sand); font-size: 22px; }
+
+  .screen-card { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+  .screen-card.active { display: flex; }
+  .swipe-container { flex: 1; overflow: hidden; position: relative; padding: 20px 20px 0; }
+  .cards-track { display: flex; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
+  .card-slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; }
+  .card-block-label {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-block-dot { width: 20px; height: 4px; border-radius: 2px; display: inline-block; }
+  .card-main {
+    background: var(--white); border: 1px solid var(--beige); border-radius: 24px;
+    padding: 26px 22px; box-shadow: 0 2px 24px rgba(42,33,24,0.07);
+    flex: 1; display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .card-level { font-size: 10px; font-weight: 400; color: var(--sand); margin-bottom: 16px; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
+  .level-pip { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .level-easy { background: var(--light-accent); }
+  .level-medium { background: var(--accent); }
+  .level-deep { background: var(--dark); }
+  .card-text { font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 500; line-height: 1.42; color: var(--dark); flex: 1; display: flex; align-items: center; }
+  .card-hint { font-size: 12px; font-weight: 300; color: var(--muted); font-style: italic; line-height: 1.65; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--beige); }
+  .card-num { position: absolute; bottom: 18px; right: 20px; font-size: 11px; font-weight: 300; color: var(--sand); letter-spacing: 1px; }
+
+  .nav-dots { display: flex; justify-content: center; gap: 5px; padding: 14px 0 6px; flex-shrink: 0; }
+  .dot { height: 6px; border-radius: 3px; background: var(--sand); transition: all 0.3s; width: 6px; }
+  .dot.active { width: 20px; background: var(--dark); }
+  .swipe-hint-bar { text-align: center; font-size: 10px; font-weight: 300; color: var(--sand); padding-bottom: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
+
+  .info-buttons { display: flex; gap: 8px; padding: 8px 20px 18px; background: var(--cream); flex-shrink: 0; }
+  .btn-info {
+    flex: 1; padding: 11px 4px; border-radius: 50px; border: 1px solid var(--sand);
+    background: transparent; font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 500;
+    letter-spacing: 0.3px; color: var(--dark); cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .btn-info.active { background: var(--dark); color: white; border-color: var(--dark); }
+</style>
+{% endblock %}
+
+{% block nav %}
+<div class="nav-app">
+  <div class="logo">vere<span>very</span></div>
+  <button class="nav-back-btn" id="btn-back" onclick="showBlocks()">← Блоки</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="screen-blocks" id="screen-blocks">
+  <div class="screen-label">Начни с одной карточки в день</div>
+  <div class="screen-title">Колода для <em>пар</em></div>
+  <div class="screen-sub">Выберите блок — и листайте карточки свайпом</div>
+  <div class="block-cards">
+    <div class="block-card" onclick="showCards('action')">
+      <div class="block-left"><div class="block-marker marker-action"></div><div><div class="block-name">Действие</div><div class="block-count">20 карточек</div></div></div>
+      <div class="block-arrow">›</div>
+    </div>
+    <div class="block-card" onclick="showCards('question')">
+      <div class="block-left"><div class="block-marker marker-question"></div><div><div class="block-name">Вопрос</div><div class="block-count">20 карточек</div></div></div>
+      <div class="block-arrow">›</div>
+    </div>
+    <div class="block-card" onclick="showCards('care')">
+      <div class="block-left"><div class="block-marker marker-care"></div><div><div class="block-name">Забота</div><div class="block-count">20 карточек</div></div></div>
+      <div class="block-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<div class="screen-card" id="screen-card">
+  <div class="swipe-container" id="swipe-container">
+    <div class="cards-track" id="cards-track"></div>
+  </div>
+  <div class="nav-dots" id="nav-dots"></div>
+  <div class="swipe-hint-bar">← свайп →</div>
+  <div class="info-buttons">
+    <button class="btn-info" onclick="openModal('why',this)">Зачем это</button>
+    <button class="btn-info" onclick="openModal('brain',this)">Мозг</button>
+    <button class="btn-info" onclick="openModal('science',this)">Наука</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-text" id="modal-body"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var BLOCKS = {{ blocks | tojson }};
+var currentBlock = null;
+var currentIndex = 0;
+var startX = 0;
+
+function levelClass(level) {
+  if (level === 'Лёгкий') return 'level-easy';
+  if (level === 'Средний') return 'level-medium';
+  return 'level-deep';
+}
+
+function brainHtml(brain) {
+  if (!Array.isArray(brain)) return '<div class="modal-item">' + brain + '</div>';
+  return brain.map(function(item) {
+    var parts = item.split(' — ');
+    if (parts.length > 1) {
+      return '<div class="modal-item"><strong>' + parts[0] + '</strong> — ' + parts.slice(1).join(' — ') + '</div>';
+    }
+    return '<div class="modal-item">' + item + '</div>';
+  }).join('');
+}
+
+function showBlocks() {
+  document.getElementById('screen-blocks').style.display = 'flex';
+  document.getElementById('screen-card').classList.remove('active');
+  document.getElementById('btn-back').classList.remove('visible');
+  currentBlock = null;
+  closeModalSilent();
+}
+
+function showCards(blockKey) {
+  currentBlock = blockKey;
+  currentIndex = 0;
+  var block = BLOCKS[blockKey];
+  var track = document.getElementById('cards-track');
+  var dots = document.getElementById('nav-dots');
+  track.innerHTML = '';
+  dots.innerHTML = '';
+  var total = block.cards.length;
+  block.cards.forEach(function(card, i) {
+    var slide = document.createElement('div');
+    slide.className = 'card-slide';
+    slide.innerHTML =
+      '<div class="card-block-label" style="color:' + block.color + '">' +
+        '<span class="card-block-dot" style="background:' + block.color + '"></span>' +
+        block.label +
+      '</div>' +
+      '<div class="card-main">' +
+        '<div class="card-level"><span class="level-pip ' + levelClass(card.level) + '"></span>' + card.level + '</div>' +
+        '<div class="card-text"><span>' + card.text + '</span></div>' +
+        (card.hint ? '<div class="card-hint">' + card.hint + '</div>' : '') +
+        '<div class="card-num">' + (i + 1) + ' / ' + total + '</div>' +
+      '</div>';
+    track.appendChild(slide);
+    var dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dots.appendChild(dot);
+  });
+  document.getElementById('screen-blocks').style.display = 'none';
+  document.getElementById('screen-card').classList.add('active');
+  document.getElementById('btn-back').classList.add('visible');
+  updateTrack();
+}
+
+function updateTrack() {
+  document.getElementById('cards-track').style.transform = 'translateX(-' + (currentIndex * 100) + '%)';
+  document.querySelectorAll('#nav-dots .dot').forEach(function(d, i) {
+    d.classList.toggle('active', i === currentIndex);
+  });
+}
+
+function goToCard(index) {
+  if (!currentBlock) return;
+  var total = BLOCKS[currentBlock].cards.length;
+  if (index < 0 || index >= total) return;
+  currentIndex = index;
+  updateTrack();
+  closeModalSilent();
+  document.querySelectorAll('.btn-info').forEach(function(b) { b.classList.remove('active'); });
+}
+
+var container = document.getElementById('swipe-container');
+container.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
+container.addEventListener('touchend', function(e) {
+  var diff = startX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 48) {
+    if (diff > 0) goToCard(currentIndex + 1);
+    else goToCard(currentIndex - 1);
+  }
+}, { passive: true });
+
+function openModal(type, btn) {
+  if (!currentBlock) return;
+  var card = BLOCKS[currentBlock].cards[currentIndex];
+  var titles = { why: 'Зачем это', brain: 'Что происходит в мозге', science: 'Научная база' };
+  var body = '';
+  if (type === 'why') {
+    body = '<div class="modal-item">' + card.why + '</div>';
+  } else if (type === 'brain') {
+    body = brainHtml(card.brain);
+  } else {
+    body = '<div class="modal-item">' + card.science + '</div>';
+    if (card.result) body += '<div class="modal-result">' + card.result + '</div>';
+  }
+  document.getElementById('modal-title').textContent = titles[type];
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal').classList.add('open');
+  document.querySelectorAll('.btn-info').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) closeModalSilent();
+}
+function closeModalSilent() {
+  document.getElementById('modal').classList.remove('open');
+  document.querySelectorAll('.btn-info').forEach(function(b) { b.classList.remove('active'); });
+}
+</script>
+{% endblock %}
