@@ -13,14 +13,18 @@
   .field-label { font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
   .field-input {
     width: 100%; padding: 14px 18px; margin-bottom: 16px;
-    background: var(--white); border: 1px solid var(--beige);
+    background: var(--cream); border: 1px solid var(--beige);
     border-radius: 12px; font-family: 'Exo 2', sans-serif;
     font-size: 15px; font-weight: 300; color: var(--dark);
-    outline: none; transition: border-color 0.2s;
+    outline: none; transition: border-color 0.2s; box-sizing: border-box;
   }
   .field-input:focus { border-color: var(--accent); }
   .field-input::placeholder { color: var(--sand); }
   .auth-note { font-size: 11px; font-weight: 300; color: var(--sand); text-align: center; margin-top: 14px; line-height: 1.6; }
+  .auth-error { font-size: 12px; color: #c0392b; background: #fdf0ef; border: 1px solid #f5c6c3; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; text-align: center; }
+  .sent-email { font-weight: 500; color: var(--dark); word-break: break-all; }
+  .auth-link { font-size: 12px; color: var(--muted); text-align: center; margin-top: 20px; }
+  .auth-link a { color: var(--accent); text-decoration: none; }
 </style>
 {% endblock %}
 
@@ -30,23 +34,38 @@
 <div class="auth-page">
   <div class="auth-inner">
     <div class="auth-logo">vere<span>very</span></div>
-    <h1 class="auth-title">Вход</h1>
-    <p class="auth-sub">Введите номер телефона — мы отправим код для входа</p>
-    <div class="auth-card">
-      <label class="field-label">Номер телефона</label>
-      <input class="field-input" type="tel" placeholder="+7 900 000 00 00" id="phone-input">
-      <a href="#" class="btn-primary" id="btn-send">Получить код</a>
-      <p class="auth-note">Код действует 10 минут</p>
-    </div>
+
+    {% if sent %}
+      <h1 class="auth-title">Проверьте почту</h1>
+      <p class="auth-sub">&nbsp;</p>
+      <div class="auth-card" style="text-align:center;">
+        <p style="font-size:15px;font-weight:300;color:var(--muted);line-height:1.75;margin:0 0 6px;">
+          Мы отправили ссылку для входа на<br>
+          <span class="sent-email">{{ email }}</span>
+        </p>
+        <p style="font-size:12px;font-weight:300;color:var(--sand);margin-top:16px;line-height:1.6;">
+          Ссылка действует 30 минут.<br>
+          Если письмо не пришло — проверьте папку «Спам».
+        </p>
+      </div>
+      <p class="auth-link">Ввели неверный email? <a href="/auth">Попробовать снова</a></p>
+
+    {% else %}
+      <h1 class="auth-title">Вход</h1>
+      <p class="auth-sub">Введите email — мы пришлём ссылку для входа</p>
+      <div class="auth-card">
+        {% if error %}
+          <div class="auth-error">{{ error }}</div>
+        {% endif %}
+        <form method="POST" action="/auth">
+          <label class="field-label" for="email-input">Email</label>
+          <input class="field-input" type="email" id="email-input" name="email"
+                 placeholder="your@email.com" required autocomplete="email">
+          <button type="submit" class="btn-primary">Получить ссылку для входа</button>
+        </form>
+        <p class="auth-note">Ссылка действует 30 минут</p>
+      </div>
+    {% endif %}
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.getElementById('btn-send').addEventListener('click', function(e) {
-  e.preventDefault();
-  alert('Авторизация будет подключена на Этапе 5');
-});
-</script>
 {% endblock %}
