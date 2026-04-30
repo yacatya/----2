@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Политика конфиденциальности — verevery{% endblock %}
+
+{% block head %}
+<style>
+  .doc-page { padding: 100px 20px 60px; }
+  .doc-inner { max-width: 680px; margin: 0 auto; }
+  .doc-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 500; color: var(--dark); margin-bottom: 8px; }
+  .doc-date { font-size: 12px; font-weight: 300; color: var(--sand); margin-bottom: 40px; }
+  h2 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--dark); margin: 32px 0 12px; }
+  p { font-size: 14px; font-weight: 300; line-height: 1.8; color: var(--muted); margin-bottom: 12px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { font-size: 14px; font-weight: 300; line-height: 1.8; color: var(--muted); margin-bottom: 6px; }
+  .doc-section { border-top: 1px solid var(--beige); padding-top: 24px; margin-top: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="doc-page">
+  <div class="doc-inner">
+    <h1 class="doc-title">Политика конфиденциальности</h1>
+    <p class="doc-date">Редакция от 1 января 2025 г.</p>
+
+    <div class="doc-section">
+      <h2>1. Общие положения</h2>
+      <p>Настоящая политика конфиденциальности описывает, как verevery.ru собирает, использует и защищает персональные данные пользователей.</p>
+      <p>Используя сайт verevery.ru, вы соглашаетесь с условиями настоящей политики.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>2. Какие данные мы собираем</h2>
+      <ul>
+        <li>Адрес электронной почты (email) — для отправки ссылки доступа</li>
+        <li>Данные об оплате — обрабатываются платёжным сервисом ЮKassa, мы не храним данные карт</li>
+        <li>UTM-метки — для учёта источника перехода, хранятся в cookie 60 дней</li>
+        <li>Технические данные (IP, браузер) — автоматически, для безопасности</li>
+      </ul>
+    </div>
+
+    <div class="doc-section">
+      <h2>3. Как мы используем данные</h2>
+      <ul>
+        <li>Отправка ссылки для входа на email</li>
+        <li>Предоставление и поддержка доступа к продукту</li>
+        <li>Отправка чека об оплате (через ЮKassa)</li>
+        <li>Анализ источников трафика для расчёта партнёрских комиссий</li>
+      </ul>
+      <p>Мы не продаём и не передаём ваши данные третьим лицам, за исключением случаев, предусмотренных законом.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>4. Cookie</h2>
+      <p>Сайт использует cookie для хранения данных сессии и UTM-меток. Вы можете отключить cookie в настройках браузера, однако это может повлиять на работу сервиса.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>5. Хранение данных</h2>
+      <p>Email-адреса хранятся в защищённой базе данных на сервере в России. Данные хранятся в течение всего срока действия вашего доступа к продукту и 3 лет после его окончания в соответствии с требованиями законодательства.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>6. Ваши права</h2>
+      <p>Вы вправе запросить удаление своих данных, написав на hello@verevery.ru. Удаление данных влечёт прекращение доступа к продукту.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>7. Контакты</h2>
+      <p>По вопросам обработки персональных данных: hello@verevery.ru</p>
+      <p>ИНН самозанятого: 773373846268</p>
+    </div>
+  </div>
+</div>
+<footer style="padding:20px; text-align:center; font-size:11px; font-weight:300; color:var(--sand); border-top:1px solid var(--beige);">
+  <a href="/free" style="color:var(--sand); text-decoration:none;">← На главную</a> &nbsp;·&nbsp; © 2025 verevery
+</footer>
+{% endblock %}
