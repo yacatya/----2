@@ -81,7 +81,7 @@ jobs:
             sed -i '/^RESEND_API_KEY/d' .env
             echo 'RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}' >> .env
             sed -i '/^RESEND_FROM/d' .env
-            echo 'RESEND_FROM=onboarding@resend.dev' >> .env
+            echo 'RESEND_FROM=noreply@verevery.ru' >> .env
             grep -q BASE_URL .env || echo 'BASE_URL=https://verevery.ru' >> .env
             grep -q YUKASSA_SHOP_ID .env || echo 'YUKASSA_SHOP_ID=placeholder' >> .env
             grep -q YUKASSA_SECRET_KEY .env || echo 'YUKASSA_SECRET_KEY=placeholder' >> .env
