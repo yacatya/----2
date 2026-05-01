@@ -107,10 +107,32 @@
 
 {% block scripts %}
 <script>
+// Сохраняем UTM при заходе
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var utm = p.get('utm');
+  if (utm) {
+    var exp = new Date(); exp.setDate(exp.getDate() + 60);
+    document.cookie = 'utm_source=' + utm + '; expires=' + exp.toUTCString() + '; path=/';
+  }
+})();
+
 function getUtm() {
   var m = document.cookie.match(/utm_source=([^;]+)/);
-  return m ? m[1] : 'direct';
+  return m ? decodeURIComponent(m[1]) : 'direct';
 }
+
+{% if error == 'email' %}
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('email-input');
+  if (inp) { inp.style.borderColor = 'rgba(255,100,100,0.5)'; inp.focus(); }
+});
+{% elif error == 'payment' %}
+document.addEventListener('DOMContentLoaded', function() {
+  alert('Не удалось создать платёж. Попробуйте ещё раз или напишите нам.');
+});
+{% endif %}
+
 document.getElementById('btn-pay').addEventListener('click', function(e) {
   e.preventDefault();
   var email = document.getElementById('email-input').value.trim();
@@ -120,7 +142,19 @@ document.getElementById('btn-pay').addEventListener('click', function(e) {
     inp.focus();
     return;
   }
-  alert('Оплата будет подключена после регистрации в ЮКассе');
+
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/pay';
+
+  [['email', email], ['utm', getUtm()]].forEach(function(pair) {
+    var f = document.createElement('input');
+    f.type = 'hidden'; f.name = pair[0]; f.value = pair[1];
+    form.appendChild(f);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
 });
 </script>
 {% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Платёж обрабатывается — verevery{% endblock %}
+
+{% block head %}
+<style>
+  .success-page { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 40px 20px; }
+  .success-inner { max-width: 400px; margin: 0 auto; width: 100%; text-align: center; }
+  .success-logo { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); margin-bottom: 40px; }
+  .success-logo span { color: var(--accent); }
+  .success-card { background: var(--white); border: 1px solid var(--beige); border-radius: 20px; padding: 36px 28px; }
+  .success-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; color: var(--dark); margin-bottom: 12px; line-height: 1.2; }
+  .success-text { font-size: 14px; font-weight: 300; color: var(--muted); line-height: 1.75; margin-bottom: 0; }
+  .success-note { font-size: 11px; font-weight: 300; color: var(--sand); margin-top: 16px; line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+<div class="success-page">
+  <div class="success-inner">
+    <div class="success-logo">vere<span>very</span></div>
+    <div class="success-card">
+      <div class="success-title">Проверьте почту</div>
+      <p class="success-text">
+        Платёж обрабатывается.<br>
+        Как только он подтвердится — мы пришлём вам письмо со ссылкой для входа в колоду.
+      </p>
+      <p class="success-note">
+        Обычно это занимает меньше минуты.<br>
+        Не забудьте проверить папку «Спам».
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

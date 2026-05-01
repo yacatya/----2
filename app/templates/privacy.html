@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Политика конфиденциальности — verevery{% endblock %}
+
+{% block head %}
+<style>
+  .doc-page { padding: 80px 20px 60px; }
+  .doc-inner { max-width: 680px; margin: 0 auto; }
+  .doc-title { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 500; color: var(--dark); margin-bottom: 6px; line-height: 1.15; }
+  .doc-date { font-size: 12px; font-weight: 300; color: var(--muted); margin-bottom: 40px; }
+  .doc-section { margin-bottom: 32px; }
+  .doc-section h2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 500; color: var(--dark); margin-bottom: 12px; }
+  .doc-section p, .doc-section li { font-size: 14px; font-weight: 300; line-height: 1.8; color: var(--muted); margin-bottom: 10px; }
+  .doc-section ul { padding-left: 20px; }
+  .doc-section li { margin-bottom: 6px; }
+  strong { font-weight: 500; color: var(--dark); }
+</style>
+{% endblock %}
+
+{% block nav_right %}<a href="/buy" class="nav-btn">Полный доступ</a>{% endblock %}
+
+{% block content %}
+<div class="doc-page">
+  <div class="doc-inner">
+    <h1 class="doc-title">Политика конфиденциальности</h1>
+    <p class="doc-date">Редакция от 1 мая 2026 года</p>
+
+    <div class="doc-section">
+      <h2>1. Общие положения</h2>
+      <p>Настоящая Политика описывает, какие персональные данные собирает сайт verevery.ru, для чего они используются и как защищаются. Политика разработана в соответствии с Федеральным законом № 152-ФЗ «О персональных данных».</p>
+      <p>Используя сайт verevery.ru, вы соглашаетесь с условиями настоящей Политики.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>2. Какие данные мы собираем</h2>
+      <p>Мы собираем только <strong>адрес электронной почты (email)</strong>, который вы указываете при оплате.</p>
+      <p>Мы не собираем: имя, телефон, адрес, данные банковской карты (обрабатываются платёжным сервисом ЮКасса), информацию из социальных сетей.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>3. Для чего используются данные</h2>
+      <p>Ваш email используется исключительно для:</p>
+      <ul>
+        <li><strong>отправки персональной ссылки для входа</strong> (magic link) после оплаты;</li>
+        <li><strong>идентификации</strong> при повторных входах на сайт;</li>
+        <li><strong>технической поддержки</strong> — если вы обращаетесь с вопросом.</li>
+      </ul>
+      <p>Мы не отправляем рекламные рассылки без вашего явного согласия.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>4. Передача данных третьим лицам</h2>
+      <p>Ваш email передаётся следующим сервисам:</p>
+      <ul>
+        <li><strong>ЮКасса</strong> — для формирования кассового чека согласно законодательству РФ;</li>
+        <li><strong>Resend</strong> — сервис транзакционных email, используется для отправки ссылки для входа.</li>
+      </ul>
+      <p>Мы не продаём и не передаём ваши данные рекламным сетям, агрегаторам или иным третьим лицам.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>5. Cookies</h2>
+      <p>Сайт использует cookies для:</p>
+      <ul>
+        <li><strong>сессии входа</strong> — чтобы вы оставались авторизованными 30 дней без повторного входа;</li>
+        <li><strong>UTM-метки</strong> — для учёта источника перехода (хранится 60 дней).</li>
+      </ul>
+      <p>Вы можете отключить cookies в настройках браузера. Это приведёт к тому, что вам потребуется вход при каждом посещении.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>6. Хранение данных</h2>
+      <p>Данные хранятся на защищённом сервере в России. Email хранится до тех пор, пока вы не запросите его удаление.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>7. Ваши права</h2>
+      <p>В соответствии с ФЗ-152 вы вправе:</p>
+      <ul>
+        <li>запросить информацию о хранящихся данных;</li>
+        <li>потребовать исправления или удаления данных;</li>
+        <li>отозвать согласие на обработку.</li>
+      </ul>
+      <p>Для реализации прав напишите на <a href="mailto:hello@verevery.ru" style="color:var(--accent);">hello@verevery.ru</a>.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>8. Изменения в Политике</h2>
+      <p>Мы можем обновлять настоящую Политику. Актуальная версия всегда доступна на этой странице. Дата последнего изменения указана вверху документа.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>9. Контакты</h2>
+      <p>Оператор персональных данных: физическое лицо, самозанятый.<br>
+      Email: <a href="mailto:hello@verevery.ru" style="color:var(--accent);">hello@verevery.ru</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

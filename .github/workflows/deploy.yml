@@ -48,8 +48,11 @@ jobs:
             app/templates/base.html \
             app/templates/free.html \
             app/templates/buy.html \
+            app/templates/buy_success.html \
             app/templates/cards.html \
             app/templates/auth.html \
+            app/templates/offer.html \
+            app/templates/privacy.html \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/templates/
 
           scp -i ~/.ssh/id_rsa \
