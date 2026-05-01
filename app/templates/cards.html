@@ -6,6 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
   html { height: 100%; overflow: hidden; }
+  body.app-mode {
+    height: 100vh;
+    height: 100svh;
+  }
 
   .nav-app {
     background: rgba(250,247,242,0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -86,7 +90,7 @@
     padding-bottom: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase;
   }
 
-  .info-buttons { display: none; gap: 8px; padding: 8px 20px 18px; background: var(--cream); flex-shrink: 0; }
+  .info-buttons { display: none; gap: 8px; padding: 8px 20px; padding-bottom: max(18px, env(safe-area-inset-bottom)); background: var(--cream); flex-shrink: 0; }
   .btn-info {
     flex: 1; padding: 11px 4px; border-radius: 50px; border: 1px solid var(--sand);
     background: transparent; font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 500;
