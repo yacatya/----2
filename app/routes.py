@@ -318,6 +318,23 @@ def admin():
     return render_template('admin.html', blocks=blocks_data)
 
 
+@main.route('/admin/grant', methods=['POST'])
+def admin_grant():
+    if not _admin_required():
+        return 'Forbidden', 403
+    email = request.form.get('email', '').strip().lower()
+    if not email or '@' not in email:
+        return 'Bad email', 400
+    from .db import get_db
+    conn = get_db()
+    conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
+    conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
+    conn.commit()
+    _send_magic_link(email, conn)
+    conn.close()
+    return 'OK', 200
+
+
 @main.route('/admin/save', methods=['POST'])
 def admin_save():
     if not _admin_required():
