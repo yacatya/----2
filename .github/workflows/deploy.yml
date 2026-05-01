@@ -70,6 +70,12 @@ jobs:
             echo "=== Installing dependencies ==="
             venv/bin/pip install -r requirements.txt --quiet
 
+            echo "=== Ensure .env exists with required keys ==="
+            touch /opt/verevery/.env
+            grep -q "ADMIN_PASSWORD" /opt/verevery/.env || echo "ADMIN_PASSWORD=Blizhe!2026" >> /opt/verevery/.env
+            grep -q "BASE_URL"       /opt/verevery/.env || echo "BASE_URL=https://verevery.ru" >> /opt/verevery/.env
+            grep -q "SHOP_ID"        /opt/verevery/.env || echo "SHOP_ID=1343976" >> /opt/verevery/.env
+
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
 

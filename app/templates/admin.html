@@ -43,6 +43,17 @@
   .save-status { font-size: 12px; color: var(--muted); display: none; }
   .save-status.ok { color: #2e7d32; display: inline; }
   .save-status.err { color: #c0392b; display: inline; }
+
+  .grant-panel { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; padding: 18px 20px; margin-bottom: 24px; }
+  .grant-title { font-size: 12px; font-weight: 600; color: var(--dark); margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .grant-row { display: flex; gap: 10px; }
+  .grant-input { flex: 1; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: var(--cream); outline: none; }
+  .grant-input:focus { border-color: var(--accent); }
+  .btn-grant { padding: 10px 18px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+  .btn-grant:hover { background: var(--accent); }
+  .grant-status { font-size: 12px; margin-top: 8px; display: none; }
+  .grant-status.ok { color: #2e7d32; display: block; }
+  .grant-status.err { color: #c0392b; display: block; }
 </style>
 {% endblock %}
 
@@ -59,6 +70,15 @@
     ⚠ Изменения сохраняются на сервере. При следующем деплое через GitHub Actions
     файлы из репозитория перезапишут редактирование. После правок скачайте
     обновлённые JSON или зафиксируйте изменения в репозитории.
+  </div>
+
+  <div class="grant-panel">
+    <div class="grant-title">Выдать доступ</div>
+    <div class="grant-row">
+      <input type="email" class="grant-input" id="grant-email" placeholder="email@example.com">
+      <button class="btn-grant" onclick="grantAccess()">Выдать + отправить ссылку</button>
+    </div>
+    <div class="grant-status" id="grant-status"></div>
   </div>
 
   <div class="tabs">
@@ -126,6 +146,36 @@
 
 {% block scripts %}
 <script>
+function grantAccess() {
+  var email = document.getElementById('grant-email').value.trim();
+  var st = document.getElementById('grant-status');
+  if (!email || !email.includes('@')) {
+    st.className = 'grant-status err';
+    st.textContent = 'Введите корректный email';
+    return;
+  }
+  st.className = 'grant-status';
+  st.textContent = 'Выдаём доступ…';
+  st.style.display = 'block';
+  var data = new FormData();
+  data.append('email', email);
+  fetch('/admin/grant', { method: 'POST', body: data })
+    .then(function(r) {
+      if (r.ok) {
+        st.className = 'grant-status ok';
+        st.textContent = '✓ Доступ выдан, magic link отправлен на ' + email;
+        document.getElementById('grant-email').value = '';
+      } else {
+        st.className = 'grant-status err';
+        st.textContent = '✗ Ошибка (' + r.status + ')';
+      }
+    })
+    .catch(function() {
+      st.className = 'grant-status err';
+      st.textContent = '✗ Ошибка сети';
+    });
+}
+
 function switchTab(block, btn) {
   document.querySelectorAll('.block-panel').forEach(function(p) { p.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
