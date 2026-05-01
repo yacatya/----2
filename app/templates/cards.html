@@ -40,10 +40,10 @@
   .block-count { font-size: 11px; font-weight: 300; color: var(--muted); margin-top: 2px; }
   .block-arrow { color: var(--sand); font-size: 22px; }
 
-  .screen-card { flex: 1; display: none; flex-direction: column; overflow: hidden; }
-  .swipe-container { flex: 1; overflow: hidden; position: relative; padding: 20px 20px 0; }
+  .screen-card { flex: 1; min-height: 0; display: none; flex-direction: column; overflow: hidden; }
+  .swipe-container { flex: 1; min-height: 0; overflow: hidden; position: relative; padding: 20px 20px 0; }
   .cards-track { display: flex; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
-  .card-slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; }
+  .card-slide { min-width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; }
 
   .card-block-label {
     font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
