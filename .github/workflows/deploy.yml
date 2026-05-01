@@ -73,8 +73,9 @@ jobs:
             echo "=== Ensure .env exists with required keys ==="
             touch /opt/verevery/.env
             sed -i '/^ADMIN_PASSWORD=/d' /opt/verevery/.env && echo "ADMIN_PASSWORD=Blizhe!2026" >> /opt/verevery/.env
-            grep -q "BASE_URL"       /opt/verevery/.env || echo "BASE_URL=https://verevery.ru" >> /opt/verevery/.env
-            grep -q "SHOP_ID"        /opt/verevery/.env || echo "SHOP_ID=1343976" >> /opt/verevery/.env
+            grep -q "BASE_URL"            /opt/verevery/.env || echo "BASE_URL=https://verevery.ru" >> /opt/verevery/.env
+            grep -q "SHOP_ID"             /opt/verevery/.env || echo "SHOP_ID=1343976" >> /opt/verevery/.env
+            grep -q "YUKASSA_SECRET_KEY"  /opt/verevery/.env || echo "YUKASSA_SECRET_KEY=live_Lgub-4R5c4GHQfzxuxemHpbUV2juR61Skwouf6X3J7o" >> /opt/verevery/.env
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
