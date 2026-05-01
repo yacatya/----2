@@ -3,9 +3,11 @@
 {% block body_class %}app-mode{% endblock %}
 
 {% block head %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
+  html { height: 100%; overflow: hidden; }
+
   .nav-app {
-    position: static;
     background: rgba(250,247,242,0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between;
     flex-shrink: 0; border-bottom: 1px solid var(--beige);
@@ -13,11 +15,10 @@
   .nav-back-btn {
     font-size: 12px; font-weight: 400; color: var(--muted); cursor: pointer;
     padding: 6px 14px; border: 1px solid var(--sand); border-radius: 50px;
-    background: transparent; font-family: 'Exo 2', sans-serif; transition: all 0.2s;
+    background: transparent; font-family: 'Exo 2', sans-serif; transition: all 0.2s; display: none;
   }
   .nav-back-btn:active { background: var(--dark); color: white; border-color: var(--dark); }
 
-  /* Screen: block selector */
   .screen-blocks { flex: 1; overflow-y: auto; padding: 28px 20px 32px; display: flex; flex-direction: column; }
   .screen-label { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--sand); margin-bottom: 8px; }
   .screen-title { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 500; line-height: 1.15; color: var(--dark); margin-bottom: 6px; }
@@ -39,8 +40,7 @@
   .block-count { font-size: 11px; font-weight: 300; color: var(--muted); margin-top: 2px; }
   .block-arrow { color: var(--sand); font-size: 22px; }
 
-  /* Screen: card swiper */
-  .screen-card { flex: 1; overflow: hidden; flex-direction: column; }
+  .screen-card { flex: 1; display: none; flex-direction: column; overflow: hidden; }
   .swipe-container { flex: 1; overflow: hidden; position: relative; padding: 20px 20px 0; }
   .cards-track { display: flex; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
   .card-slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; }
@@ -67,7 +67,7 @@
   .level-deep  { background: var(--dark); }
   .card-text {
     font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 500;
-    line-height: 1.42; color: var(--dark);
+    line-height: 1.42; color: var(--dark); flex: 1; display: flex; align-items: center;
   }
   .card-hint {
     font-size: 12px; font-weight: 300; color: var(--muted); font-style: italic;
@@ -81,12 +81,12 @@
   .nav-dots { display: flex; justify-content: center; gap: 5px; padding: 14px 0 6px; flex-shrink: 0; }
   .dot       { height: 6px; border-radius: 3px; background: var(--sand); transition: all 0.3s; width: 6px; }
   .dot.active{ width: 20px; background: var(--dark); }
-  .swipe-hint-bar {
+  .swipe-hint {
     text-align: center; font-size: 10px; font-weight: 300; color: var(--sand);
     padding-bottom: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase;
   }
 
-  .info-buttons { display: flex; gap: 8px; padding: 8px 20px 18px; background: var(--cream); flex-shrink: 0; }
+  .info-buttons { display: none; gap: 8px; padding: 8px 20px 18px; background: var(--cream); flex-shrink: 0; }
   .btn-info {
     flex: 1; padding: 11px 4px; border-radius: 50px; border: 1px solid var(--sand);
     background: transparent; font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 500;
@@ -99,7 +99,7 @@
 {% block nav %}
 <div class="nav-app">
   <div class="logo">vere<span>very</span></div>
-  <button class="nav-back-btn" id="btn-back" onclick="showBlocks()" style="display:none">← Блоки</button>
+  <button class="nav-back-btn" id="btn-back" onclick="showBlocks()">← Блоки</button>
 </div>
 {% endblock %}
 
@@ -112,39 +112,38 @@
     <div class="block-card" onclick="showCards('action')">
       <div class="block-left">
         <div class="block-marker marker-action"></div>
-        <div><div class="block-name">Действие</div><div class="block-count">20 карточек</div></div>
+        <div><div class="block-name">Действие</div><div class="block-count">{{ blocks.action.cards|length }} карточек</div></div>
       </div>
       <div class="block-arrow">›</div>
     </div>
     <div class="block-card" onclick="showCards('question')">
       <div class="block-left">
         <div class="block-marker marker-question"></div>
-        <div><div class="block-name">Вопрос</div><div class="block-count">20 карточек</div></div>
+        <div><div class="block-name">Вопрос</div><div class="block-count">{{ blocks.question.cards|length }} карточек</div></div>
       </div>
       <div class="block-arrow">›</div>
     </div>
     <div class="block-card" onclick="showCards('care')">
       <div class="block-left">
         <div class="block-marker marker-care"></div>
-        <div><div class="block-name">Забота</div><div class="block-count">20 карточек</div></div>
+        <div><div class="block-name">Забота</div><div class="block-count">{{ blocks.care.cards|length }} карточек</div></div>
       </div>
       <div class="block-arrow">›</div>
     </div>
   </div>
 </div>
 
-<div class="screen-card" id="screen-card" style="display:none">
+<div class="screen-card" id="screen-card">
   <div class="swipe-container" id="swipe-container">
     <div class="cards-track" id="cards-track"></div>
   </div>
   <div class="nav-dots" id="nav-dots"></div>
-  <div class="swipe-hint-bar">← свайп →</div>
-</div>
-
-<div class="info-buttons" id="info-buttons" style="display:none">
-  <button class="btn-info" onclick="openModal('why',this)">Зачем это</button>
-  <button class="btn-info" onclick="openModal('brain',this)">Мозг</button>
-  <button class="btn-info" onclick="openModal('science',this)">Наука</button>
+  <div class="swipe-hint">← свайп →</div>
+  <div class="info-buttons" id="info-buttons">
+    <button class="btn-info" onclick="openModal('why',this)">Зачем это</button>
+    <button class="btn-info" onclick="openModal('brain',this)">Мозг</button>
+    <button class="btn-info" onclick="openModal('science',this)">Наука</button>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
