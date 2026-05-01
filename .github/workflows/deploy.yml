@@ -93,4 +93,10 @@ jobs:
 
             echo "=== Test HTTP ==="
             curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ || echo "curl failed"
+
+            echo "=== Register YuKassa webhook ==="
+            curl -s -X POST https://api.yookassa.ru/v3/webhooks \
+              -u 1343976:live_Lgub-4R5c4GHQfzxuxemHpbUV2juR61Skwouf6X3J7o \
+              -H 'Content-Type: application/json' \
+              -d '{"event":"payment.succeeded","url":"https://verevery.ru/webhook/payment"}' || true
           ENDSSH
