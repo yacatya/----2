@@ -323,18 +323,17 @@ def admin_grant():
     email = request.form.get('email', '').strip().lower()
     if not email or '@' not in email:
         return 'Bad email', 400
-    from .db import get_db
-    conn = get_db()
-    conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-    conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
-    conn.commit()
     try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
+        conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
+        conn.commit()
         _send_magic_link(email, conn)
-    except Exception as e:
         conn.close()
-        return f'Доступ выдан, но письмо не отправлено: {e}', 500
-    conn.close()
-    return 'OK', 200
+        return 'OK', 200
+    except Exception as e:
+        return f'Ошибка: {e}', 500
 
 
 @main.route('/admin/save', methods=['POST'])
