@@ -113,28 +113,36 @@ def pay():
         return redirect(url_for('main.buy') + '?error=email')
 
     _configure_yookassa()
+    base_params = {
+        'amount': {'value': '690.00', 'currency': 'RUB'},
+        'confirmation': {
+            'type': 'redirect',
+            'return_url': f'{BASE_URL}/buy/success',
+        },
+        'capture': True,
+        'description': 'Колода «Ближе» — постоянный доступ',
+        'metadata': {'email': email, 'utm': utm},
+    }
+    receipt_params = {
+        'receipt': {
+            'customer': {'email': email},
+            'items': [{
+                'description': 'Колода «Ближе» — постоянный доступ',
+                'quantity': '1.00',
+                'amount': {'value': '690.00', 'currency': 'RUB'},
+                'vat_code': 1,
+                'payment_mode': 'full_payment',
+                'payment_subject': 'service',
+            }],
+        }
+    }
     try:
-        payment = YooPayment.create({
-            'amount': {'value': '690.00', 'currency': 'RUB'},
-            'confirmation': {
-                'type': 'redirect',
-                'return_url': f'{BASE_URL}/buy/success',
-            },
-            'capture': True,
-            'description': 'Колода «Ближе» — постоянный доступ',
-            'receipt': {
-                'customer': {'email': email},
-                'items': [{
-                    'description': 'Колода «Ближе» — постоянный доступ',
-                    'quantity': '1.00',
-                    'amount': {'value': '690.00', 'currency': 'RUB'},
-                    'vat_code': 1,
-                    'payment_mode': 'full_payment',
-                    'payment_subject': 'service',
-                }],
-            },
-            'metadata': {'email': email, 'utm': utm},
-        }, str(uuid.uuid4()))
+        payment = YooPayment.create({**base_params, **receipt_params}, str(uuid.uuid4()))
+        return redirect(payment.confirmation.confirmation_url)
+    except Exception:
+        pass
+    try:
+        payment = YooPayment.create(base_params, str(uuid.uuid4()))
         return redirect(payment.confirmation.confirmation_url)
     except Exception:
         return redirect(url_for('main.buy') + '?error=payment')
@@ -268,6 +276,73 @@ def offer():
 @main.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+
+@main.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('main.free'))
+
+
+# ── Admin ────────────────────────────────────────────────────────────────────
+
+def _admin_required():
+    return session.get('admin_logged_in')
+
+
+@main.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        pw = request.form.get('password', '')
+        if pw == os.environ.get('ADMIN_PASSWORD', ''):
+            session['admin_logged_in'] = True
+            session.permanent = True
+            return redirect(url_for('main.admin'))
+        return render_template('admin_login.html', error='Неверный пароль')
+    return render_template('admin_login.html')
+
+
+@main.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('main.admin_login'))
+
+
+@main.route('/admin')
+def admin():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    blocks_data = {}
+    for block in ['action', 'question', 'care']:
+        blocks_data[block] = load_block(block)
+    return render_template('admin.html', blocks=blocks_data)
+
+
+@main.route('/admin/save', methods=['POST'])
+def admin_save():
+    if not _admin_required():
+        return 'Forbidden', 403
+    block = request.form.get('block', '')
+    if block not in ('action', 'question', 'care'):
+        return 'Bad request', 400
+    card_id = request.form.get('id', '')
+    data_file = os.path.join(DATA_DIR, f'cards_{block}.json')
+    with open(data_file, encoding='utf-8') as f:
+        data = json.load(f)
+    for card in data['cards']:
+        if card['id'] == card_id:
+            card['level']   = request.form.get('level',   card.get('level', ''))
+            card['text']    = request.form.get('text',    card.get('text', ''))
+            card['hint']    = request.form.get('hint',    card.get('hint', ''))
+            card['why']     = request.form.get('why',     card.get('why', ''))
+            card['science'] = request.form.get('science', card.get('science', ''))
+            card['result']  = request.form.get('result',  card.get('result', ''))
+            brain_raw = request.form.get('brain', '')
+            card['brain'] = [l.strip() for l in brain_raw.splitlines() if l.strip()]
+            break
+    with open(data_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return '', 200
 
 
 def _magic_link_email(link):

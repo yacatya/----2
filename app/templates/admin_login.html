@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Вход в админку — verevery{% endblock %}
+
+{% block head %}
+<style>
+  .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-card { background: var(--white); border: 1px solid var(--beige); border-radius: 20px; padding: 36px 28px; width: 100%; max-width: 360px; }
+  .login-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; color: var(--dark); margin-bottom: 24px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px; }
+  .field input { width: 100%; padding: 12px 16px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 300; color: var(--dark); background: var(--cream); outline: none; box-sizing: border-box; }
+  .field input:focus { border-color: var(--accent); }
+  .err { font-size: 12px; color: #c0392b; margin-bottom: 14px; }
+</style>
+{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-title">Админка</div>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <form method="POST">
+      <div class="field">
+        <label>Пароль</label>
+        <input type="password" name="password" autofocus>
+      </div>
+      <button type="submit" class="btn-primary">Войти</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
