@@ -237,9 +237,6 @@ def auth_verify():
     if not token:
         return redirect(url_for('main.auth'))
 
-    if 'user_id' in session:
-        return redirect(url_for('main.cards'))
-
     from .db import get_db
     conn = get_db()
     row = conn.execute(
@@ -313,7 +310,13 @@ def admin():
     blocks_data = {}
     for block in ['action', 'question', 'care']:
         blocks_data[block] = load_block(block)
-    return render_template('admin.html', blocks=blocks_data)
+    from .db import get_db
+    conn = get_db()
+    users = conn.execute(
+        'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 50'
+    ).fetchall()
+    conn.close()
+    return render_template('admin.html', blocks=blocks_data, users=users)
 
 
 @main.route('/admin/grant', methods=['POST'])

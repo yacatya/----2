@@ -54,6 +54,12 @@
   .grant-status { font-size: 12px; margin-top: 8px; display: none; }
   .grant-status.ok { color: #2e7d32; display: block; }
   .grant-status.err { color: #c0392b; display: block; }
+
+  .users-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
+  .users-table th { text-align: left; padding: 6px 10px; border-bottom: 2px solid var(--beige); color: var(--sand); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .users-table td { padding: 7px 10px; border-bottom: 1px solid var(--beige); color: var(--dark); }
+  .badge-yes { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
+  .badge-no  { background: #fbe9e7; color: #c0392b; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
 </style>
 {% endblock %}
 
@@ -80,6 +86,19 @@
     </div>
     <div class="grant-status" id="grant-status"></div>
   </div>
+
+  <table class="users-table">
+    <thead><tr><th>Email</th><th>Доступ</th><th>Дата</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.email }}</td>
+      <td>{% if u.has_access %}<span class="badge-yes">✓ есть</span>{% else %}<span class="badge-no">нет</span>{% endif %}</td>
+      <td>{{ u.created_at or '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('action', this)">Действие</button>
