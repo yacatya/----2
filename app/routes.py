@@ -45,15 +45,12 @@ def _send_magic_link(email, conn):
     conn.commit()
     link = f'{BASE_URL}/auth/verify?token={token}'
     resend.api_key = os.environ.get('RESEND_API_KEY', '')
-    try:
-        resend.Emails.send({
-            'from': 'Ближе <noreply@verevery.ru>',
-            'to': [email],
-            'subject': 'Ваша ссылка для входа в колоду — verevery.ru',
-            'html': _magic_link_email(link),
-        })
-    except Exception:
-        pass
+    resend.Emails.send({
+        'from': 'Ближе <noreply@verevery.ru>',
+        'to': [email],
+        'subject': 'Ваша ссылка для входа в колоду — verevery.ru',
+        'html': _magic_link_email(link),
+    })
 
 
 def _log_to_sheets(date, email, utm, amount):
@@ -331,7 +328,11 @@ def admin_grant():
     conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
     conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
     conn.commit()
-    _send_magic_link(email, conn)
+    try:
+        _send_magic_link(email, conn)
+    except Exception as e:
+        conn.close()
+        return f'Доступ выдан, но письмо не отправлено: {e}', 500
     conn.close()
     return 'OK', 200
 

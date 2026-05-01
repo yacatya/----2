@@ -161,13 +161,16 @@ function grantAccess() {
   data.append('email', email);
   fetch('/admin/grant', { method: 'POST', body: data })
     .then(function(r) {
-      if (r.ok) {
+      return r.text().then(function(text) { return { ok: r.ok, text: text }; });
+    })
+    .then(function(res) {
+      if (res.ok) {
         st.className = 'grant-status ok';
         st.textContent = '✓ Доступ выдан, magic link отправлен на ' + email;
         document.getElementById('grant-email').value = '';
       } else {
         st.className = 'grant-status err';
-        st.textContent = '✗ Ошибка (' + r.status + ')';
+        st.textContent = '✗ ' + res.text;
       }
     })
     .catch(function() {
