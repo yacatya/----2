@@ -27,5 +27,14 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now'))
         );
     ''')
+    # Migrations: add columns that may be missing in older DBs
+    for col, definition in [
+        ('has_access', 'INTEGER DEFAULT 0'),
+        ('created_at', "TEXT DEFAULT (datetime('now'))"),
+    ]:
+        try:
+            conn.execute(f'ALTER TABLE users ADD COLUMN {col} {definition}')
+        except Exception:
+            pass
     conn.commit()
     conn.close()
