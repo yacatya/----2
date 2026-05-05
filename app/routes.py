@@ -57,14 +57,17 @@ def _send_magic_link(email, conn):
 def _log_to_sheets(date, email, utm, amount):
     try:
         import gspread
-        from google.oauth2.service_account import Credentials
-        creds_path = os.environ.get(
-            'GOOGLE_CREDENTIALS_PATH', '/opt/verevery/google-credentials.json'
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        creds = Credentials(
+            token=None,
+            refresh_token=os.environ.get('GOOGLE_REFRESH_TOKEN'),
+            token_uri='https://oauth2.googleapis.com/token',
+            client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+            client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+            scopes=['https://www.googleapis.com/auth/spreadsheets'],
         )
-        creds = Credentials.from_service_account_file(
-            creds_path,
-            scopes=['https://www.googleapis.com/auth/spreadsheets']
-        )
+        creds.refresh(Request())
         gc = gspread.authorize(creds)
         ws = gc.open_by_key(SHEET_ID).worksheet('карточки для пар продажи')
         blogger = utm if utm != 'direct' else ''
