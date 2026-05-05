@@ -56,20 +56,20 @@ def _send_magic_link(email, conn):
 
 def _log_to_sheets(date, email, utm, amount):
     try:
-        import gspread
-        from google.oauth2.service_account import Credentials
-        creds_path = os.environ.get(
-            'GOOGLE_CREDENTIALS_PATH', '/opt/verevery/google-credentials.json'
-        )
-        creds = Credentials.from_service_account_file(
-            creds_path,
-            scopes=['https://www.googleapis.com/auth/spreadsheets']
-        )
-        gc = gspread.authorize(creds)
-        ws = gc.open_by_key(SHEET_ID).worksheet('карточки для пар продажи')
+        import requests as _requests
+        url = os.environ.get('GOOGLE_SCRIPT_URL', '')
+        if not url:
+            return
         blogger = utm if utm != 'direct' else ''
         commission = round(float(amount) * 0.30, 2)
-        ws.append_row([date, email, utm, blogger, str(amount), str(commission)])
+        _requests.post(url, json={
+            'date': date,
+            'email': email,
+            'utm': utm,
+            'blogger': blogger,
+            'amount': str(amount),
+            'commission': str(commission),
+        }, timeout=10)
     except Exception:
         pass
 
