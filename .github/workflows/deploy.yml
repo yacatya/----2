@@ -3,12 +3,13 @@ name: Deploy - verevery.ru
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, claude/fix-502-gateway-error-VuAwm]
     paths:
       - 'run.py'
       - 'requirements.txt'
       - 'app/**'
       - 'cards_*.json'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
