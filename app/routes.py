@@ -1,11 +1,13 @@
 import json
+import logging
 import os
 import secrets
-
 import uuid
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, redirect, url_for, session, request
+
+logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
 
@@ -138,12 +140,13 @@ def pay():
     try:
         payment = YooPayment.create({**base_params, **receipt_params}, str(uuid.uuid4()))
         return redirect(payment.confirmation.confirmation_url)
-    except Exception:
-        pass
+    except Exception as e1:
+        logger.warning('YooKassa payment with receipt failed: %s', e1)
     try:
         payment = YooPayment.create(base_params, str(uuid.uuid4()))
         return redirect(payment.confirmation.confirmation_url)
     except Exception as e:
+        logger.error('YooKassa payment failed: %s', e)
         return redirect(url_for('main.buy') + '?error=' + str(e)[:200])
 
 

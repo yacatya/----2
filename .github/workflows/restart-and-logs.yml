@@ -1,0 +1,51 @@
+name: Restart & Logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Restart service and show logs
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash << 'ENDSSH'
+            echo "===== BEFORE RESTART: status ====="
+            systemctl status verevery --no-pager || true
+
+            echo ""
+            echo "===== RESTARTING ====="
+            systemctl restart verevery || true
+            sleep 5
+
+            echo ""
+            echo "===== AFTER RESTART: status ====="
+            systemctl status verevery --no-pager || true
+
+            echo ""
+            echo "===== LAST 50 LOG LINES ====="
+            journalctl -u verevery -n 50 --no-pager
+
+            echo ""
+            echo "===== TEST HTTP ====="
+            curl -sv http://127.0.0.1:8000/ 2>&1 | head -30 || echo "curl failed"
+
+            echo ""
+            echo "===== NGINX STATUS ====="
+            systemctl status nginx --no-pager || true
+
+            echo ""
+            echo "===== NGINX ERROR LOG (last 20) ====="
+            tail -20 /var/log/nginx/error.log 2>/dev/null || echo "No nginx error log"
+
+            echo ""
+            echo "===== .ENV KEYS (без значений) ====="
+            grep -o '^[A-Z_]*' /opt/verevery/.env 2>/dev/null || echo ".env not found"
+          ENDSSH

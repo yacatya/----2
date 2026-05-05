@@ -67,7 +67,14 @@ jobs:
             set -e
             cd /opt/verevery
 
+            echo "=== Ensure virtualenv exists ==="
+            if [ ! -f venv/bin/python ]; then
+              echo "Creating virtualenv..."
+              python3 -m venv venv
+            fi
+
             echo "=== Installing dependencies ==="
+            venv/bin/pip install --upgrade pip --quiet
             venv/bin/pip install -r requirements.txt --quiet
 
             echo "=== Ensure .env exists with required keys ==="
@@ -79,17 +86,21 @@ jobs:
             grep -q "RESEND_API_KEY"      /opt/verevery/.env || echo "RESEND_API_KEY=re_U1LCNq9A_LyUSc2PuTFZTWfEkHXUQgQ55" >> /opt/verevery/.env
 
             echo "=== Fixing permissions ==="
-            chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
+            chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt \
+              /opt/verevery/venv 2>/dev/null || true
 
             echo "=== Writing systemd service ==="
-            printf '[Unit]\nDescription=verevery Flask app\nAfter=network.target\n\n[Service]\nUser=verevery\nGroup=verevery\nWorkingDirectory=/opt/verevery\nEnvironmentFile=/opt/verevery/.env\nExecStart=/opt/verevery/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --access-logfile - run:app\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/verevery.service
+            printf '[Unit]\nDescription=verevery Flask app\nAfter=network.target\n\n[Service]\nUser=verevery\nGroup=verevery\nWorkingDirectory=/opt/verevery\nEnvironmentFile=/opt/verevery/.env\nExecStart=/opt/verevery/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --access-logfile - --error-logfile - --log-level info run:app\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/verevery.service
 
             systemctl daemon-reload
-            systemctl start verevery
-            sleep 3
+            systemctl restart verevery
+            sleep 5
 
             echo "=== Service status ==="
             systemctl status verevery --no-pager
+
+            echo "=== Last 30 log lines ==="
+            journalctl -u verevery -n 30 --no-pager
 
             echo "=== Test HTTP ==="
             curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ || echo "curl failed"
