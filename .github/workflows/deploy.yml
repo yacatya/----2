@@ -80,11 +80,11 @@ jobs:
 
             echo "=== Ensure .env exists with required keys ==="
             touch /opt/verevery/.env
-            sed -i '/^ADMIN_PASSWORD=/d' /opt/verevery/.env && echo "ADMIN_PASSWORD=Blizhe!2026" >> /opt/verevery/.env
-            grep -q "BASE_URL"            /opt/verevery/.env || echo "BASE_URL=https://verevery.ru" >> /opt/verevery/.env
-            grep -q "SHOP_ID"             /opt/verevery/.env || echo "SHOP_ID=1343976" >> /opt/verevery/.env
-            grep -q "YUKASSA_SECRET_KEY"  /opt/verevery/.env || echo "YUKASSA_SECRET_KEY=live_Lgub-4R5c4GHQfzxuxemHpbUV2juR61Skwouf6X3J7o" >> /opt/verevery/.env
-            grep -q "RESEND_API_KEY"      /opt/verevery/.env || echo "RESEND_API_KEY=re_U1LCNq9A_LyUSc2PuTFZTWfEkHXUQgQ55" >> /opt/verevery/.env
+            sed -i '/^ADMIN_PASSWORD=/d'      /opt/verevery/.env && echo "ADMIN_PASSWORD=Blizhe!2026" >> /opt/verevery/.env
+            sed -i '/^YUKASSA_SECRET_KEY=/d'  /opt/verevery/.env && echo "YUKASSA_SECRET_KEY=live_zbwZGEcZ7i3YeTq3LDgTYzCrj-RtD8TSJCo4yk6kdxs" >> /opt/verevery/.env
+            grep -q "BASE_URL"           /opt/verevery/.env || echo "BASE_URL=https://verevery.ru" >> /opt/verevery/.env
+            grep -q "SHOP_ID"            /opt/verevery/.env || echo "SHOP_ID=1343976" >> /opt/verevery/.env
+            grep -q "RESEND_API_KEY"     /opt/verevery/.env || echo "RESEND_API_KEY=re_U1LCNq9A_LyUSc2PuTFZTWfEkHXUQgQ55" >> /opt/verevery/.env
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt \
@@ -108,7 +108,7 @@ jobs:
 
             echo "=== Register YuKassa webhook ==="
             curl -s -X POST https://api.yookassa.ru/v3/webhooks \
-              -u 1343976:live_Lgub-4R5c4GHQfzxuxemHpbUV2juR61Skwouf6X3J7o \
+              -u 1343976:live_zbwZGEcZ7i3YeTq3LDgTYzCrj-RtD8TSJCo4yk6kdxs \
               -H 'Content-Type: application/json' \
               -d '{"event":"payment.succeeded","url":"https://verevery.ru/webhook/payment"}' || true
           ENDSSH
