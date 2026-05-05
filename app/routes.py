@@ -157,20 +157,24 @@ def buy_success():
 
 @main.route('/webhook/payment', methods=['POST'])
 def webhook_payment():
+    logger.info('webhook/payment called')
     try:
         from yookassa import Payment as YooPayment
         from yookassa.domain.notification import WebhookNotification
 
         event_json = request.get_json(force=True)
+        logger.info('webhook event_json: %s', event_json)
         notification = WebhookNotification(event_json)
 
         if notification.event != 'payment.succeeded':
+            logger.info('webhook event ignored: %s', notification.event)
             return '', 200
 
         _configure_yookassa()
         payment = YooPayment.find_one(notification.object.id)
 
         if payment.status != 'succeeded':
+            logger.warning('webhook payment status not succeeded: %s', payment.status)
             return '', 200
 
         email = (payment.metadata or {}).get('email', '')
@@ -178,7 +182,10 @@ def webhook_payment():
         amount = str(payment.amount.value)
         date = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
 
+        logger.info('webhook payment succeeded: email=%s amount=%s', email, amount)
+
         if not email:
+            logger.error('webhook: no email in payment metadata')
             return '', 200
 
         from .db import get_db
@@ -186,13 +193,19 @@ def webhook_payment():
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
         conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
         conn.commit()
-        _send_magic_link(email, conn)
+        logger.info('webhook: user access granted for %s', email)
+
+        try:
+            _send_magic_link(email, conn)
+            logger.info('webhook: magic link sent to %s', email)
+        except Exception as mail_err:
+            logger.error('webhook: failed to send magic link to %s: %s', email, mail_err)
         conn.close()
 
         _log_to_sheets(date, email, utm, amount)
 
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error('webhook error: %s', e, exc_info=True)
 
     return '', 200
 
