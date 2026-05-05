@@ -143,8 +143,8 @@ def pay():
     try:
         payment = YooPayment.create(base_params, str(uuid.uuid4()))
         return redirect(payment.confirmation.confirmation_url)
-    except Exception:
-        return redirect(url_for('main.buy') + '?error=payment')
+    except Exception as e:
+        return redirect(url_for('main.buy') + '?error=' + str(e)[:200])
 
 
 @main.route('/buy/success')
