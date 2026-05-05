@@ -70,7 +70,6 @@ jobs:
 
             echo "=== Ensure virtualenv exists ==="
             if [ ! -f venv/bin/python ]; then
-              echo "Creating virtualenv..."
               python3 -m venv venv
             fi
 
@@ -97,16 +96,17 @@ jobs:
             systemctl restart verevery
             sleep 5
 
-            echo "=== Service status ==="
-            systemctl status verevery --no-pager
-
-            echo "=== Last 30 log lines ==="
-            journalctl -u verevery -n 30 --no-pager
+            echo "=== Last 50 log lines ==="
+            journalctl -u verevery -n 50 --no-pager
 
             echo "=== Test HTTP ==="
             curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ || echo "curl failed"
 
-            echo "=== Register YuKassa webhook ==="
+            echo "=== YuKassa: list registered webhooks ==="
+            curl -s https://api.yookassa.ru/v3/webhooks \
+              -u 1343976:live_zbwZGEcZ7i3YeTq3LDgTYzCrj-RtD8TSJCo4yk6kdxs
+
+            echo "=== YuKassa: register webhook ==="
             curl -s -X POST https://api.yookassa.ru/v3/webhooks \
               -u 1343976:live_zbwZGEcZ7i3YeTq3LDgTYzCrj-RtD8TSJCo4yk6kdxs \
               -H 'Content-Type: application/json' \
