@@ -1,0 +1,77 @@
+name: Setup Google OAuth Token
+
+on:
+  workflow_dispatch:
+    inputs:
+      auth_code:
+        description: 'Google OAuth authorization code'
+        required: true
+
+jobs:
+  setup-token:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exchange auth code and write to server .env
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            python3 - <<'PYEOF'
+            import urllib.request, urllib.parse, json, sys, os
+
+            CLIENT_ID     = os.environ["G_CLIENT_ID"]
+            CLIENT_SECRET = os.environ["G_CLIENT_SECRET"]
+            CODE          = os.environ["G_AUTH_CODE"]
+
+            data = urllib.parse.urlencode({
+                "code":          CODE,
+                "client_id":     CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "redirect_uri":  "http://localhost",
+                "grant_type":    "authorization_code",
+            }).encode()
+
+            req = urllib.request.Request(
+                "https://oauth2.googleapis.com/token", data=data, method="POST"
+            )
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    tokens = json.loads(resp.read())
+            except urllib.error.HTTPError as e:
+                print("HTTP error:", e.code, e.read().decode())
+                sys.exit(1)
+
+            refresh_token = tokens.get("refresh_token")
+            if not refresh_token:
+                print("ERROR: no refresh_token in response:", tokens)
+                sys.exit(1)
+
+            env_file = "/opt/verevery/.env"
+            with open(env_file, "r") as f:
+                lines = f.read().splitlines()
+
+            lines = [l for l in lines if not l.startswith((
+                "GOOGLE_CLIENT_ID=",
+                "GOOGLE_CLIENT_SECRET=",
+                "GOOGLE_REFRESH_TOKEN=",
+            ))]
+            lines += [
+                f"GOOGLE_CLIENT_ID={CLIENT_ID}",
+                f"GOOGLE_CLIENT_SECRET={CLIENT_SECRET}",
+                f"GOOGLE_REFRESH_TOKEN={refresh_token}",
+            ]
+
+            with open(env_file, "w") as f:
+                f.write("\n".join(lines) + "\n")
+
+            print("SUCCESS: Google credentials written to", env_file)
+            PYEOF
+
+            sudo systemctl restart verevery
+            echo "Service restarted"
+        env:
+          G_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          G_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          G_AUTH_CODE: ${{ inputs.auth_code }}
