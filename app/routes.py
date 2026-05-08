@@ -59,10 +59,10 @@ def _log_to_sheets(date, email, utm, amount):
         import requests as _requests
         url = os.environ.get('GOOGLE_SCRIPT_URL', '')
         if not url:
-            return
+            return 'NO_URL'
         blogger = utm if utm != 'direct' else ''
         commission = round(float(amount) * 0.30, 2)
-        _requests.post(url, json={
+        resp = _requests.post(url, json={
             'secret': 'verevery2024',
             'date': date,
             'email': email,
@@ -71,8 +71,20 @@ def _log_to_sheets(date, email, utm, amount):
             'amount': str(amount),
             'commission': str(commission),
         }, timeout=10)
-    except Exception:
-        pass
+        return f'HTTP {resp.status_code}: {resp.text[:200]}'
+    except Exception as e:
+        return f'ERROR: {e}'
+
+
+@main.route('/test-sheets')
+def test_sheets():
+    result = _log_to_sheets(
+        date='08.05.2026 12:00',
+        email='test@verevery.ru',
+        utm='test',
+        amount='1.00'
+    )
+    return f'<pre>{result}\n\nGOOGLE_SCRIPT_URL={os.environ.get("GOOGLE_SCRIPT_URL","не задан")}</pre>'
 
 
 # ── Pages ────────────────────────────────────────────────────────────────────
