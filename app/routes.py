@@ -107,7 +107,7 @@ def pay():
 
     _configure_yookassa()
     base_params = {
-        'amount': {'value': '1.00', 'currency': 'RUB'},
+        'amount': {'value': '690.00', 'currency': 'RUB'},
         'confirmation': {
             'type': 'redirect',
             'return_url': f'{BASE_URL}/buy/success',
@@ -122,7 +122,7 @@ def pay():
             'items': [{
                 'description': 'Колода «Ближе» — постоянный доступ',
                 'quantity': '1.00',
-                'amount': {'value': '1.00', 'currency': 'RUB'},
+                'amount': {'value': '690.00', 'currency': 'RUB'},
                 'vat_code': 1,
                 'payment_mode': 'full_payment',
                 'payment_subject': 'service',
