@@ -72,6 +72,12 @@
   .sales-empty { font-size: 13px; color: var(--sand); text-align: center; padding: 24px; }
   .utm-hint { background: #f0f7ff; border: 1px solid #b3d4ff; border-radius: 12px; padding: 12px 16px; font-size: 12px; color: #1a4a7a; margin-bottom: 20px; line-height: 1.7; }
   .utm-hint code { background: #deeeff; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+
+  .free-cards-panel { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; padding: 18px 20px; margin-bottom: 24px; }
+  .free-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin: 14px 0; }
+  .free-card-select { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 12px; color: var(--dark); background: var(--cream); outline: none; }
+  .free-card-select:focus { border-color: var(--accent); }
+  .free-card-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--sand); margin-bottom: 5px; display: block; }
 </style>
 {% endblock %}
 
@@ -88,6 +94,27 @@
     ⚠ Изменения сохраняются на сервере. При следующем деплое через GitHub Actions
     файлы из репозитория перезапишут редактирование. После правок скачайте
     обновлённые JSON или зафиксируйте изменения в репозитории.
+  </div>
+
+  <div class="free-cards-panel">
+    <div class="grant-title">Бесплатные карточки (первая страница)</div>
+    <div class="free-cards-grid">
+      {% for i in range(5) %}
+      <div>
+        <span class="free-card-label">Карточка {{ i + 1 }}</span>
+        <select class="free-card-select" id="free-card-{{ i }}">
+          <option value="">— не выбрана —</option>
+          {% for card in all_cards %}
+          <option value="{{ card.id }}" {% if i < free_ids|length and free_ids[i] == card.id %}selected{% endif %}>
+            {{ card.id }} — {{ card.text }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endfor %}
+    </div>
+    <button class="btn-grant" onclick="saveFreeCards()">Сохранить</button>
+    <div class="grant-status" id="free-status"></div>
   </div>
 
   <div class="sales-section">
@@ -247,6 +274,19 @@ function grantAccess() {
     .catch(function() {
       st.className = 'grant-status err';
       st.textContent = '✗ Ошибка сети';
+    });
+}
+
+function saveFreeCards() {
+  var form = new FormData();
+  for (var i = 0; i < 5; i++) {
+    form.append('card_' + i, document.getElementById('free-card-' + i).value);
+  }
+  var st = document.getElementById('free-status');
+  fetch('/admin/free-cards', { method: 'POST', body: form })
+    .then(function(r) {
+      if (r.ok) { st.className = 'grant-status ok'; st.textContent = 'Сохранено! Обновите страницу /free чтобы увидеть изменения.'; }
+      else { st.className = 'grant-status err'; st.textContent = 'Ошибка'; }
     });
 }
 
