@@ -63,6 +63,7 @@ def _log_to_sheets(date, email, utm, amount):
         blogger = utm if utm != 'direct' else ''
         commission = round(float(amount) * 0.30, 2)
         _requests.post(url, json={
+            'secret': 'verevery2024',
             'date': date,
             'email': email,
             'utm': utm,
