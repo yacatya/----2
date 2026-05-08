@@ -60,6 +60,18 @@
   .users-table td { padding: 7px 10px; border-bottom: 1px solid var(--beige); color: var(--dark); }
   .badge-yes { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
   .badge-no  { background: #fbe9e7; color: #c0392b; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
+
+  .sales-section { margin-bottom: 32px; }
+  .sales-title { font-size: 11px; font-weight: 600; color: var(--dark); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+  .blogger-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .blogger-card { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; padding: 16px 18px; }
+  .blogger-card-name { font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .blogger-card-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .blogger-card-row span:last-child { font-weight: 500; color: var(--dark); }
+  .commission-badge { margin-top: 10px; background: #fff8e1; color: #7a6200; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 50px; display: inline-block; }
+  .sales-empty { font-size: 13px; color: var(--sand); text-align: center; padding: 24px; }
+  .utm-hint { background: #f0f7ff; border: 1px solid #b3d4ff; border-radius: 12px; padding: 12px 16px; font-size: 12px; color: #1a4a7a; margin-bottom: 20px; line-height: 1.7; }
+  .utm-hint code { background: #deeeff; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
 </style>
 {% endblock %}
 
@@ -76,6 +88,46 @@
     ⚠ Изменения сохраняются на сервере. При следующем деплое через GitHub Actions
     файлы из репозитория перезапишут редактирование. После правок скачайте
     обновлённые JSON или зафиксируйте изменения в репозитории.
+  </div>
+
+  <div class="sales-section">
+    <div class="sales-title">Продажи по блогерам</div>
+
+    <div class="utm-hint">
+      Давай блогерам уникальные ссылки: <code>https://verevery.ru/buy?utm=ИМЯ_БЛОГЕРА</code><br>
+      Например: <code>https://verevery.ru/buy?utm=masha_blog</code> или <code>https://verevery.ru/buy?utm=katya_life</code>
+    </div>
+
+    {% if blogger_stats %}
+    <div class="blogger-cards">
+      {% for b in blogger_stats %}
+      <div class="blogger-card">
+        <div class="blogger-card-name">{{ b.blogger }}</div>
+        <div class="blogger-card-row"><span>Покупок</span><span>{{ b.cnt }}</span></div>
+        <div class="blogger-card-row"><span>Сумма</span><span>{{ "%.0f"|format(b.total) }} ₽</span></div>
+        <div class="commission-badge">К выплате: {{ "%.0f"|format(b.commission) }} ₽</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="sales-title" style="margin-top:8px;">Все продажи</div>
+    <table class="users-table">
+      <thead><tr><th>Дата</th><th>Email</th><th>Блогер / UTM</th><th>Сумма</th><th>Комиссия</th></tr></thead>
+      <tbody>
+      {% for s in sales %}
+      <tr>
+        <td style="white-space:nowrap">{{ s.date }}</td>
+        <td>{{ s.email }}</td>
+        <td>{{ s.blogger or '—' }}</td>
+        <td>{{ "%.0f"|format(s.amount) }} ₽</td>
+        <td>{{ "%.0f"|format(s.commission) }} ₽</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="sales-empty">Продаж пока нет</div>
+    {% endif %}
   </div>
 
   <div class="grant-panel">

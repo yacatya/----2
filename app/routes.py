@@ -54,37 +54,18 @@ def _send_magic_link(email, conn):
     })
 
 
-def _log_to_sheets(date, email, utm, amount):
+def _save_sale(conn, payment_id, date, email, utm, amount):
     try:
-        import requests as _requests
-        url = os.environ.get('GOOGLE_SCRIPT_URL', '')
-        if not url:
-            return 'NO_URL'
-        blogger = utm if utm != 'direct' else ''
+        blogger = utm if utm not in ('direct', '', None) else ''
         commission = round(float(amount) * 0.30, 2)
-        resp = _requests.post(url, json={
-            'secret': 'verevery2024',
-            'date': date,
-            'email': email,
-            'utm': utm,
-            'blogger': blogger,
-            'amount': str(amount),
-            'commission': str(commission),
-        }, timeout=10)
-        return f'HTTP {resp.status_code}: {resp.text[:200]}'
-    except Exception as e:
-        return f'ERROR: {e}'
-
-
-@main.route('/test-sheets')
-def test_sheets():
-    result = _log_to_sheets(
-        date='08.05.2026 12:00',
-        email='test@verevery.ru',
-        utm='test',
-        amount='1.00'
-    )
-    return f'<pre>{result}\n\nGOOGLE_SCRIPT_URL={os.environ.get("GOOGLE_SCRIPT_URL","не задан")}</pre>'
+        conn.execute(
+            '''INSERT OR IGNORE INTO sales (payment_id, date, email, utm, blogger, amount, commission)
+               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (payment_id, date, email, utm, blogger, float(amount), commission)
+        )
+        conn.commit()
+    except Exception:
+        pass
 
 
 # ── Pages ────────────────────────────────────────────────────────────────────
@@ -197,9 +178,8 @@ def webhook_payment():
         conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
         conn.commit()
         _send_magic_link(email, conn)
+        _save_sale(conn, payment.id, date, email, utm, amount)
         conn.close()
-
-        _log_to_sheets(date, email, utm, amount)
 
     except Exception:
         pass
@@ -329,8 +309,22 @@ def admin():
     users = conn.execute(
         'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 50'
     ).fetchall()
+    blogger_stats = conn.execute('''
+        SELECT
+            CASE WHEN blogger = '' THEN 'Прямые продажи' ELSE blogger END as blogger,
+            COUNT(*) as cnt,
+            SUM(amount) as total,
+            SUM(commission) as commission
+        FROM sales
+        GROUP BY blogger
+        ORDER BY total DESC
+    ''').fetchall()
+    sales = conn.execute(
+        'SELECT date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC LIMIT 200'
+    ).fetchall()
     conn.close()
-    return render_template('admin.html', blocks=blocks_data, users=users)
+    return render_template('admin.html', blocks=blocks_data, users=users,
+                           blogger_stats=blogger_stats, sales=sales)
 
 
 @main.route('/admin/grant', methods=['POST'])

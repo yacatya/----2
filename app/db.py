@@ -26,8 +26,18 @@ def init_db():
             used INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS sales (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            payment_id TEXT UNIQUE,
+            date TEXT,
+            email TEXT,
+            utm TEXT,
+            blogger TEXT,
+            amount REAL,
+            commission REAL,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
     ''')
-    # Migrations: add columns that may be missing in older DBs
     for col, definition in [
         ('has_access', 'INTEGER DEFAULT 0'),
         ('created_at', "TEXT DEFAULT (datetime('now'))"),
