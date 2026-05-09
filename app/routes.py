@@ -275,7 +275,7 @@ def auth_verify():
             return redirect(url_for('main.auth'))
         # Validate token exists before showing the button.
         # Email scanners (Yandex, Mail.ru, etc.) do a GET to check links,
-        # so we only consume the token on explicit POST (user button click).
+        # so we only consume the token on /auth/open (user button click).
         try:
             from .db import get_db
             conn = get_db()
@@ -290,10 +290,14 @@ def auth_verify():
             return render_template('auth.html', token_expired=True)
         return render_template('auth.html', confirm_token=token)
 
-    token = request.form.get('token', '')
+    return redirect(url_for('main.auth'))
+
+
+@main.route('/auth/open')
+def auth_open():
+    token = request.args.get('token', '')
     if not token:
         return redirect(url_for('main.auth'))
-
     try:
         from .db import get_db
         conn = get_db()
@@ -301,17 +305,14 @@ def auth_verify():
             'SELECT * FROM magic_tokens WHERE token=? AND used=0 AND expires_at > ?',
             (token, datetime.utcnow().isoformat())
         ).fetchone()
-
         if not row:
             conn.close()
             return render_template('auth.html', token_expired=True)
-
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
         user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
         conn.execute('UPDATE magic_tokens SET used=1 WHERE token=?', (token,))
         conn.commit()
         conn.close()
-
         session.permanent = True
         session['user_id'] = user['id']
         session['email'] = user['email']
