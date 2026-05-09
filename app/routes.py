@@ -219,6 +219,34 @@ def cards():
     return render_template('cards.html', blocks=blocks)
 
 
+@main.route('/debug/health')
+def debug_health():
+    import traceback
+    results = {}
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute('SELECT 1 FROM sales LIMIT 1')
+        results['sales_table'] = 'ok'
+        conn.execute('SELECT 1 FROM users LIMIT 1')
+        results['users_table'] = 'ok'
+        conn.close()
+    except Exception:
+        results['db_error'] = traceback.format_exc()
+    try:
+        load_block('action')
+        results['json_files'] = 'ok'
+    except Exception:
+        results['json_error'] = traceback.format_exc()
+    try:
+        get_free_card_ids()
+        results['free_cards'] = 'ok'
+    except Exception:
+        results['free_cards_error'] = traceback.format_exc()
+    import json as _json
+    return '<pre>' + _json.dumps(results, ensure_ascii=False, indent=2) + '</pre>'
+
+
 @main.route('/auth', methods=['GET', 'POST'])
 def auth():
     if 'user_id' in session:
