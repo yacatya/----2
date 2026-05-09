@@ -267,9 +267,18 @@ def auth():
     return render_template('auth.html')
 
 
-@main.route('/auth/verify')
+@main.route('/auth/verify', methods=['GET', 'POST'])
 def auth_verify():
-    token = request.args.get('token', '')
+    if request.method == 'GET':
+        token = request.args.get('token', '')
+        if not token:
+            return redirect(url_for('main.auth'))
+        # Show confirmation page — token is NOT consumed yet.
+        # Email scanners (Yandex, Mail.ru, etc.) do a GET to check links,
+        # so we only consume the token on explicit POST (user button click).
+        return render_template('auth.html', confirm_token=token)
+
+    token = request.form.get('token', '')
     if not token:
         return redirect(url_for('main.auth'))
 
