@@ -273,9 +273,21 @@ def auth_verify():
         token = request.args.get('token', '')
         if not token:
             return redirect(url_for('main.auth'))
-        # Show confirmation page — token is NOT consumed yet.
+        # Validate token exists before showing the button.
         # Email scanners (Yandex, Mail.ru, etc.) do a GET to check links,
         # so we only consume the token on explicit POST (user button click).
+        try:
+            from .db import get_db
+            conn = get_db()
+            row = conn.execute(
+                'SELECT 1 FROM magic_tokens WHERE token=? AND used=0 AND expires_at > ?',
+                (token, datetime.utcnow().isoformat())
+            ).fetchone()
+            conn.close()
+            if not row:
+                return render_template('auth.html', token_expired=True)
+        except Exception:
+            return render_template('auth.html', token_expired=True)
         return render_template('auth.html', confirm_token=token)
 
     token = request.form.get('token', '')
