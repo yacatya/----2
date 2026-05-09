@@ -273,30 +273,30 @@ def auth_verify():
     if not token:
         return redirect(url_for('main.auth'))
 
-    from .db import get_db
-    conn = get_db()
-    row = conn.execute(
-        'SELECT * FROM magic_tokens WHERE token=? AND used=0 AND expires_at > ?',
-        (token, datetime.utcnow().isoformat())
-    ).fetchone()
+    try:
+        from .db import get_db
+        conn = get_db()
+        row = conn.execute(
+            'SELECT * FROM magic_tokens WHERE token=? AND used=0 AND expires_at > ?',
+            (token, datetime.utcnow().isoformat())
+        ).fetchone()
 
-    if not row:
+        if not row:
+            conn.close()
+            return render_template('auth.html', token_expired=True)
+
+        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
+        user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
+        conn.execute('UPDATE magic_tokens SET used=1 WHERE token=?', (token,))
+        conn.commit()
         conn.close()
-        return render_template(
-            'auth.html',
-            error='Ссылка устарела или уже использована. Запросите новую.'
-        )
 
-    conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
-    user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
-    conn.execute('UPDATE magic_tokens SET used=1 WHERE token=?', (token,))
-    conn.commit()
-    conn.close()
-
-    session.permanent = True
-    session['user_id'] = user['id']
-    session['email'] = user['email']
-    return redirect(url_for('main.cards'))
+        session.permanent = True
+        session['user_id'] = user['id']
+        session['email'] = user['email']
+        return redirect(url_for('main.cards'))
+    except Exception:
+        return render_template('auth.html', token_expired=True)
 
 
 @main.route('/offer')
