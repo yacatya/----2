@@ -138,8 +138,9 @@
       <div class="grant-status" id="grant-status"></div>
     </div>
 
-    <div class="search-row">
-      <input type="text" class="search-input" placeholder="Поиск по email…" oninput="filterTable('users-tbody', this.value)">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+      <input type="text" class="search-input" style="margin:0;" placeholder="Поиск по email…" oninput="filterTable('users-tbody', this.value)">
+      <button class="btn-grant" style="background:#2e7d32;" onclick="exportCsv('users-tbody', ['Email','Доступ','Дата'], 'покупатели')">↓ Скачать CSV</button>
     </div>
     <div class="count-badge" id="users-count">Всего: {{ users|length }}</div>
 
@@ -184,8 +185,9 @@
     </div>
 
     {% if blogger_stats %}
-    <div class="search-row">
-      <input type="text" class="search-input" placeholder="Поиск по блогеру…" oninput="filterTable('bloggers-tbody', this.value)">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+      <input type="text" class="search-input" style="margin:0;" placeholder="Поиск по блогеру…" oninput="filterTable('bloggers-tbody', this.value)">
+      <button class="btn-grant" style="background:#2e7d32;" onclick="exportCsv('bloggers-tbody', ['Блогер','Покупок','Сумма','К выплате (30%)','UTM'], 'блогеры')">↓ Скачать CSV</button>
     </div>
     <div class="count-badge">Всего блогеров: {{ blogger_stats|length }}</div>
 
@@ -225,6 +227,7 @@
     {% if sales %}
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
       <input type="text" class="search-input" style="margin:0;" placeholder="Поиск по email или блогеру…" oninput="filterTable('sales-tbody', this.value)">
+      <button class="btn-grant" style="background:#2e7d32;" onclick="exportCsv('sales-tbody', ['Дата','Email','Блогер / UTM','Сумма','Комиссия'], 'продажи')">↓ Скачать CSV</button>
       <button id="btn-delete-sales" class="btn-grant" style="background:#c0392b;display:none;" onclick="deleteSelectedSales()">Удалить выбранные</button>
     </div>
     <div class="count-badge" id="sales-count">Всего записей: {{ sales|length }}</div>
@@ -482,6 +485,30 @@ function saveFreeCards() {
       if (r.ok) { st.className = 'grant-status ok'; st.textContent = 'Сохранено!'; }
       else { st.className = 'grant-status err'; st.textContent = 'Ошибка'; }
     });
+}
+
+function exportCsv(tbodyId, headers, filename) {
+  var rows = document.querySelectorAll('#' + tbodyId + ' tr:not(.hidden)');
+  var lines = [headers.join(';')];
+  rows.forEach(function(row) {
+    var cells = row.querySelectorAll('td');
+    var vals = [];
+    cells.forEach(function(td) {
+      if (td.querySelector('input[type=checkbox]')) return;
+      if (td.querySelector('button') && !td.querySelector('.badge-yes') && !td.querySelector('.badge-no')) return;
+      var text = td.textContent.trim().replace(/\s+/g, ' ');
+      vals.push('"' + text.replace(/"/g, '""') + '"');
+    });
+    if (vals.length) lines.push(vals.join(';'));
+  });
+  var bom = '﻿';
+  var blob = new Blob([bom + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var today = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = filename + '_' + today + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function toggleAllSales(masterCb) {
