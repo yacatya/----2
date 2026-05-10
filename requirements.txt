@@ -1,6 +1,6 @@
 Flask==3.0.3
 gunicorn==22.0.0
+requests==2.32.3
 resend==2.10.0
 yookassa==3.1.0
-gspread==6.1.2
-google-auth==2.29.0
+anthropol==0.40.0

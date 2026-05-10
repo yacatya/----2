@@ -55,6 +55,8 @@ jobs:
             app/templates/privacy.html \
             app/templates/admin.html \
             app/templates/admin_login.html \
+            app/templates/admin_bloggers.html \
+            app/templates/admin_bloggers_analytics.html \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/templates/
 
           scp -i ~/.ssh/id_rsa \
@@ -77,7 +79,10 @@ jobs:
             grep -q "SHOP_ID"             /opt/verevery/.env || echo "SHOP_ID=1343976" >> /opt/verevery/.env
             grep -q "YUKASSA_SECRET_KEY"  /opt/verevery/.env || echo "YUKASSA_SECRET_KEY=live_Lgub-4R5c4GHQfzxuxemHpbUV2juR61Skwouf6X3J7o" >> /opt/verevery/.env
             grep -q "RESEND_API_KEY"      /opt/verevery/.env || echo "RESEND_API_KEY=re_U1LCNq9A_LyUSc2PuTFZTWfEkHXUQgQ55" >> /opt/verevery/.env
-            grep -q "GOOGLE_SCRIPT_URL"   /opt/verevery/.env || echo "GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/AKfycbyaeG2Ov-IXimQbkRM6MMtfNFsdzsdZTrct3Dnx_ZU9QTsE29_aN27ebLIdE8oMFomrjA/exec" >> /opt/verevery/.env
+            sed -i '/^GOOGLE_SCRIPT_URL=/d' /opt/verevery/.env && echo "GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/AKfycbxg7aQgYy4DgwdpExdl4y7P-a1wQDU3s9gv_0Z81NvkdzaPAN9jjwVZcZTtCHimqh40/exec" >> /opt/verevery/.env
+            grep -q "ANTHROPIC_API_KEY"   /opt/verevery/.env || echo "ANTHROPIC_API_KEY=" >> /opt/verevery/.env
+            grep -q "WEBHOOK_SECRET"      /opt/verevery/.env || echo "WEBHOOK_SECRET=" >> /opt/verevery/.env
+            grep -q "ADMIN_NOTIFY_EMAIL"  /opt/verevery/.env || echo "ADMIN_NOTIFY_EMAIL=katya@verevery.ru" >> /opt/verevery/.env
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
