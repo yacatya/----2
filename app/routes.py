@@ -178,7 +178,7 @@ def webhook_payment():
         if payment.status != 'succeeded':
             return '', 200
 
-        email = (payment.metadata or {}).get('email', '')
+        email = (payment.metadata or {}).get('email', '').strip().lower()
         utm = (payment.metadata or {}).get('utm', 'direct')
         amount = str(payment.amount.value)
         date = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
@@ -197,7 +197,7 @@ def webhook_payment():
         ).fetchone()
 
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
+        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
         conn.commit()
         _save_sale(conn, payment.id, date, email, utm, amount)
 
@@ -332,18 +332,21 @@ def auth_open():
                 conn2.close()
                 debug_info = f'Токен не найден в базе. Всего токенов: {any_row["cnt"]}. token_prefix={token[:8]}...'
             return render_template('auth.html', token_expired=True, debug_info=debug_info)
-        email = row['email']
+        email = row['email'].strip().lower()
         if not email:
             conn.close()
             return render_template('auth.html', token_expired=True,
                                    debug_info='Токен найден, но email пустой в базе')
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
         conn.commit()
-        user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
+        # Use case-insensitive lookup to handle legacy data stored with different casing
+        user = conn.execute(
+            'SELECT * FROM users WHERE email=? OR LOWER(email)=?', (email, email)
+        ).fetchone()
         if not user:
             conn.close()
             return render_template('auth.html', token_expired=True,
-                                   debug_info=f'Пользователь не создан: email={email}')
+                                   debug_info=f'DB error: user not found for {email}')
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
@@ -440,7 +443,7 @@ def admin_grant():
         from .db import get_db
         conn = get_db()
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
+        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
         conn.commit()
         _send_magic_link(email, conn)
         conn.close()
