@@ -188,11 +188,22 @@ def webhook_payment():
 
         from .db import get_db
         conn = get_db()
+
+        # Check before save — YooKassa sends the same webhook multiple times.
+        # Only send the magic link on the first delivery to avoid overwriting
+        # the token while the user still holds the link from the first email.
+        already_processed = conn.execute(
+            'SELECT 1 FROM sales WHERE payment_id=?', (payment.id,)
+        ).fetchone()
+
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
         conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
         conn.commit()
-        _send_magic_link(email, conn)
         _save_sale(conn, payment.id, date, email, utm, amount)
+
+        if not already_processed:
+            _send_magic_link(email, conn)
+
         conn.close()
 
     except Exception:
