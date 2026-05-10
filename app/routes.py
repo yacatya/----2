@@ -1,7 +1,7 @@
 import json
 import os
+import re as _re
 import secrets
-
 import uuid
 from datetime import datetime, timedelta
 
@@ -68,6 +68,15 @@ def _send_magic_link(email, conn):
     })
 
 
+def _upsert_user(conn, email):
+    """Insert user if not exists (compatible with password_hash NOT NULL schema), then grant access."""
+    conn.execute(
+        'INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)', (email, '')
+    )
+    conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
+    conn.commit()
+
+
 def _save_sale(conn, payment_id, date, email, utm, amount):
     try:
         blogger = utm if utm not in ('direct', '', None) else ''
@@ -121,7 +130,7 @@ def pay():
 
     _configure_yookassa()
     base_params = {
-        'amount': {'value': '1.00', 'currency': 'RUB'},
+        'amount': {'value': '690.00', 'currency': 'RUB'},
         'confirmation': {
             'type': 'redirect',
             'return_url': f'{BASE_URL}/buy/success',
@@ -136,7 +145,7 @@ def pay():
             'items': [{
                 'description': 'Колода «Ближе» — постоянный доступ',
                 'quantity': '1.00',
-                'amount': {'value': '1.00', 'currency': 'RUB'},
+                'amount': {'value': '690.00', 'currency': 'RUB'},
                 'vat_code': 1,
                 'payment_mode': 'full_payment',
                 'payment_subject': 'service',
@@ -196,9 +205,7 @@ def webhook_payment():
             'SELECT 1 FROM sales WHERE payment_id=?', (payment.id,)
         ).fetchone()
 
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
-        conn.commit()
+        _upsert_user(conn, email)
         _save_sale(conn, payment.id, date, email, utm, amount)
 
         if not already_processed:
@@ -230,34 +237,6 @@ def cards():
     return render_template('cards.html', blocks=blocks)
 
 
-@main.route('/debug/health')
-def debug_health():
-    import traceback
-    results = {}
-    try:
-        from .db import get_db
-        conn = get_db()
-        conn.execute('SELECT 1 FROM sales LIMIT 1')
-        results['sales_table'] = 'ok'
-        conn.execute('SELECT 1 FROM users LIMIT 1')
-        results['users_table'] = 'ok'
-        conn.close()
-    except Exception:
-        results['db_error'] = traceback.format_exc()
-    try:
-        load_block('action')
-        results['json_files'] = 'ok'
-    except Exception:
-        results['json_error'] = traceback.format_exc()
-    try:
-        get_free_card_ids()
-        results['free_cards'] = 'ok'
-    except Exception:
-        results['free_cards_error'] = traceback.format_exc()
-    import json as _json
-    return '<pre>' + _json.dumps(results, ensure_ascii=False, indent=2) + '</pre>'
-
-
 @main.route('/auth', methods=['GET', 'POST'])
 def auth():
     if 'user_id' in session:
@@ -269,7 +248,7 @@ def auth():
             return render_template('auth.html', error='Введите корректный email')
         from .db import get_db
         conn = get_db()
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
+        conn.execute('INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)', (email, ''))
         conn.commit()
         _send_magic_link(email, conn)
         conn.close()
@@ -317,83 +296,42 @@ def auth_open():
             (token, datetime.utcnow().isoformat())
         ).fetchone()
         if not row:
-            # Debug: check why token not found
             debug_row = conn.execute(
-                'SELECT token, expires_at, used FROM magic_tokens WHERE token=?', (token,)
+                'SELECT expires_at FROM magic_tokens WHERE token=?', (token,)
             ).fetchone()
-            now = datetime.utcnow().isoformat()
             conn.close()
-            debug_info = None
             if debug_row:
-                debug_info = f'Токен найден, но истёк. expires_at={debug_row["expires_at"]}, now={now}, used={debug_row["used"]}'
+                debug_info = f'Токен истёк {debug_row["expires_at"]}'
             else:
-                conn2 = get_db()
-                any_row = conn2.execute('SELECT COUNT(*) as cnt FROM magic_tokens').fetchone()
-                conn2.close()
-                debug_info = f'Токен не найден в базе. Всего токенов: {any_row["cnt"]}. token_prefix={token[:8]}...'
+                debug_info = 'Токен не найден — возможно, была выслана новая ссылка'
             return render_template('auth.html', token_expired=True, debug_info=debug_info)
+
         email = row['email'].strip().lower()
         if not email:
             conn.close()
-            return render_template('auth.html', token_expired=True,
-                                   debug_info='Токен найден, но email пустой в базе')
+            return render_template('auth.html', token_expired=True)
 
-        # Find existing user by exact match or trimmed/lowercased match
+        # Find user; if missing create one (password_hash='' for legacy schema compatibility)
         user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             user = conn.execute(
                 'SELECT * FROM users WHERE LOWER(TRIM(email))=?', (email,)
             ).fetchone()
 
-        del_count = ins_count = 0
-        ins_error = schema_sql = None
-        raw_emails = after_rows = after_like = []
-
         if user:
-            # Normalize email and grant access on the found row
             conn.execute('UPDATE users SET email=?, has_access=1 WHERE id=?', (email, user['id']))
             conn.commit()
         else:
-            # Diagnose why no row was found
-            all_rows = conn.execute('SELECT id, email, has_access FROM users').fetchall()
-            raw_emails = [(r['id'], repr(r['email'])) for r in all_rows]
-
-            del_cur = conn.execute('DELETE FROM users WHERE LOWER(TRIM(email))=?', (email,))
-            del_count = del_cur.rowcount
-
-            ins_error = None
-            ins_count = 0
-            try:
-                ins_cur = conn.execute(
-                    'INSERT INTO users (email, has_access) VALUES (?, 1)', (email,)
-                )
-                ins_count = ins_cur.rowcount
-                conn.commit()
-            except Exception as ie:
-                ins_error = repr(ie)
-
-            schema_rows = conn.execute(
-                "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
-            ).fetchone()
-            schema_sql = schema_rows[0] if schema_rows else 'no schema'
-
-            after_rows = conn.execute('SELECT id, email FROM users WHERE email=?', (email,)).fetchall()
-            after_like = conn.execute(
-                'SELECT id, email FROM users WHERE email LIKE ?', (f'%{email.strip()}%',)
-            ).fetchall()
+            conn.execute(
+                'INSERT INTO users (email, password_hash, has_access) VALUES (?, ?, 1)', (email, '')
+            )
+            conn.commit()
 
         user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             conn.close()
-            diag = (
-                f'email={repr(email)} | '
-                f'del={del_count} ins={ins_count} ins_err={ins_error} | '
-                f'after_exact={[r["id"] for r in after_rows]} '
-                f'after_like={[(r["id"], repr(r["email"])) for r in after_like]} | '
-                f'schema={schema_sql} | '
-                f'all_emails={raw_emails}'
-            )
-            return render_template('auth.html', token_expired=True, debug_info=diag)
+            return render_template('auth.html', token_expired=True)
+
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
@@ -401,6 +339,33 @@ def auth_open():
         return redirect(url_for('main.cards'))
     except Exception as e:
         return render_template('auth.html', token_expired=True, debug_info=f'Exception: {e}')
+
+
+@main.route('/auth/report', methods=['POST'])
+def auth_report():
+    email = request.form.get('email', '').strip()[:200]
+    message = request.form.get('message', '').strip()[:1000]
+    if not email or not message:
+        return 'Bad request', 400
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute('''CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            resolved INTEGER DEFAULT 0
+        )''')
+        conn.execute(
+            'INSERT INTO reports (email, message, created_at) VALUES (?, ?, ?)',
+            (email, message, datetime.utcnow().strftime('%d.%m.%Y %H:%M'))
+        )
+        conn.commit()
+        conn.close()
+        return '', 200
+    except Exception:
+        return '', 500
 
 
 @main.route('/offer')
@@ -453,7 +418,7 @@ def admin():
     from .db import get_db
     conn = get_db()
     users = conn.execute(
-        'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 50'
+        'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 1000'
     ).fetchall()
     all_cards_flat = []
     for block in ['action', 'question', 'care']:
@@ -471,12 +436,19 @@ def admin():
         ORDER BY total DESC
     ''').fetchall()
     sales = conn.execute(
-        'SELECT date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC LIMIT 200'
+        'SELECT id, date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC'
     ).fetchall()
+    try:
+        reports = conn.execute(
+            'SELECT id, email, message, created_at, resolved FROM reports ORDER BY id DESC LIMIT 500'
+        ).fetchall()
+    except Exception:
+        reports = []
     conn.close()
     return render_template('admin.html', blocks=blocks_data, users=users,
                            blogger_stats=blogger_stats, sales=sales,
-                           all_cards=all_cards_flat, free_ids=free_ids)
+                           all_cards=all_cards_flat, free_ids=free_ids,
+                           reports=reports)
 
 
 @main.route('/admin/grant', methods=['POST'])
@@ -489,12 +461,50 @@ def admin_grant():
     try:
         from .db import get_db
         conn = get_db()
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
-        conn.commit()
+        _upsert_user(conn, email)
         _send_magic_link(email, conn)
         conn.close()
         return 'OK', 200
+    except Exception as e:
+        return f'Ошибка: {e}', 500
+
+
+@main.route('/admin/resolve-report', methods=['POST'])
+def admin_resolve_report():
+    if not _admin_required():
+        return 'Forbidden', 403
+    report_id = request.form.get('id', '')
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute('UPDATE reports SET resolved=1 WHERE id=?', (report_id,))
+        conn.commit()
+        conn.close()
+        return '', 200
+    except Exception as e:
+        return f'Ошибка: {e}', 500
+
+
+@main.route('/admin/delete-sales', methods=['POST'])
+def admin_delete_sales():
+    if not _admin_required():
+        return 'Forbidden', 403
+    ids_raw = request.form.get('ids', '')
+    try:
+        ids = [int(x) for x in ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        return 'Bad request', 400
+    if not ids:
+        return 'Nothing to delete', 400
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute(
+            'DELETE FROM sales WHERE id IN ({})'.format(','.join('?' * len(ids))), ids
+        )
+        conn.commit()
+        conn.close()
+        return '', 200
     except Exception as e:
         return f'Ошибка: {e}', 500
 
@@ -534,6 +544,456 @@ def admin_free_cards():
     ids = [cid for cid in ids if cid]
     save_free_card_ids(ids)
     return '', 200
+
+
+# ── Blogger CRM ──────────────────────────────────────────────────────────────
+
+COMMISSION_PER_SALE = 207  # 30% of 690 RUB
+
+BLOGGER_STATUSES = [
+    ('new',        'Новый',        '#8C7E72', '#F5F0EB'),
+    ('sent',       'Отправлено',   '#1a6fa6', '#e8f4fd'),
+    ('replied',    'Ответил',      '#a67c00', '#fff8e1'),
+    ('interested', 'Интересно',    '#2e7d32', '#e8f5e9'),
+    ('posted',     'Опубликовал',  '#1b5e20', '#c8e6c9'),
+    ('declined',   'Отказал',      '#c0392b', '#fbe9e7'),
+]
+
+
+def _make_utm_slug(name):
+    slug = name.lower().strip()
+    slug = _re.sub(r'[\s\-]+', '_', slug)
+    slug = _re.sub(r'[^a-z0-9_]', '', slug)
+    return slug[:50] or 'blogger'
+
+
+def _blogger_warning(blogger, now):
+    """Return True if status is sent/replied, 3+ days passed, no reply yet."""
+    if blogger['status'] not in ('sent', 'replied'):
+        return False
+    if not blogger['first_email_sent_at']:
+        return False
+    if blogger['last_reply_at']:
+        return False
+    try:
+        sent = datetime.fromisoformat(blogger['first_email_sent_at'])
+        return (now - sent).days >= 3
+    except Exception:
+        return False
+
+
+def _send_blogger_email(blogger, email_type, conn):
+    """Send first or second outreach email. Returns (ok, error_msg)."""
+    import resend
+    resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    name = blogger['name']
+    html_body = (_first_email_html(name) if email_type == 'first'
+                 else _second_email_html(name, blogger['utm_link']))
+    subject = ('Сотрудничество — колода карточек «Ближе» для пар'
+               if email_type == 'first'
+               else 'Re: Сотрудничество — колода карточек «Ближе» для пар')
+    now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+    try:
+        resend.Emails.send({
+            'from': 'Катя из Vera <katya@verevery.ru>',
+            'reply_to': ['reply@verevery.ru'],
+            'to': [blogger['email']],
+            'subject': subject,
+            'html': html_body,
+        })
+        conn.execute(
+            'INSERT INTO email_log (blogger_id, type, sent_at, status) VALUES (?,?,?,?)',
+            (blogger['id'], email_type, now_fmt, 'ok')
+        )
+        return True, None
+    except Exception as e:
+        err = str(e)[:500]
+        conn.execute(
+            'INSERT INTO email_log (blogger_id, type, sent_at, status, error) VALUES (?,?,?,?,?)',
+            (blogger['id'], email_type, now_fmt, 'error', err)
+        )
+        return False, err
+
+
+def _classify_reply_with_claude(text):
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY', ''))
+        msg = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=10,
+            messages=[{'role': 'user', 'content': (
+                'Ты помощник, который анализирует ответы блогеров на предложение о сотрудничестве. '
+                'Классифицируй ответ как одно из:\n'
+                '- positive (заинтересован, хочет узнать больше, готов сотрудничать)\n'
+                '- negative (отказ, не интересно, не подходит)\n'
+                '- question (задаёт вопросы, нужна дополнительная информация)\n'
+                'Ответь только одним словом: positive, negative или question.\n'
+                f'Текст ответа: {text[:2000]}'
+            )}]
+        )
+        result = msg.content[0].text.strip().lower()
+        if result in ('positive', 'negative', 'question'):
+            return result
+    except Exception:
+        pass
+    return 'question'
+
+
+def _draft_reply_with_claude(blogger_name, text):
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY', ''))
+        msg = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=400,
+            messages=[{'role': 'user', 'content': (
+                f'Блогер {blogger_name} написал нам по поводу сотрудничества с онлайн-колодой «Ближе» (verevery.ru). '
+                'Напиши короткий черновик ответа на его вопрос. Отвечаем от имени Кати. '
+                'Тон: тёплый, дружелюбный, профессиональный.\n\n'
+                f'Вопрос блогера:\n{text[:1000]}'
+            )}]
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return '(не удалось сгенерировать черновик)'
+
+
+def _notify_admin(subject, body):
+    try:
+        import resend
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+        to = os.environ.get('ADMIN_NOTIFY_EMAIL', 'katya@verevery.ru')
+        resend.Emails.send({
+            'from': 'Vera система <noreply@verevery.ru>',
+            'to': [to],
+            'subject': subject,
+            'html': f'<pre style="font-family:sans-serif;white-space:pre-wrap;font-size:14px">{body}</pre>',
+        })
+    except Exception:
+        pass
+
+
+@main.route('/admin/bloggers')
+def admin_bloggers():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    status_filter = request.args.get('status', '')
+    search = request.args.get('q', '').strip()
+    from .db import get_db
+    conn = get_db()
+    query = '''
+        SELECT b.*,
+            COALESCE(s.cnt, 0) as real_sales,
+            COALESCE(s.revenue, 0.0) as total_revenue
+        FROM bloggers b
+        LEFT JOIN (
+            SELECT blogger, COUNT(*) as cnt, SUM(amount) as revenue
+            FROM sales GROUP BY blogger
+        ) s ON s.blogger = b.utm_slug
+    '''
+    conditions, params = [], []
+    if status_filter:
+        conditions.append('b.status = ?')
+        params.append(status_filter)
+    if search:
+        conditions.append('(b.name LIKE ? OR b.email LIKE ?)')
+        params += [f'%{search}%', f'%{search}%']
+    if conditions:
+        query += ' WHERE ' + ' AND '.join(conditions)
+    query += ' ORDER BY b.created_at DESC'
+    bloggers_rows = conn.execute(query, params).fetchall()
+
+    status_counts = {'': 0}
+    for row in conn.execute('SELECT status, COUNT(*) as cnt FROM bloggers GROUP BY status'):
+        status_counts[row['status']] = row['cnt']
+        status_counts[''] += row['cnt']
+    conn.close()
+
+    now = datetime.utcnow()
+    return render_template('admin_bloggers.html',
+                           bloggers=bloggers_rows,
+                           status_filter=status_filter,
+                           search=search,
+                           status_counts=status_counts,
+                           statuses=BLOGGER_STATUSES,
+                           now=now,
+                           cps=COMMISSION_PER_SALE,
+                           blogger_warning=_blogger_warning)
+
+
+@main.route('/admin/bloggers/add', methods=['POST'])
+def admin_bloggers_add():
+    if not _admin_required():
+        return 'Forbidden', 403
+    name = request.form.get('name', '').strip()[:200]
+    if not name:
+        return 'Имя обязательно', 400
+    platform = request.form.get('platform', '').strip()[:100]
+    profile_url = request.form.get('profile_url', '').strip()[:500]
+    email = request.form.get('email', '').strip().lower()[:200]
+    utm_slug = request.form.get('utm_slug', '').strip() or _make_utm_slug(name)
+    utm_link = f'{BASE_URL}/free?utm={utm_slug}'
+    notes = request.form.get('notes', '').strip()[:2000]
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute(
+            'INSERT INTO bloggers (name, platform, profile_url, email, utm_slug, utm_link, notes) '
+            'VALUES (?,?,?,?,?,?,?)',
+            (name, platform, profile_url, email, utm_slug, utm_link, notes)
+        )
+        conn.commit()
+        conn.close()
+        return '', 200
+    except Exception as e:
+        return f'Ошибка: {e}', 500
+
+
+@main.route('/admin/bloggers/<int:bid>/update', methods=['POST'])
+def admin_bloggers_update(bid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    allowed = {'name', 'platform', 'profile_url', 'email', 'utm_slug',
+               'status', 'notes', 'paid_out', 'reply_sentiment'}
+    updates = {k: request.form[k].strip() for k in allowed if k in request.form}
+    if 'utm_slug' in updates:
+        updates['utm_link'] = f'{BASE_URL}/free?utm={updates["utm_slug"]}'
+    if not updates:
+        return 'Nothing to update', 400
+    from .db import get_db
+    conn = get_db()
+    set_clause = ', '.join(f'{k}=?' for k in updates)
+    conn.execute(f'UPDATE bloggers SET {set_clause} WHERE id=?', list(updates.values()) + [bid])
+    conn.commit()
+    row = conn.execute('SELECT utm_link FROM bloggers WHERE id=?', (bid,)).fetchone()
+    conn.close()
+    if row and 'utm_slug' in updates:
+        return row['utm_link'], 200
+    return '', 200
+
+
+@main.route('/admin/bloggers/<int:bid>/delete', methods=['POST'])
+def admin_bloggers_delete(bid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    from .db import get_db
+    conn = get_db()
+    conn.execute('DELETE FROM bloggers WHERE id=?', (bid,))
+    conn.execute('DELETE FROM email_log WHERE blogger_id=?', (bid,))
+    conn.commit()
+    conn.close()
+    return '', 200
+
+
+@main.route('/admin/bloggers/<int:bid>/send-email', methods=['POST'])
+def admin_bloggers_send_email(bid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    email_type = request.form.get('type', 'first')
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
+    if not blogger:
+        conn.close()
+        return 'Блогер не найден', 404
+    if not blogger['email']:
+        conn.close()
+        return 'Email не указан', 400
+    ok, err = _send_blogger_email(blogger, email_type, conn)
+    if ok and email_type == 'first':
+        conn.execute(
+            "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
+            (datetime.utcnow().isoformat(), bid)
+        )
+    conn.commit()
+    conn.close()
+    return ('', 200) if ok else (f'Ошибка: {err}', 500)
+
+
+@main.route('/admin/bloggers/send-bulk', methods=['POST'])
+def admin_bloggers_send_bulk():
+    if not _admin_required():
+        return 'Forbidden', 403
+    try:
+        ids = [int(x) for x in request.form.get('ids', '').split(',') if x.strip().isdigit()]
+    except Exception:
+        return 'Bad ids', 400
+    if not ids:
+        return 'No ids', 400
+    from .db import get_db
+    conn = get_db()
+    sent, errors = 0, []
+    now_iso = datetime.utcnow().isoformat()
+    for bid in ids:
+        b = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
+        if not b or not b['email']:
+            continue
+        ok, err = _send_blogger_email(b, 'first', conn)
+        if ok:
+            conn.execute(
+                "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
+                (now_iso, bid)
+            )
+            sent += 1
+        else:
+            errors.append(f'{b["name"]}: {err}')
+    conn.commit()
+    conn.close()
+    msg = f'Отправлено: {sent}'
+    if errors:
+        return msg + '. Ошибки: ' + '; '.join(errors), 207
+    return msg, 200
+
+
+@main.route('/admin/bloggers/analytics')
+def admin_bloggers_analytics():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    from .db import get_db
+    conn = get_db()
+    total = conn.execute('SELECT COUNT(*) FROM bloggers').fetchone()[0]
+    by_status = {r['status']: r['cnt'] for r in
+                 conn.execute('SELECT status, COUNT(*) as cnt FROM bloggers GROUP BY status')}
+    rows = conn.execute('''
+        SELECT b.id, b.name, b.platform, b.profile_url, b.utm_slug, b.status, b.paid_out,
+            COALESCE(s.cnt, 0) as real_sales
+        FROM bloggers b
+        LEFT JOIN (
+            SELECT blogger, COUNT(*) as cnt
+            FROM sales GROUP BY blogger
+        ) s ON s.blogger = b.utm_slug
+        ORDER BY real_sales DESC, b.name
+    ''').fetchall()
+    conn.close()
+    total_sales = sum(r['real_sales'] for r in rows)
+    total_commission = total_sales * COMMISSION_PER_SALE
+    total_paid = sum(r['paid_out'] for r in rows)
+    return render_template('admin_bloggers_analytics.html',
+                           total_bloggers=total,
+                           funnel=by_status,
+                           bloggers=rows,
+                           total_sales=total_sales,
+                           total_revenue=total_sales * 690,
+                           total_commission=total_commission,
+                           total_paid=total_paid,
+                           total_debt=total_commission - total_paid,
+                           statuses=BLOGGER_STATUSES,
+                           cps=COMMISSION_PER_SALE)
+
+
+@main.route('/webhook/email-reply', methods=['POST'])
+def webhook_email_reply():
+    secret = os.environ.get('WEBHOOK_SECRET', '')
+    if secret and request.args.get('secret') != secret:
+        return 'Forbidden', 403
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        data = payload.get('data', payload)
+        sender = (data.get('from') or '').strip().lower()
+        text = (data.get('text') or data.get('plain_text') or '').strip()
+        if not sender or not text:
+            return '', 200
+        from .db import get_db
+        conn = get_db()
+        blogger = conn.execute(
+            'SELECT * FROM bloggers WHERE LOWER(email)=?', (sender,)
+        ).fetchone()
+        if not blogger:
+            conn.close()
+            return '', 200
+        bid = blogger['id']
+        now_iso = datetime.utcnow().isoformat()
+        now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+        sentiment = _classify_reply_with_claude(text)
+        conn.execute(
+            'UPDATE bloggers SET last_reply_at=?, reply_sentiment=? WHERE id=?',
+            (now_iso, sentiment, bid)
+        )
+        if sentiment == 'positive':
+            conn.execute("UPDATE bloggers SET status='interested' WHERE id=?", (bid,))
+            conn.commit()
+            _send_blogger_email(blogger, 'second', conn)
+            conn.commit()
+        elif sentiment == 'negative':
+            conn.execute("UPDATE bloggers SET status='declined' WHERE id=?", (bid,))
+            conn.commit()
+            _notify_admin(
+                f'Блогер {blogger["name"]} отказал',
+                f'Email: {blogger["email"]}\n\nОтвет:\n{text}'
+            )
+        else:
+            conn.execute("UPDATE bloggers SET status='replied' WHERE id=?", (bid,))
+            conn.commit()
+            draft = _draft_reply_with_claude(blogger['name'], text)
+            _notify_admin(
+                f'Блогер {blogger["name"]} задал вопрос',
+                f'Email: {blogger["email"]}\n\nОтвет блогера:\n{text}\n\n---\nЧерновик ответа:\n{draft}'
+            )
+        conn.execute(
+            'INSERT INTO email_log (blogger_id, type, sent_at, status) VALUES (?,?,?,?)',
+            (bid, 'inbound', now_fmt, sentiment)
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return '', 200
+
+
+def _first_email_html(name):
+    return f'''<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#FAF7F2;font-family:Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+  <div style="font-family:Georgia,serif;font-size:22px;color:#2A2118;margin-bottom:32px;">
+    vere<span style="color:#A67C52;">very</span></div>
+  <div style="background:#FFFFFF;border:1px solid #EDE6DA;border-radius:20px;padding:32px 28px;">
+    <p style="font-size:15px;color:#2A2118;line-height:1.8;margin:0 0 16px;">Привет, {name}! 👋</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 16px;">
+      Меня зовут Катя, я создала Vera — онлайн-колоду карточек «Ближе» для пар на
+      <a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a>.</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 16px;">
+      Карточки помогают восстановить близость в отношениях — основаны на доказательной психологии
+      (Готтман, EFT, теория привязанности). Цена: 690 ₽.</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 24px;">
+      Хочу предложить сотрудничество: вы рассказываете аудитории о проекте, получаете
+      <strong>30% с каждой продажи по вашей ссылке — 207 ₽ за покупку</strong>.</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 24px;">
+      Если интересно — напишу подробнее об условиях 🙌</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0;">
+      Катя<br><a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a></p>
+  </div>
+</div></body></html>'''
+
+
+def _second_email_html(name, utm_link):
+    return f'''<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#FAF7F2;font-family:Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+  <div style="font-family:Georgia,serif;font-size:22px;color:#2A2118;margin-bottom:32px;">
+    vere<span style="color:#A67C52;">very</span></div>
+  <div style="background:#FFFFFF;border:1px solid #EDE6DA;border-radius:20px;padding:32px 28px;">
+    <p style="font-size:15px;color:#2A2118;line-height:1.8;margin:0 0 20px;">
+      Привет, {name}! Рада, что откликнулись 💛</p>
+    <p style="font-size:14px;font-weight:500;color:#2A2118;margin:0 0 8px;">Вот подробности о сотрудничестве:</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:2;margin:0 0 20px;">
+      📦 Продукт: онлайн-колода «Ближе» — 60 карточек для пар (<a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a>)<br>
+      💸 Комиссия: 30% = 207 ₽ с каждой продажи<br>
+      🔗 Ваша ссылка: <a href="{utm_link}" style="color:#A67C52;">{utm_link}</a></p>
+    <p style="font-size:14px;font-weight:500;color:#2A2118;margin:0 0 8px;">Как это работает:</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:2;margin:0 0 20px;">
+      1. Вы публикуете пост или сторис со своей ссылкой<br>
+      2. Подписчики переходят и покупают<br>
+      3. Я считаю продажи по вашему UTM и перевожу комиссию раз в месяц</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 20px;">
+      Могу прислать описание продукта и примеры карточек — всё что нужно для публикации.</p>
+    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0;">
+      Готова ответить на любые вопросы!<br><br>
+      Катя<br><a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a></p>
+  </div>
+</div></body></html>'''
 
 
 def _magic_link_email(link):
