@@ -337,19 +337,21 @@ def auth_open():
             conn.close()
             return render_template('auth.html', token_expired=True,
                                    debug_info='Токен найден, но email пустой в базе')
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
+        # Normalize: update any existing row to have lowercase email + access
+        conn.execute(
+            'UPDATE users SET email=?, has_access=1 WHERE LOWER(email)=LOWER(?)',
+            (email, email)
+        )
+        # Insert if no row existed (or if UPDATE matched nothing due to weird encoding)
+        conn.execute(
+            'INSERT OR IGNORE INTO users (email, has_access) VALUES (?, 1)', (email,)
+        )
         conn.commit()
-        # Use case-insensitive lookup to handle legacy data stored with different casing
-        user = conn.execute(
-            'SELECT * FROM users WHERE email=? OR LOWER(email)=?', (email, email)
-        ).fetchone()
+        user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             conn.close()
             return render_template('auth.html', token_expired=True,
-                                   debug_info=f'DB error: user not found for {email}')
-        # Ensure access is granted — a valid magic token means the user paid
-        conn.execute('UPDATE users SET has_access=1 WHERE id=?', (user['id'],))
-        conn.commit()
+                                   debug_info=f'DB критическая ошибка: {email}')
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
