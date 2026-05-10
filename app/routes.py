@@ -178,7 +178,7 @@ def webhook_payment():
         if payment.status != 'succeeded':
             return '', 200
 
-        email = (payment.metadata or {}).get('email', '')
+        email = (payment.metadata or {}).get('email', '').strip().lower()
         utm = (payment.metadata or {}).get('utm', 'direct')
         amount = str(payment.amount.value)
         date = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
@@ -190,14 +190,14 @@ def webhook_payment():
         conn = get_db()
 
         # Check before save — YooKassa sends the same webhook multiple times.
-        # We only send the magic link on the first delivery to avoid overwriting
+        # Only send the magic link on the first delivery to avoid overwriting
         # the token while the user still holds the link from the first email.
         already_processed = conn.execute(
             'SELECT 1 FROM sales WHERE payment_id=?', (payment.id,)
         ).fetchone()
 
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
+        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
         conn.commit()
         _save_sale(conn, payment.id, date, email, utm, amount)
 
@@ -332,9 +332,68 @@ def auth_open():
                 conn2.close()
                 debug_info = f'Токен не найден в базе. Всего токенов: {any_row["cnt"]}. token_prefix={token[:8]}...'
             return render_template('auth.html', token_expired=True, debug_info=debug_info)
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
-        user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
-        conn.commit()
+        email = row['email'].strip().lower()
+        if not email:
+            conn.close()
+            return render_template('auth.html', token_expired=True,
+                                   debug_info='Токен найден, но email пустой в базе')
+
+        # Find existing user by exact match or trimmed/lowercased match
+        user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
+        if not user:
+            user = conn.execute(
+                'SELECT * FROM users WHERE LOWER(TRIM(email))=?', (email,)
+            ).fetchone()
+
+        del_count = ins_count = 0
+        ins_error = schema_sql = None
+        raw_emails = after_rows = after_like = []
+
+        if user:
+            # Normalize email and grant access on the found row
+            conn.execute('UPDATE users SET email=?, has_access=1 WHERE id=?', (email, user['id']))
+            conn.commit()
+        else:
+            # Diagnose why no row was found
+            all_rows = conn.execute('SELECT id, email, has_access FROM users').fetchall()
+            raw_emails = [(r['id'], repr(r['email'])) for r in all_rows]
+
+            del_cur = conn.execute('DELETE FROM users WHERE LOWER(TRIM(email))=?', (email,))
+            del_count = del_cur.rowcount
+
+            ins_error = None
+            ins_count = 0
+            try:
+                ins_cur = conn.execute(
+                    'INSERT INTO users (email, has_access) VALUES (?, 1)', (email,)
+                )
+                ins_count = ins_cur.rowcount
+                conn.commit()
+            except Exception as ie:
+                ins_error = repr(ie)
+
+            schema_rows = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
+            ).fetchone()
+            schema_sql = schema_rows[0] if schema_rows else 'no schema'
+
+            after_rows = conn.execute('SELECT id, email FROM users WHERE email=?', (email,)).fetchall()
+            after_like = conn.execute(
+                'SELECT id, email FROM users WHERE email LIKE ?', (f'%{email.strip()}%',)
+            ).fetchall()
+
+        user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
+        if not user:
+            conn.close()
+            diag = (
+                f'email={repr(email)} | '
+                f'del={del_count} ins={ins_count} ins_err={ins_error} | '
+                f'after_exact={[r["id"] for r in after_rows]} '
+                f'after_like={[(r["id"], repr(r["email"])) for r in after_like]} | '
+                f'schema={schema_sql} | '
+                f'all_emails={raw_emails}'
+            )
+            return render_template('auth.html', token_expired=True, debug_info=diag)
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
@@ -431,7 +490,7 @@ def admin_grant():
         from .db import get_db
         conn = get_db()
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
+        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
         conn.commit()
         _send_magic_link(email, conn)
         conn.close()
