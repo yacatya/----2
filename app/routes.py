@@ -68,6 +68,15 @@ def _send_magic_link(email, conn):
     })
 
 
+def _upsert_user(conn, email):
+    """Insert user if not exists (compatible with password_hash NOT NULL schema), then grant access."""
+    conn.execute(
+        'INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)', (email, '')
+    )
+    conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
+    conn.commit()
+
+
 def _save_sale(conn, payment_id, date, email, utm, amount):
     try:
         blogger = utm if utm not in ('direct', '', None) else ''
@@ -121,7 +130,7 @@ def pay():
 
     _configure_yookassa()
     base_params = {
-        'amount': {'value': '1.00', 'currency': 'RUB'},
+        'amount': {'value': '690.00', 'currency': 'RUB'},
         'confirmation': {
             'type': 'redirect',
             'return_url': f'{BASE_URL}/buy/success',
@@ -136,7 +145,7 @@ def pay():
             'items': [{
                 'description': 'Колода «Ближе» — постоянный доступ',
                 'quantity': '1.00',
-                'amount': {'value': '1.00', 'currency': 'RUB'},
+                'amount': {'value': '690.00', 'currency': 'RUB'},
                 'vat_code': 1,
                 'payment_mode': 'full_payment',
                 'payment_subject': 'service',
@@ -196,9 +205,7 @@ def webhook_payment():
             'SELECT 1 FROM sales WHERE payment_id=?', (payment.id,)
         ).fetchone()
 
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
-        conn.commit()
+        _upsert_user(conn, email)
         _save_sale(conn, payment.id, date, email, utm, amount)
 
         if not already_processed:
@@ -230,34 +237,6 @@ def cards():
     return render_template('cards.html', blocks=blocks)
 
 
-@main.route('/debug/health')
-def debug_health():
-    import traceback
-    results = {}
-    try:
-        from .db import get_db
-        conn = get_db()
-        conn.execute('SELECT 1 FROM sales LIMIT 1')
-        results['sales_table'] = 'ok'
-        conn.execute('SELECT 1 FROM users LIMIT 1')
-        results['users_table'] = 'ok'
-        conn.close()
-    except Exception:
-        results['db_error'] = traceback.format_exc()
-    try:
-        load_block('action')
-        results['json_files'] = 'ok'
-    except Exception:
-        results['json_error'] = traceback.format_exc()
-    try:
-        get_free_card_ids()
-        results['free_cards'] = 'ok'
-    except Exception:
-        results['free_cards_error'] = traceback.format_exc()
-    import json as _json
-    return '<pre>' + _json.dumps(results, ensure_ascii=False, indent=2) + '</pre>'
-
-
 @main.route('/auth', methods=['GET', 'POST'])
 def auth():
     if 'user_id' in session:
@@ -269,7 +248,7 @@ def auth():
             return render_template('auth.html', error='Введите корректный email')
         from .db import get_db
         conn = get_db()
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
+        conn.execute('INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)', (email, ''))
         conn.commit()
         _send_magic_link(email, conn)
         conn.close()
@@ -317,83 +296,42 @@ def auth_open():
             (token, datetime.utcnow().isoformat())
         ).fetchone()
         if not row:
-            # Debug: check why token not found
             debug_row = conn.execute(
-                'SELECT token, expires_at, used FROM magic_tokens WHERE token=?', (token,)
+                'SELECT expires_at FROM magic_tokens WHERE token=?', (token,)
             ).fetchone()
-            now = datetime.utcnow().isoformat()
             conn.close()
-            debug_info = None
             if debug_row:
-                debug_info = f'Токен найден, но истёк. expires_at={debug_row["expires_at"]}, now={now}, used={debug_row["used"]}'
+                debug_info = f'Токен истёк {debug_row["expires_at"]}'
             else:
-                conn2 = get_db()
-                any_row = conn2.execute('SELECT COUNT(*) as cnt FROM magic_tokens').fetchone()
-                conn2.close()
-                debug_info = f'Токен не найден в базе. Всего токенов: {any_row["cnt"]}. token_prefix={token[:8]}...'
+                debug_info = 'Токен не найден — возможно, была выслана новая ссылка'
             return render_template('auth.html', token_expired=True, debug_info=debug_info)
+
         email = row['email'].strip().lower()
         if not email:
             conn.close()
-            return render_template('auth.html', token_expired=True,
-                                   debug_info='Токен найден, но email пустой в базе')
+            return render_template('auth.html', token_expired=True)
 
-        # Find existing user by exact match or trimmed/lowercased match
+        # Find user; if missing create one (password_hash='' for legacy schema compatibility)
         user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             user = conn.execute(
                 'SELECT * FROM users WHERE LOWER(TRIM(email))=?', (email,)
             ).fetchone()
 
-        del_count = ins_count = 0
-        ins_error = schema_sql = None
-        raw_emails = after_rows = after_like = []
-
         if user:
-            # Normalize email and grant access on the found row
             conn.execute('UPDATE users SET email=?, has_access=1 WHERE id=?', (email, user['id']))
             conn.commit()
         else:
-            # Diagnose why no row was found
-            all_rows = conn.execute('SELECT id, email, has_access FROM users').fetchall()
-            raw_emails = [(r['id'], repr(r['email'])) for r in all_rows]
-
-            del_cur = conn.execute('DELETE FROM users WHERE LOWER(TRIM(email))=?', (email,))
-            del_count = del_cur.rowcount
-
-            ins_error = None
-            ins_count = 0
-            try:
-                ins_cur = conn.execute(
-                    'INSERT INTO users (email, has_access) VALUES (?, 1)', (email,)
-                )
-                ins_count = ins_cur.rowcount
-                conn.commit()
-            except Exception as ie:
-                ins_error = repr(ie)
-
-            schema_rows = conn.execute(
-                "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
-            ).fetchone()
-            schema_sql = schema_rows[0] if schema_rows else 'no schema'
-
-            after_rows = conn.execute('SELECT id, email FROM users WHERE email=?', (email,)).fetchall()
-            after_like = conn.execute(
-                'SELECT id, email FROM users WHERE email LIKE ?', (f'%{email.strip()}%',)
-            ).fetchall()
+            conn.execute(
+                'INSERT INTO users (email, password_hash, has_access) VALUES (?, ?, 1)', (email, '')
+            )
+            conn.commit()
 
         user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             conn.close()
-            diag = (
-                f'email={repr(email)} | '
-                f'del={del_count} ins={ins_count} ins_err={ins_error} | '
-                f'after_exact={[r["id"] for r in after_rows]} '
-                f'after_like={[(r["id"], repr(r["email"])) for r in after_like]} | '
-                f'schema={schema_sql} | '
-                f'all_emails={raw_emails}'
-            )
-            return render_template('auth.html', token_expired=True, debug_info=diag)
+            return render_template('auth.html', token_expired=True)
+
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
@@ -489,9 +427,7 @@ def admin_grant():
     try:
         from .db import get_db
         conn = get_db()
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
-        conn.execute('UPDATE users SET has_access=1 WHERE LOWER(email)=?', (email,))
-        conn.commit()
+        _upsert_user(conn, email)
         _send_magic_link(email, conn)
         conn.close()
         return 'OK', 200
@@ -500,7 +436,7 @@ def admin_grant():
 
 
 @main.route('/admin/save', methods=['POST'])
-def admin_save():  
+def admin_save():
     if not _admin_required():
         return 'Forbidden', 403
     block = request.form.get('block', '')
