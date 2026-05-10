@@ -134,7 +134,7 @@ def pay():
         'receipt': {
             'customer': {'email': email},
             'items': [{
-            'description': 'Колода «Ближе» — постоянный доступ',
+                'description': 'Колода «Ближе» — постоянный доступ',
                 'quantity': '1.00',
                 'amount': {'value': '1.00', 'currency': 'RUB'},
                 'vat_code': 1,
