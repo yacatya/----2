@@ -345,21 +345,55 @@ def auth_open():
                 'SELECT * FROM users WHERE LOWER(TRIM(email))=?', (email,)
             ).fetchone()
 
+        del_count = ins_count = 0
+        ins_error = schema_sql = None
+        raw_emails = after_rows = after_like = []
+
         if user:
             # Normalize email and grant access on the found row
             conn.execute('UPDATE users SET email=?, has_access=1 WHERE id=?', (email, user['id']))
             conn.commit()
         else:
-            # No row found — delete any phantom conflicting row and insert clean
-            conn.execute('DELETE FROM users WHERE LOWER(TRIM(email))=?', (email,))
-            conn.execute('INSERT INTO users (email, has_access) VALUES (?, 1)', (email,))
-            conn.commit()
+            # Diagnose why no row was found
+            all_rows = conn.execute('SELECT id, email, has_access FROM users').fetchall()
+            raw_emails = [(r['id'], repr(r['email'])) for r in all_rows]
+
+            del_cur = conn.execute('DELETE FROM users WHERE LOWER(TRIM(email))=?', (email,))
+            del_count = del_cur.rowcount
+
+            ins_error = None
+            ins_count = 0
+            try:
+                ins_cur = conn.execute(
+                    'INSERT INTO users (email, has_access) VALUES (?, 1)', (email,)
+                )
+                ins_count = ins_cur.rowcount
+                conn.commit()
+            except Exception as ie:
+                ins_error = repr(ie)
+
+            schema_rows = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
+            ).fetchone()
+            schema_sql = schema_rows[0] if schema_rows else 'no schema'
+
+            after_rows = conn.execute('SELECT id, email FROM users WHERE email=?', (email,)).fetchall()
+            after_like = conn.execute(
+                'SELECT id, email FROM users WHERE email LIKE ?', (f'%{email.strip()}%',)
+            ).fetchall()
 
         user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             conn.close()
-            return render_template('auth.html', token_expired=True,
-                                   debug_info=f'DB критическая: не удалось создать {email}')
+            diag = (
+                f'email={repr(email)} | '
+                f'del={del_count} ins={ins_count} ins_err={ins_error} | '
+                f'after_exact={[r["id"] for r in after_rows]} '
+                f'after_like={[(r["id"], repr(r["email"])) for r in after_like]} | '
+                f'schema={schema_sql} | '
+                f'all_emails={raw_emails}'
+            )
+            return render_template('auth.html', token_expired=True, debug_info=diag)
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
@@ -466,7 +500,7 @@ def admin_grant():
 
 
 @main.route('/admin/save', methods=['POST'])
-def admin_save():
+def admin_save():  
     if not _admin_required():
         return 'Forbidden', 403
     block = request.form.get('block', '')
