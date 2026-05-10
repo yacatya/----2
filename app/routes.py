@@ -337,21 +337,29 @@ def auth_open():
             conn.close()
             return render_template('auth.html', token_expired=True,
                                    debug_info='Токен найден, но email пустой в базе')
-        # Normalize: update any existing row to have lowercase email + access
-        conn.execute(
-            'UPDATE users SET email=?, has_access=1 WHERE LOWER(email)=LOWER(?)',
-            (email, email)
-        )
-        # Insert if no row existed (or if UPDATE matched nothing due to weird encoding)
-        conn.execute(
-            'INSERT OR IGNORE INTO users (email, has_access) VALUES (?, 1)', (email,)
-        )
-        conn.commit()
+
+        # Find existing user by exact match or trimmed/lowercased match
+        user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
+        if not user:
+            user = conn.execute(
+                'SELECT * FROM users WHERE LOWER(TRIM(email))=?', (email,)
+            ).fetchone()
+
+        if user:
+            # Normalize email and grant access on the found row
+            conn.execute('UPDATE users SET email=?, has_access=1 WHERE id=?', (email, user['id']))
+            conn.commit()
+        else:
+            # No row found — delete any phantom conflicting row and insert clean
+            conn.execute('DELETE FROM users WHERE LOWER(TRIM(email))=?', (email,))
+            conn.execute('INSERT INTO users (email, has_access) VALUES (?, 1)', (email,))
+            conn.commit()
+
         user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             conn.close()
             return render_template('auth.html', token_expired=True,
-                                   debug_info=f'DB критическая ошибка: {email}')
+                                   debug_info=f'DB критическая: не удалось создать {email}')
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
