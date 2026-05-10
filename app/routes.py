@@ -134,7 +134,7 @@ def pay():
         'receipt': {
             'customer': {'email': email},
             'items': [{
-                'description': 'Колода «Ближе» — постоянный доступ',
+            'description': 'Колода «Ближе» — постоянный доступ',
                 'quantity': '1.00',
                 'amount': {'value': '1.00', 'currency': 'RUB'},
                 'vat_code': 1,
@@ -347,6 +347,9 @@ def auth_open():
             conn.close()
             return render_template('auth.html', token_expired=True,
                                    debug_info=f'DB error: user not found for {email}')
+        # Ensure access is granted — a valid magic token means the user paid
+        conn.execute('UPDATE users SET has_access=1 WHERE id=?', (user['id'],))
+        conn.commit()
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
