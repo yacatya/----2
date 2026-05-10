@@ -14,7 +14,21 @@ BASE_URL = os.environ.get('BASE_URL', 'https://verevery.ru')
 SHOP_ID = os.environ.get('SHOP_ID', '1343976')
 SHEET_ID = '11mZ-sB0H7OiaF9yv2iCiTlA3vkMJW8u9D9ypuf4QeAs'
 
-FREE_CARD_IDS = ['А-02', 'З-03', 'В-03', 'В-11', 'З-01']
+FREE_CARD_IDS_DEFAULT = ['А-02', 'З-03', 'В-03', 'В-11', 'З-01']
+FREE_CARDS_CONFIG = os.path.join(os.path.dirname(__file__), 'data', 'free_cards.json')
+
+
+def get_free_card_ids():
+    try:
+        with open(FREE_CARDS_CONFIG, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return FREE_CARD_IDS_DEFAULT
+
+
+def save_free_card_ids(ids):
+    with open(FREE_CARDS_CONFIG, 'w', encoding='utf-8') as f:
+        json.dump(ids, f, ensure_ascii=False)
 
 BLOCK_INFO = {
     'action':   {'label': 'ДЕЙСТВИЕ', 'color': 'var(--accent)',       'name': 'Действие'},
@@ -38,7 +52,7 @@ def _send_magic_link(email, conn):
     import resend
     token = secrets.token_urlsafe(32)
     expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat()
-    conn.execute('DELETE FROM magic_tokens WHERE email=? AND used=0', (email,))
+    conn.execute('DELETE FROM magic_tokens WHERE email=?', (email,))
     conn.execute(
         'INSERT INTO magic_tokens (token, email, expires_at) VALUES (?, ?, ?)',
         (token, email, expires_at)
@@ -54,22 +68,16 @@ def _send_magic_link(email, conn):
     })
 
 
-def _log_to_sheets(date, email, utm, amount):
+def _save_sale(conn, payment_id, date, email, utm, amount):
     try:
-        import requests as _requests
-        url = os.environ.get('GOOGLE_SCRIPT_URL', '')
-        if not url:
-            return
-        blogger = utm if utm != 'direct' else ''
+        blogger = utm if utm not in ('direct', '', None) else ''
         commission = round(float(amount) * 0.30, 2)
-        _requests.post(url, json={
-            'date': date,
-            'email': email,
-            'utm': utm,
-            'blogger': blogger,
-            'amount': str(amount),
-            'commission': str(commission),
-        }, timeout=10)
+        conn.execute(
+            '''INSERT OR IGNORE INTO sales (payment_id, date, email, utm, blogger, amount, commission)
+               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (payment_id, date, email, utm, blogger, float(amount), commission)
+        )
+        conn.commit()
     except Exception:
         pass
 
@@ -89,7 +97,7 @@ def free():
         for c in cards:
             id_map[c['id']] = (block, c)
     free_cards = []
-    for cid in FREE_CARD_IDS:
+    for cid in get_free_card_ids():
         if cid in id_map:
             block, card = id_map[cid]
             free_cards.append({**card, 'block': block, **BLOCK_INFO[block]})
@@ -113,7 +121,7 @@ def pay():
 
     _configure_yookassa()
     base_params = {
-        'amount': {'value': '690.00', 'currency': 'RUB'},
+        'amount': {'value': '1.00', 'currency': 'RUB'},
         'confirmation': {
             'type': 'redirect',
             'return_url': f'{BASE_URL}/buy/success',
@@ -128,7 +136,7 @@ def pay():
             'items': [{
                 'description': 'Колода «Ближе» — постоянный доступ',
                 'quantity': '1.00',
-                'amount': {'value': '690.00', 'currency': 'RUB'},
+                'amount': {'value': '1.00', 'currency': 'RUB'},
                 'vat_code': 1,
                 'payment_mode': 'full_payment',
                 'payment_subject': 'service',
@@ -180,13 +188,23 @@ def webhook_payment():
 
         from .db import get_db
         conn = get_db()
+
+        # Check before save — YooKassa sends the same webhook multiple times.
+        # We only send the magic link on the first delivery to avoid overwriting
+        # the token while the user still holds the link from the first email.
+        already_processed = conn.execute(
+            'SELECT 1 FROM sales WHERE payment_id=?', (payment.id,)
+        ).fetchone()
+
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
         conn.execute('UPDATE users SET has_access=1 WHERE email=?', (email,))
         conn.commit()
-        _send_magic_link(email, conn)
-        conn.close()
+        _save_sale(conn, payment.id, date, email, utm, amount)
 
-        _log_to_sheets(date, email, utm, amount)
+        if not already_processed:
+            _send_magic_link(email, conn)
+
+        conn.close()
 
     except Exception:
         pass
@@ -212,6 +230,34 @@ def cards():
     return render_template('cards.html', blocks=blocks)
 
 
+@main.route('/debug/health')
+def debug_health():
+    import traceback
+    results = {}
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute('SELECT 1 FROM sales LIMIT 1')
+        results['sales_table'] = 'ok'
+        conn.execute('SELECT 1 FROM users LIMIT 1')
+        results['users_table'] = 'ok'
+        conn.close()
+    except Exception:
+        results['db_error'] = traceback.format_exc()
+    try:
+        load_block('action')
+        results['json_files'] = 'ok'
+    except Exception:
+        results['json_error'] = traceback.format_exc()
+    try:
+        get_free_card_ids()
+        results['free_cards'] = 'ok'
+    except Exception:
+        results['free_cards_error'] = traceback.format_exc()
+    import json as _json
+    return '<pre>' + _json.dumps(results, ensure_ascii=False, indent=2) + '</pre>'
+
+
 @main.route('/auth', methods=['GET', 'POST'])
 def auth():
     if 'user_id' in session:
@@ -232,36 +278,70 @@ def auth():
     return render_template('auth.html')
 
 
-@main.route('/auth/verify')
+@main.route('/auth/verify', methods=['GET', 'POST'])
 def auth_verify():
+    if request.method == 'GET':
+        token = request.args.get('token', '')
+        if not token:
+            return redirect(url_for('main.auth'))
+        try:
+            from .db import get_db
+            conn = get_db()
+            row = conn.execute(
+                'SELECT 1 FROM magic_tokens WHERE token=? AND expires_at > ?',
+                (token, datetime.utcnow().isoformat())
+            ).fetchone()
+            conn.close()
+            if not row:
+                return render_template('auth.html', token_expired=True)
+        except Exception:
+            return render_template('auth.html', token_expired=True)
+        return render_template('auth.html', confirm_token=token)
+
+    return redirect(url_for('main.auth'))
+
+
+@main.route('/auth/open')
+def auth_open():
     token = request.args.get('token', '')
     if not token:
         return redirect(url_for('main.auth'))
-
-    from .db import get_db
-    conn = get_db()
-    row = conn.execute(
-        'SELECT * FROM magic_tokens WHERE token=? AND used=0 AND expires_at > ?',
-        (token, datetime.utcnow().isoformat())
-    ).fetchone()
-
-    if not row:
+    try:
+        from .db import get_db
+        conn = get_db()
+        # Token is valid for 24h and can be used multiple times within that window.
+        # Yandex Mail and other scanners may hit /auth/open before the user does;
+        # not marking as used means the user's click always works within 24h.
+        row = conn.execute(
+            'SELECT * FROM magic_tokens WHERE token=? AND expires_at > ?',
+            (token, datetime.utcnow().isoformat())
+        ).fetchone()
+        if not row:
+            # Debug: check why token not found
+            debug_row = conn.execute(
+                'SELECT token, expires_at, used FROM magic_tokens WHERE token=?', (token,)
+            ).fetchone()
+            now = datetime.utcnow().isoformat()
+            conn.close()
+            debug_info = None
+            if debug_row:
+                debug_info = f'Токен найден, но истёк. expires_at={debug_row["expires_at"]}, now={now}, used={debug_row["used"]}'
+            else:
+                conn2 = get_db()
+                any_row = conn2.execute('SELECT COUNT(*) as cnt FROM magic_tokens').fetchone()
+                conn2.close()
+                debug_info = f'Токен не найден в базе. Всего токенов: {any_row["cnt"]}. token_prefix={token[:8]}...'
+            return render_template('auth.html', token_expired=True, debug_info=debug_info)
+        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
+        user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
+        conn.commit()
         conn.close()
-        return render_template(
-            'auth.html',
-            error='Ссылка устарела или уже использована. Запросите новую.'
-        )
-
-    conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
-    user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
-    conn.execute('UPDATE magic_tokens SET used=1 WHERE token=?', (token,))
-    conn.commit()
-    conn.close()
-
-    session.permanent = True
-    session['user_id'] = user['id']
-    session['email'] = user['email']
-    return redirect(url_for('main.cards'))
+        session.permanent = True
+        session['user_id'] = user['id']
+        session['email'] = user['email']
+        return redirect(url_for('main.cards'))
+    except Exception as e:
+        return render_template('auth.html', token_expired=True, debug_info=f'Exception: {e}')
 
 
 @main.route('/offer')
@@ -316,8 +396,28 @@ def admin():
     users = conn.execute(
         'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 50'
     ).fetchall()
+    all_cards_flat = []
+    for block in ['action', 'question', 'care']:
+        for card in load_block(block):
+            all_cards_flat.append({'id': card['id'], 'text': card.get('text', '')[:50], 'block': block})
+    free_ids = get_free_card_ids()
+    blogger_stats = conn.execute('''
+        SELECT
+            CASE WHEN blogger = '' THEN 'Прямые продажи' ELSE blogger END as blogger,
+            COUNT(*) as cnt,
+            SUM(amount) as total,
+            SUM(commission) as commission
+        FROM sales
+        GROUP BY blogger
+        ORDER BY total DESC
+    ''').fetchall()
+    sales = conn.execute(
+        'SELECT date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC LIMIT 200'
+    ).fetchall()
     conn.close()
-    return render_template('admin.html', blocks=blocks_data, users=users)
+    return render_template('admin.html', blocks=blocks_data, users=users,
+                           blogger_stats=blogger_stats, sales=sales,
+                           all_cards=all_cards_flat, free_ids=free_ids)
 
 
 @main.route('/admin/grant', methods=['POST'])
@@ -364,6 +464,16 @@ def admin_save():
             break
     with open(data_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    return '', 200
+
+
+@main.route('/admin/free-cards', methods=['POST'])
+def admin_free_cards():
+    if not _admin_required():
+        return 'Forbidden', 403
+    ids = [request.form.get(f'card_{i}', '').strip() for i in range(5)]
+    ids = [cid for cid in ids if cid]
+    save_free_card_ids(ids)
     return '', 200
 
 
