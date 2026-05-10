@@ -9,41 +9,38 @@
   .adm-logo span { color: var(--light-accent); }
   .adm-out { font-size: 12px; color: var(--sand); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 50px; }
 
-  .adm-body { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
+  .adm-body { max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; }
   .adm-warn { background: #fff8e1; border: 1px solid #ffe082; border-radius: 12px; padding: 12px 16px; font-size: 12px; color: #7a6200; margin-bottom: 24px; line-height: 1.6; }
 
+  /* ── Top nav tabs ── */
+  .nav-tabs { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; }
+  .nav-tab { padding: 9px 20px; border-radius: 50px; border: 1px solid var(--sand); font-family: 'Exo 2', sans-serif; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; background: transparent; transition: all 0.2s; }
+  .nav-tab.active { background: var(--dark); color: white; border-color: var(--dark); }
+
+  .nav-panel { display: none; }
+  .nav-panel.active { display: block; }
+
+  /* ── Inner card tabs ── */
   .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
   .tab { padding: 8px 18px; border-radius: 50px; border: 1px solid var(--sand); font-family: 'Exo 2', sans-serif; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; background: transparent; transition: all 0.2s; }
   .tab.active { background: var(--dark); color: white; border-color: var(--dark); }
-
   .block-panel { display: none; }
   .block-panel.active { display: block; }
 
-  .card-item { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
-  .card-head { padding: 14px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
-  .card-head-left { display: flex; align-items: center; gap: 12px; }
-  .card-id { font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 0.5px; }
-  .card-preview { font-size: 13px; font-weight: 300; color: var(--muted); max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card-chevron { color: var(--sand); font-size: 18px; transition: transform 0.2s; }
-  .card-item.open .card-chevron { transform: rotate(90deg); }
+  /* ── Search ── */
+  .search-row { margin-bottom: 14px; }
+  .search-input { width: 100%; max-width: 360px; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: var(--cream); outline: none; box-sizing: border-box; }
+  .search-input:focus { border-color: var(--accent); }
 
-  .card-form { display: none; padding: 0 18px 18px; border-top: 1px solid var(--beige); }
-  .card-item.open .card-form { display: block; }
+  /* ── Tables ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
+  .data-table th { text-align: left; padding: 7px 10px; border-bottom: 2px solid var(--beige); color: var(--sand); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .data-table td { padding: 7px 10px; border-bottom: 1px solid var(--beige); color: var(--dark); }
+  .data-table tr.hidden { display: none; }
+  .badge-yes { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
+  .badge-no  { background: #fbe9e7; color: #c0392b; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
 
-  .f-group { margin-top: 14px; }
-  .f-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--sand); margin-bottom: 6px; display: block; }
-  .f-select { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: var(--cream); outline: none; }
-  .f-textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 300; color: var(--dark); background: var(--cream); outline: none; resize: vertical; line-height: 1.6; box-sizing: border-box; }
-  .f-textarea:focus, .f-select:focus { border-color: var(--accent); }
-  .f-small { font-size: 11px; color: var(--sand); margin-top: 4px; }
-
-  .f-save { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
-  .btn-save { padding: 10px 24px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
-  .btn-save:hover { background: var(--accent); }
-  .save-status { font-size: 12px; color: var(--muted); display: none; }
-  .save-status.ok { color: #2e7d32; display: inline; }
-  .save-status.err { color: #c0392b; display: inline; }
-
+  /* ── Grant / send link ── */
   .grant-panel { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; padding: 18px 20px; margin-bottom: 24px; }
   .grant-title { font-size: 12px; font-weight: 600; color: var(--dark); margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
   .grant-row { display: flex; gap: 10px; }
@@ -55,29 +52,57 @@
   .grant-status.ok { color: #2e7d32; display: block; }
   .grant-status.err { color: #c0392b; display: block; }
 
-  .users-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
-  .users-table th { text-align: left; padding: 6px 10px; border-bottom: 2px solid var(--beige); color: var(--sand); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-  .users-table td { padding: 7px 10px; border-bottom: 1px solid var(--beige); color: var(--dark); }
-  .badge-yes { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
-  .badge-no  { background: #fbe9e7; color: #c0392b; padding: 2px 8px; border-radius: 50px; font-size: 11px; }
+  /* inline send button in table */
+  .btn-send { padding: 4px 12px; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .btn-send:hover { background: var(--accent); color: white; }
+  .btn-send.sent { border-color: #2e7d32; color: #2e7d32; }
+  .btn-send.err  { border-color: #c0392b; color: #c0392b; }
 
-  .sales-section { margin-bottom: 32px; }
-  .sales-title { font-size: 11px; font-weight: 600; color: var(--dark); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
-  .blogger-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .blogger-card { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; padding: 16px 18px; }
-  .blogger-card-name { font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .blogger-card-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .blogger-card-row span:last-child { font-weight: 500; color: var(--dark); }
-  .commission-badge { margin-top: 10px; background: #fff8e1; color: #7a6200; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 50px; display: inline-block; }
-  .sales-empty { font-size: 13px; color: var(--sand); text-align: center; padding: 24px; }
-  .utm-hint { background: #f0f7ff; border: 1px solid #b3d4ff; border-radius: 12px; padding: 12px 16px; font-size: 12px; color: #1a4a7a; margin-bottom: 20px; line-height: 1.7; }
+  /* ── Bloggers ── */
+  .utm-hint { background: #f0f7ff; border: 1px solid #b3d4ff; border-radius: 12px; padding: 14px 16px; font-size: 12px; color: #1a4a7a; margin-bottom: 20px; line-height: 1.8; }
   .utm-hint code { background: #deeeff; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+  .utm-gen { background: var(--white); border: 1px solid var(--beige); border-radius: 14px; padding: 16px 18px; margin-bottom: 24px; }
+  .utm-gen-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  .utm-gen input { flex: 1; padding: 9px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; outline: none; background: var(--cream); }
+  .utm-gen input:focus { border-color: var(--accent); }
+  .utm-result { margin-top: 10px; font-size: 12px; color: var(--dark); background: var(--cream); padding: 9px 14px; border-radius: 10px; border: 1px solid var(--beige); word-break: break-all; display: none; }
+  .utm-result a { color: var(--accent); }
+  .utm-copy { padding: 6px 14px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 11px; cursor: pointer; }
 
+  .section-title { font-size: 11px; font-weight: 600; color: var(--dark); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+
+  /* ── Cards editor ── */
+  .card-item { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
+  .card-head { padding: 14px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+  .card-head-left { display: flex; align-items: center; gap: 12px; }
+  .card-id { font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 0.5px; }
+  .card-preview { font-size: 13px; font-weight: 300; color: var(--muted); max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-chevron { color: var(--sand); font-size: 18px; transition: transform 0.2s; }
+  .card-item.open .card-chevron { transform: rotate(90deg); }
+  .card-form { display: none; padding: 0 18px 18px; border-top: 1px solid var(--beige); }
+  .card-item.open .card-form { display: block; }
+  .f-group { margin-top: 14px; }
+  .f-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--sand); margin-bottom: 6px; display: block; }
+  .f-select { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: var(--cream); outline: none; }
+  .f-textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 300; color: var(--dark); background: var(--cream); outline: none; resize: vertical; line-height: 1.6; box-sizing: border-box; }
+  .f-textarea:focus, .f-select:focus { border-color: var(--accent); }
+  .f-small { font-size: 11px; color: var(--sand); margin-top: 4px; }
+  .f-save { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+  .btn-save { padding: 10px 24px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+  .btn-save:hover { background: var(--accent); }
+  .save-status { font-size: 12px; color: var(--muted); display: none; }
+  .save-status.ok { color: #2e7d32; display: inline; }
+  .save-status.err { color: #c0392b; display: inline; }
+
+  /* ── Free cards ── */
   .free-cards-panel { background: var(--white); border: 1px solid var(--beige); border-radius: 16px; padding: 18px 20px; margin-bottom: 24px; }
   .free-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin: 14px 0; }
   .free-card-select { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 12px; color: var(--dark); background: var(--cream); outline: none; }
   .free-card-select:focus { border-color: var(--accent); }
   .free-card-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--sand); margin-bottom: 5px; display: block; }
+
+  .empty-msg { font-size: 13px; color: var(--sand); text-align: center; padding: 32px; }
+  .count-badge { font-size: 11px; color: var(--sand); margin-bottom: 10px; }
 </style>
 {% endblock %}
 
@@ -90,191 +115,321 @@
 
 {% block content %}
 <div class="adm-body">
-  <div class="adm-warn">
-    ⚠ Изменения сохраняются на сервере. При следующем деплое через GitHub Actions
-    файлы из репозитория перезапишут редактирование. После правок скачайте
-    обновлённые JSON или зафиксируйте изменения в репозитории.
+
+  <!-- Top navigation -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchNav('buyers', this)">Покупатели</button>
+    <button class="nav-tab" onclick="switchNav('bloggers', this)">Блогеры</button>
+    <button class="nav-tab" onclick="switchNav('sales', this)">Продажи</button>
+    <button class="nav-tab" onclick="switchNav('cards', this)">Карточки</button>
+    <button class="nav-tab" onclick="switchNav('freecards', this)">Бесплатные</button>
   </div>
 
-  <div class="free-cards-panel">
-    <div class="grant-title">Бесплатные карточки (первая страница)</div>
-    <div class="free-cards-grid">
-      {% for i in range(5) %}
-      <div>
-        <span class="free-card-label">Карточка {{ i + 1 }}</span>
-        <select class="free-card-select" id="free-card-{{ i }}">
-          <option value="">— не выбрана —</option>
-          {% for card in all_cards %}
-          <option value="{{ card.id }}" {% if i < free_ids|length and free_ids[i] == card.id %}selected{% endif %}>
-            {{ card.id }} — {{ card.text }}
-          </option>
-          {% endfor %}
-        </select>
+  <!-- ══════════════ ПОКУПАТЕЛИ ══════════════ -->
+  <div class="nav-panel active" id="panel-buyers">
+
+    <div class="grant-panel">
+      <div class="grant-title">Выдать доступ / отправить новую ссылку</div>
+      <div class="grant-row">
+        <input type="email" class="grant-input" id="grant-email" placeholder="email@example.com">
+        <button class="btn-grant" onclick="grantAccess()">Выдать + отправить ссылку</button>
       </div>
-      {% endfor %}
+      <div class="grant-status" id="grant-status"></div>
     </div>
-    <button class="btn-grant" onclick="saveFreeCards()">Сохранить</button>
-    <div class="grant-status" id="free-status"></div>
+
+    <div class="search-row">
+      <input type="text" class="search-input" placeholder="Поиск по email…" oninput="filterTable('users-tbody', this.value)">
+    </div>
+    <div class="count-badge" id="users-count">Всего: {{ users|length }}</div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Доступ</th>
+          <th>Дата</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="users-tbody">
+      {% for u in users %}
+      <tr data-search="{{ u.email|lower }}">
+        <td>{{ u.email }}</td>
+        <td>{% if u.has_access %}<span class="badge-yes">✓ есть</span>{% else %}<span class="badge-no">нет</span>{% endif %}</td>
+        <td style="white-space:nowrap;color:var(--sand)">{{ u.created_at or '—' }}</td>
+        <td><button class="btn-send" onclick="sendLink(this, '{{ u.email }}')">Отправить ссылку</button></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
   </div>
 
-  <div class="sales-section">
-    <div class="sales-title">Продажи по блогерам</div>
+  <!-- ══════════════ БЛОГЕРЫ ══════════════ -->
+  <div class="nav-panel" id="panel-bloggers">
 
     <div class="utm-hint">
-      Давай блогерам уникальные ссылки: <code>https://verevery.ru/buy?utm=ИМЯ_БЛОГЕРА</code><br>
-      Например: <code>https://verevery.ru/buy?utm=masha_blog</code> или <code>https://verevery.ru/buy?utm=katya_life</code>
+      Давай каждому блогеру уникальную ссылку — <code>https://verevery.ru/buy?utm=ИМЯ</code><br>
+      Например: <code>https://verevery.ru/buy?utm=masha_blog</code> или <code>https://verevery.ru/buy?utm=katya_life</code><br>
+      Используй только латиницу и нижнее подчёркивание — без пробелов и кириллицы.
+    </div>
+
+    <div class="utm-gen">
+      <div class="grant-title">Сгенерировать ссылку</div>
+      <div class="utm-gen-row">
+        <input type="text" id="utm-name" placeholder="masha_blog" oninput="generateUtm()">
+        <button class="utm-copy" onclick="copyUtm()">Скопировать</button>
+      </div>
+      <div class="utm-result" id="utm-result"></div>
     </div>
 
     {% if blogger_stats %}
-    <div class="blogger-cards">
-      {% for b in blogger_stats %}
-      <div class="blogger-card">
-        <div class="blogger-card-name">{{ b.blogger }}</div>
-        <div class="blogger-card-row"><span>Покупок</span><span>{{ b.cnt }}</span></div>
-        <div class="blogger-card-row"><span>Сумма</span><span>{{ "%.0f"|format(b.total) }} ₽</span></div>
-        <div class="commission-badge">К выплате: {{ "%.0f"|format(b.commission) }} ₽</div>
-      </div>
-      {% endfor %}
+    <div class="search-row">
+      <input type="text" class="search-input" placeholder="Поиск по блогеру…" oninput="filterTable('bloggers-tbody', this.value)">
     </div>
+    <div class="count-badge">Всего блогеров: {{ blogger_stats|length }}</div>
 
-    <div class="sales-title" style="margin-top:8px;">Все продажи</div>
-    <table class="users-table">
-      <thead><tr><th>Дата</th><th>Email</th><th>Блогер / UTM</th><th>Сумма</th><th>Комиссия</th></tr></thead>
-      <tbody>
-      {% for s in sales %}
-      <tr>
-        <td style="white-space:nowrap">{{ s.date }}</td>
-        <td>{{ s.email }}</td>
-        <td>{{ s.blogger or '—' }}</td>
-        <td>{{ "%.0f"|format(s.amount) }} ₽</td>
-        <td>{{ "%.0f"|format(s.commission) }} ₽</td>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Блогер / UTM</th>
+          <th>Покупок</th>
+          <th>Сумма</th>
+          <th>К выплате (30%)</th>
+          <th>Ссылка</th>
+        </tr>
+      </thead>
+      <tbody id="bloggers-tbody">
+      {% for b in blogger_stats %}
+      <tr data-search="{{ b.blogger|lower }}">
+        <td><strong>{{ b.blogger }}</strong></td>
+        <td>{{ b.cnt }}</td>
+        <td>{{ "%.0f"|format(b.total) }} ₽</td>
+        <td style="color:#7a6200;font-weight:600">{{ "%.0f"|format(b.commission) }} ₽</td>
+        <td>
+          {% if b.blogger != 'Прямые продажи' %}
+          <code style="font-size:10px;color:var(--muted)">?utm={{ b.blogger }}</code>
+          {% else %}—{% endif %}
+        </td>
       </tr>
       {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <div class="sales-empty">Продаж пока нет</div>
+    <div class="empty-msg">Продаж через блогеров пока нет</div>
     {% endif %}
   </div>
 
-  <div class="grant-panel">
-    <div class="grant-title">Выдать доступ</div>
-    <div class="grant-row">
-      <input type="email" class="grant-input" id="grant-email" placeholder="email@example.com">
-      <button class="btn-grant" onclick="grantAccess()">Выдать + отправить ссылку</button>
+  <!-- ══════════════ ПРОДАЖИ ══════════════ -->
+  <div class="nav-panel" id="panel-sales">
+    {% if sales %}
+    <div class="search-row">
+      <input type="text" class="search-input" placeholder="Поиск по email или блогеру…" oninput="filterTable('sales-tbody', this.value)">
     </div>
-    <div class="grant-status" id="grant-status"></div>
+    <div class="count-badge">Всего записей: {{ sales|length }}</div>
+
+    <table class="data-table">
+      <thead>
+        <tr><th>Дата</th><th>Email</th><th>Блогер / UTM</th><th>Сумма</th><th>Комиссия</th></tr>
+      </thead>
+      <tbody id="sales-tbody">
+      {% for s in sales %}
+      <tr data-search="{{ s.email|lower }} {{ (s.blogger or '')|lower }}">
+        <td style="white-space:nowrap;color:var(--sand)">{{ s.date }}</td>
+        <td>{{ s.email }}</td>
+        <td>{{ s.blogger or '—' }}</td>
+        <td>{{ "%.0f"|format(s.amount) }} ₽</td>
+        <td style="color:var(--sand)">{{ "%.0f"|format(s.commission) }} ₽</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-msg">Продаж пока нет</div>
+    {% endif %}
   </div>
 
-  <table class="users-table">
-    <thead><tr><th>Email</th><th>Доступ</th><th>Дата</th></tr></thead>
-    <tbody>
-    {% for u in users %}
-    <tr>
-      <td>{{ u.email }}</td>
-      <td>{% if u.has_access %}<span class="badge-yes">✓ есть</span>{% else %}<span class="badge-no">нет</span>{% endif %}</td>
-      <td>{{ u.created_at or '—' }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+  <!-- ══════════════ КАРТОЧКИ ══════════════ -->
+  <div class="nav-panel" id="panel-cards">
+    <div class="adm-warn">
+      ⚠ Изменения сохраняются на сервере. При следующем деплое через GitHub Actions
+      файлы из репозитория перезапишут редактирование. После правок зафиксируйте изменения в репозитории.
+    </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('action', this)">Действие</button>
-    <button class="tab" onclick="switchTab('question', this)">Вопрос</button>
-    <button class="tab" onclick="switchTab('care', this)">Забота</button>
-  </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('action', this)">Действие</button>
+      <button class="tab" onclick="switchTab('question', this)">Вопрос</button>
+      <button class="tab" onclick="switchTab('care', this)">Забота</button>
+    </div>
 
-  {% for block_key, cards in blocks.items() %}
-  <div class="block-panel {% if block_key == 'action' %}active{% endif %}" id="panel-{{ block_key }}">
-    {% for card in cards %}
-    <div class="card-item" id="ci-{{ block_key }}-{{ loop.index0 }}">
-      <div class="card-head" onclick="toggleCard('{{ block_key }}', {{ loop.index0 }})">
-        <div class="card-head-left">
-          <span class="card-id">{{ card.id }}</span>
-          <span class="card-preview">{{ card.text[:80] }}{% if card.text|length > 80 %}…{% endif %}</span>
+    {% for block_key, cards in blocks.items() %}
+    <div class="block-panel {% if block_key == 'action' %}active{% endif %}" id="panel-{{ block_key }}">
+      {% for card in cards %}
+      <div class="card-item" id="ci-{{ block_key }}-{{ loop.index0 }}">
+        <div class="card-head" onclick="toggleCard('{{ block_key }}', {{ loop.index0 }})">
+          <div class="card-head-left">
+            <span class="card-id">{{ card.id }}</span>
+            <span class="card-preview">{{ card.text[:80] }}{% if card.text|length > 80 %}…{% endif %}</span>
+          </div>
+          <span class="card-chevron">›</span>
         </div>
-        <span class="card-chevron">›</span>
+        <div class="card-form">
+          <div class="f-group">
+            <label class="f-label">Уровень</label>
+            <select class="f-select" id="level-{{ block_key }}-{{ loop.index0 }}">
+              <option {% if card.level == 'Лёгкий' %}selected{% endif %}>Лёгкий</option>
+              <option {% if card.level == 'Средний' %}selected{% endif %}>Средний</option>
+              <option {% if card.level == 'Глубокий' %}selected{% endif %}>Глубокий</option>
+            </select>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Текст карточки</label>
+            <textarea class="f-textarea" rows="4" id="text-{{ block_key }}-{{ loop.index0 }}">{{ card.text }}</textarea>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Подсказка (hint)</label>
+            <textarea class="f-textarea" rows="2" id="hint-{{ block_key }}-{{ loop.index0 }}">{{ card.hint or '' }}</textarea>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Зачем это (why)</label>
+            <textarea class="f-textarea" rows="3" id="why-{{ block_key }}-{{ loop.index0 }}">{{ card.why or '' }}</textarea>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Мозг (brain)</label>
+            <textarea class="f-textarea" rows="4" id="brain-{{ block_key }}-{{ loop.index0 }}">{% if card.brain is string %}{{ card.brain }}{% else %}{{ card.brain | join('\n') }}{% endif %}</textarea>
+            <div class="f-small">Каждый пункт — с новой строки. Формат: «Дофамин — объяснение»</div>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Наука (science)</label>
+            <textarea class="f-textarea" rows="3" id="science-{{ block_key }}-{{ loop.index0 }}">{{ card.science or '' }}</textarea>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Итог (result)</label>
+            <textarea class="f-textarea" rows="2" id="result-{{ block_key }}-{{ loop.index0 }}">{{ card.result or '' }}</textarea>
+          </div>
+          <div class="f-save">
+            <button class="btn-save" onclick="saveCard('{{ block_key }}', {{ loop.index0 }}, '{{ card.id }}')">Сохранить</button>
+            <span class="save-status" id="st-{{ block_key }}-{{ loop.index0 }}"></span>
+          </div>
+        </div>
       </div>
-      <div class="card-form">
-        <div class="f-group">
-          <label class="f-label">Уровень</label>
-          <select class="f-select" id="level-{{ block_key }}-{{ loop.index0 }}">
-            <option {% if card.level == 'Лёгкий' %}selected{% endif %}>Лёгкий</option>
-            <option {% if card.level == 'Средний' %}selected{% endif %}>Средний</option>
-            <option {% if card.level == 'Глубокий' %}selected{% endif %}>Глубокий</option>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ══════════════ БЕСПЛАТНЫЕ ══════════════ -->
+  <div class="nav-panel" id="panel-freecards">
+    <div class="free-cards-panel">
+      <div class="grant-title">Бесплатные карточки (первая страница)</div>
+      <div class="free-cards-grid">
+        {% for i in range(5) %}
+        <div>
+          <span class="free-card-label">Карточка {{ i + 1 }}</span>
+          <select class="free-card-select" id="free-card-{{ i }}">
+            <option value="">— не выбрана —</option>
+            {% for card in all_cards %}
+            <option value="{{ card.id }}" {% if i < free_ids|length and free_ids[i] == card.id %}selected{% endif %}>
+              {{ card.id }} — {{ card.text }}
+            </option>
+            {% endfor %}
           </select>
         </div>
-        <div class="f-group">
-          <label class="f-label">Текст карточки</label>
-          <textarea class="f-textarea" rows="4" id="text-{{ block_key }}-{{ loop.index0 }}">{{ card.text }}</textarea>
-        </div>
-        <div class="f-group">
-          <label class="f-label">Подсказка (hint)</label>
-          <textarea class="f-textarea" rows="2" id="hint-{{ block_key }}-{{ loop.index0 }}">{{ card.hint or '' }}</textarea>
-        </div>
-        <div class="f-group">
-          <label class="f-label">Зачем это (why)</label>
-          <textarea class="f-textarea" rows="3" id="why-{{ block_key }}-{{ loop.index0 }}">{{ card.why or '' }}</textarea>
-        </div>
-        <div class="f-group">
-          <label class="f-label">Мозг (brain)</label>
-          <textarea class="f-textarea" rows="4" id="brain-{{ block_key }}-{{ loop.index0 }}">{% if card.brain is string %}{{ card.brain }}{% else %}{{ card.brain | join('\n') }}{% endif %}</textarea>
-          <div class="f-small">Каждый пункт — с новой строки. Формат: «Дофамин — объяснение»</div>
-        </div>
-        <div class="f-group">
-          <label class="f-label">Наука (science)</label>
-          <textarea class="f-textarea" rows="3" id="science-{{ block_key }}-{{ loop.index0 }}">{{ card.science or '' }}</textarea>
-        </div>
-        <div class="f-group">
-          <label class="f-label">Итог (result)</label>
-          <textarea class="f-textarea" rows="2" id="result-{{ block_key }}-{{ loop.index0 }}">{{ card.result or '' }}</textarea>
-        </div>
-        <div class="f-save">
-          <button class="btn-save" onclick="saveCard('{{ block_key }}', {{ loop.index0 }}, '{{ card.id }}')">Сохранить</button>
-          <span class="save-status" id="st-{{ block_key }}-{{ loop.index0 }}"></span>
-        </div>
+        {% endfor %}
       </div>
+      <button class="btn-grant" onclick="saveFreeCards()">Сохранить</button>
+      <div class="grant-status" id="free-status"></div>
     </div>
-    {% endfor %}
   </div>
-  {% endfor %}
+
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+function switchNav(name, btn) {
+  document.querySelectorAll('.nav-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function filterTable(tbodyId, q) {
+  q = q.toLowerCase().trim();
+  var rows = document.querySelectorAll('#' + tbodyId + ' tr');
+  var shown = 0;
+  rows.forEach(function(row) {
+    var text = (row.dataset.search || row.textContent).toLowerCase();
+    var match = !q || text.indexOf(q) !== -1;
+    row.classList.toggle('hidden', !match);
+    if (match) shown++;
+  });
+  var cnt = document.getElementById(tbodyId.replace('-tbody', '-count'));
+  if (cnt) cnt.textContent = 'Показано: ' + shown;
+}
+
 function grantAccess() {
   var email = document.getElementById('grant-email').value.trim();
   var st = document.getElementById('grant-status');
   if (!email || !email.includes('@')) {
-    st.className = 'grant-status err';
-    st.textContent = 'Введите корректный email';
-    return;
+    st.className = 'grant-status err'; st.textContent = 'Введите корректный email'; return;
   }
-  st.className = 'grant-status';
-  st.textContent = 'Выдаём доступ…';
-  st.style.display = 'block';
+  st.className = 'grant-status'; st.textContent = 'Отправляем…'; st.style.display = 'block';
+  doGrant(email, function(ok) {
+    if (ok) {
+      st.className = 'grant-status ok';
+      st.textContent = '✓ Доступ выдан, ссылка отправлена на ' + email;
+      document.getElementById('grant-email').value = '';
+    } else {
+      st.className = 'grant-status err'; st.textContent = '✗ Ошибка — проверьте email';
+    }
+  });
+}
+
+function sendLink(btn, email) {
+  btn.textContent = '…';
+  btn.disabled = true;
+  doGrant(email, function(ok) {
+    btn.disabled = false;
+    if (ok) {
+      btn.textContent = '✓ Отправлено';
+      btn.className = 'btn-send sent';
+    } else {
+      btn.textContent = '✗ Ошибка';
+      btn.className = 'btn-send err';
+    }
+    setTimeout(function() {
+      btn.textContent = 'Отправить ссылку';
+      btn.className = 'btn-send';
+    }, 4000);
+  });
+}
+
+function doGrant(email, cb) {
   var data = new FormData();
   data.append('email', email);
   fetch('/admin/grant', { method: 'POST', body: data })
-    .then(function(r) {
-      return r.text().then(function(text) { return { ok: r.ok, text: text }; });
-    })
-    .then(function(res) {
-      if (res.ok) {
-        st.className = 'grant-status ok';
-        st.textContent = '✓ Доступ выдан, magic link отправлен на ' + email;
-        document.getElementById('grant-email').value = '';
-      } else {
-        st.className = 'grant-status err';
-        st.textContent = '✗ ' + res.text;
-      }
-    })
-    .catch(function() {
-      st.className = 'grant-status err';
-      st.textContent = '✗ Ошибка сети';
-    });
+    .then(function(r) { cb(r.ok); })
+    .catch(function() { cb(false); });
+}
+
+function generateUtm() {
+  var name = document.getElementById('utm-name').value.trim();
+  var box = document.getElementById('utm-result');
+  if (!name) { box.style.display = 'none'; return; }
+  var url = 'https://verevery.ru/buy?utm=' + encodeURIComponent(name);
+  box.innerHTML = '<a href="' + url + '" target="_blank">' + url + '</a>';
+  box.style.display = 'block';
+}
+
+function copyUtm() {
+  var name = document.getElementById('utm-name').value.trim();
+  if (!name) return;
+  var url = 'https://verevery.ru/buy?utm=' + encodeURIComponent(name);
+  navigator.clipboard.writeText(url).then(function() {
+    var btn = document.querySelector('.utm-copy');
+    btn.textContent = '✓ Скопировано';
+    setTimeout(function() { btn.textContent = 'Скопировать'; }, 2000);
+  });
 }
 
 function saveFreeCards() {
@@ -285,7 +440,7 @@ function saveFreeCards() {
   var st = document.getElementById('free-status');
   fetch('/admin/free-cards', { method: 'POST', body: form })
     .then(function(r) {
-      if (r.ok) { st.className = 'grant-status ok'; st.textContent = 'Сохранено! Обновите страницу /free чтобы увидеть изменения.'; }
+      if (r.ok) { st.className = 'grant-status ok'; st.textContent = 'Сохранено!'; }
       else { st.className = 'grant-status err'; st.textContent = 'Ошибка'; }
     });
 }
@@ -298,8 +453,7 @@ function switchTab(block, btn) {
 }
 
 function toggleCard(block, idx) {
-  var el = document.getElementById('ci-' + block + '-' + idx);
-  el.classList.toggle('open');
+  document.getElementById('ci-' + block + '-' + idx).classList.toggle('open');
 }
 
 function saveCard(block, idx, cardId) {
@@ -314,26 +468,14 @@ function saveCard(block, idx, cardId) {
   data.append('brain',   document.getElementById('brain-'   + prefix).value);
   data.append('science', document.getElementById('science-' + prefix).value);
   data.append('result',  document.getElementById('result-'  + prefix).value);
-
   var st = document.getElementById('st-' + prefix);
-  st.className = 'save-status';
-  st.textContent = 'Сохранение…';
-  st.style.display = 'inline';
-
+  st.className = 'save-status'; st.textContent = 'Сохранение…'; st.style.display = 'inline';
   fetch('/admin/save', { method: 'POST', body: data })
     .then(function(r) {
-      if (r.ok) {
-        st.className = 'save-status ok';
-        st.textContent = '✓ Сохранено';
-      } else {
-        st.className = 'save-status err';
-        st.textContent = '✗ Ошибка';
-      }
+      if (r.ok) { st.className = 'save-status ok'; st.textContent = '✓ Сохранено'; }
+      else { st.className = 'save-status err'; st.textContent = '✗ Ошибка'; }
     })
-    .catch(function() {
-      st.className = 'save-status err';
-      st.textContent = '✗ Ошибка сети';
-    });
+    .catch(function() { st.className = 'save-status err'; st.textContent = '✗ Ошибка сети'; });
 }
 </script>
 {% endblock %}

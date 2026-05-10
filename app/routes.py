@@ -391,7 +391,7 @@ def admin():
     from .db import get_db
     conn = get_db()
     users = conn.execute(
-        'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 50'
+        'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 1000'
     ).fetchall()
     all_cards_flat = []
     for block in ['action', 'question', 'care']:
@@ -409,7 +409,7 @@ def admin():
         ORDER BY total DESC
     ''').fetchall()
     sales = conn.execute(
-        'SELECT date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC LIMIT 200'
+        'SELECT date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC LIMIT 2000'
     ).fetchall()
     conn.close()
     return render_template('admin.html', blocks=blocks_data, users=users,
