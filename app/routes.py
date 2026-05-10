@@ -341,6 +341,33 @@ def auth_open():
         return render_template('auth.html', token_expired=True, debug_info=f'Exception: {e}')
 
 
+@main.route('/auth/report', methods=['POST'])
+def auth_report():
+    email = request.form.get('email', '').strip()[:200]
+    message = request.form.get('message', '').strip()[:1000]
+    if not email or not message:
+        return 'Bad request', 400
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute('''CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            resolved INTEGER DEFAULT 0
+        )''')
+        conn.execute(
+            'INSERT INTO reports (email, message, created_at) VALUES (?, ?, ?)',
+            (email, message, datetime.utcnow().strftime('%d.%m.%Y %H:%M'))
+        )
+        conn.commit()
+        conn.close()
+        return '', 200
+    except Exception:
+        return '', 500
+
+
 @main.route('/offer')
 def offer():
     return render_template('offer.html')
@@ -411,10 +438,17 @@ def admin():
     sales = conn.execute(
         'SELECT date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC LIMIT 2000'
     ).fetchall()
+    try:
+        reports = conn.execute(
+            'SELECT id, email, message, created_at, resolved FROM reports ORDER BY id DESC LIMIT 500'
+        ).fetchall()
+    except Exception:
+        reports = []
     conn.close()
     return render_template('admin.html', blocks=blocks_data, users=users,
                            blogger_stats=blogger_stats, sales=sales,
-                           all_cards=all_cards_flat, free_ids=free_ids)
+                           all_cards=all_cards_flat, free_ids=free_ids,
+                           reports=reports)
 
 
 @main.route('/admin/grant', methods=['POST'])
@@ -431,6 +465,22 @@ def admin_grant():
         _send_magic_link(email, conn)
         conn.close()
         return 'OK', 200
+    except Exception as e:
+        return f'Ошибка: {e}', 500
+
+
+@main.route('/admin/resolve-report', methods=['POST'])
+def admin_resolve_report():
+    if not _admin_required():
+        return 'Forbidden', 403
+    report_id = request.form.get('id', '')
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute('UPDATE reports SET resolved=1 WHERE id=?', (report_id,))
+        conn.commit()
+        conn.close()
+        return '', 200
     except Exception as e:
         return f'Ошибка: {e}', 500
 
