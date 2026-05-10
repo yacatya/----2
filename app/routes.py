@@ -306,8 +306,21 @@ def auth_open():
             (token, datetime.utcnow().isoformat())
         ).fetchone()
         if not row:
+            # Debug: check why token not found
+            debug_row = conn.execute(
+                'SELECT token, expires_at, used FROM magic_tokens WHERE token=?', (token,)
+            ).fetchone()
+            now = datetime.utcnow().isoformat()
             conn.close()
-            return render_template('auth.html', token_expired=True)
+            debug_info = None
+            if debug_row:
+                debug_info = f'Токен найден, но истёк. expires_at={debug_row["expires_at"]}, now={now}, used={debug_row["used"]}'
+            else:
+                conn2 = get_db()
+                any_row = conn2.execute('SELECT COUNT(*) as cnt FROM magic_tokens').fetchone()
+                conn2.close()
+                debug_info = f'Токен не найден в базе. Всего токенов: {any_row["cnt"]}. token_prefix={token[:8]}...'
+            return render_template('auth.html', token_expired=True, debug_info=debug_info)
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
         user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
         conn.commit()
@@ -316,8 +329,8 @@ def auth_open():
         session['user_id'] = user['id']
         session['email'] = user['email']
         return redirect(url_for('main.cards'))
-    except Exception:
-        return render_template('auth.html', token_expired=True)
+    except Exception as e:
+        return render_template('auth.html', token_expired=True, debug_info=f'Exception: {e}')
 
 
 @main.route('/offer')

@@ -68,6 +68,9 @@
       <h1 class="auth-title">Ссылка устарела</h1>
       <p class="auth-sub">Ссылка уже использована или срок её действия истёк</p>
       <div class="auth-card" style="text-align:center;">
+        {% if debug_info %}
+        <p style="font-size:11px;color:#888;background:#f5f5f5;border-radius:8px;padding:10px;margin-bottom:16px;text-align:left;word-break:break-all;">{{ debug_info }}</p>
+        {% endif %}
         <p style="font-size:14px;font-weight:300;color:var(--muted);line-height:1.7;margin:0 0 24px;">
           Введите ваш email и мы пришлём новую ссылку для входа.
         </p>
