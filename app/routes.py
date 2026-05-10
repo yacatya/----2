@@ -52,7 +52,7 @@ def _send_magic_link(email, conn):
     import resend
     token = secrets.token_urlsafe(32)
     expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat()
-    conn.execute('DELETE FROM magic_tokens WHERE email=? AND used=0', (email,))
+    conn.execute('DELETE FROM magic_tokens WHERE email=?', (email,))
     conn.execute(
         'INSERT INTO magic_tokens (token, email, expires_at) VALUES (?, ?, ?)',
         (token, email, expires_at)
@@ -273,14 +273,11 @@ def auth_verify():
         token = request.args.get('token', '')
         if not token:
             return redirect(url_for('main.auth'))
-        # Validate token exists before showing the button.
-        # Email scanners (Yandex, Mail.ru, etc.) do a GET to check links,
-        # so we only consume the token on /auth/open (user button click).
         try:
             from .db import get_db
             conn = get_db()
             row = conn.execute(
-                'SELECT 1 FROM magic_tokens WHERE token=? AND used=0 AND expires_at > ?',
+                'SELECT 1 FROM magic_tokens WHERE token=? AND expires_at > ?',
                 (token, datetime.utcnow().isoformat())
             ).fetchone()
             conn.close()
@@ -301,8 +298,11 @@ def auth_open():
     try:
         from .db import get_db
         conn = get_db()
+        # Token is valid for 24h and can be used multiple times within that window.
+        # Yandex Mail and other scanners may hit /auth/open before the user does;
+        # not marking as used means the user's click always works within 24h.
         row = conn.execute(
-            'SELECT * FROM magic_tokens WHERE token=? AND used=0 AND expires_at > ?',
+            'SELECT * FROM magic_tokens WHERE token=? AND expires_at > ?',
             (token, datetime.utcnow().isoformat())
         ).fetchone()
         if not row:
@@ -310,7 +310,6 @@ def auth_open():
             return render_template('auth.html', token_expired=True)
         conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
         user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
-        conn.execute('UPDATE magic_tokens SET used=1 WHERE token=?', (token,))
         conn.commit()
         conn.close()
         session.permanent = True
