@@ -121,6 +121,7 @@
     <button class="nav-tab active" onclick="switchNav('buyers', this)">Покупатели</button>
     <button class="nav-tab" onclick="switchNav('bloggers', this)">Блогеры</button>
     <button class="nav-tab" onclick="switchNav('sales', this)">Продажи</button>
+    <button class="nav-tab" onclick="switchNav('reports', this)">Обращения{% set open_reports = reports|selectattr('resolved','equalto',0)|list %}{% if open_reports %} <span style="background:#c0392b;color:white;border-radius:50px;font-size:10px;padding:1px 6px;margin-left:4px;">{{ open_reports|length }}</span>{% endif %}</button>
     <button class="nav-tab" onclick="switchNav('cards', this)">Карточки</button>
     <button class="nav-tab" onclick="switchNav('freecards', this)">Бесплатные</button>
   </div>
@@ -222,18 +223,23 @@
   <!-- ══════════════ ПРОДАЖИ ══════════════ -->
   <div class="nav-panel" id="panel-sales">
     {% if sales %}
-    <div class="search-row">
-      <input type="text" class="search-input" placeholder="Поиск по email или блогеру…" oninput="filterTable('sales-tbody', this.value)">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+      <input type="text" class="search-input" style="margin:0;" placeholder="Поиск по email или блогеру…" oninput="filterTable('sales-tbody', this.value)">
+      <button id="btn-delete-sales" class="btn-grant" style="background:#c0392b;display:none;" onclick="deleteSelectedSales()">Удалить выбранные</button>
     </div>
-    <div class="count-badge">Всего записей: {{ sales|length }}</div>
+    <div class="count-badge" id="sales-count">Всего записей: {{ sales|length }}</div>
 
     <table class="data-table">
       <thead>
-        <tr><th>Дата</th><th>Email</th><th>Блогер / UTM</th><th>Сумма</th><th>Комиссия</th></tr>
+        <tr>
+          <th style="width:32px;"><input type="checkbox" id="sales-check-all" onchange="toggleAllSales(this)"></th>
+          <th>Дата</th><th>Email</th><th>Блогер / UTM</th><th>Сумма</th><th>Комиссия</th>
+        </tr>
       </thead>
       <tbody id="sales-tbody">
       {% for s in sales %}
-      <tr data-search="{{ s.email|lower }} {{ (s.blogger or '')|lower }}">
+      <tr data-search="{{ s.email|lower }} {{ (s.blogger or '')|lower }}" data-id="{{ s.id }}">
+        <td><input type="checkbox" class="sale-cb" onchange="updateDeleteBtn()"></td>
         <td style="white-space:nowrap;color:var(--sand)">{{ s.date }}</td>
         <td>{{ s.email }}</td>
         <td>{{ s.blogger or '—' }}</td>
@@ -245,6 +251,39 @@
     </table>
     {% else %}
     <div class="empty-msg">Продаж пока нет</div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════ ОБРАЩЕНИЯ ══════════════ -->
+  <div class="nav-panel" id="panel-reports">
+    {% if reports %}
+    <div class="search-row">
+      <input type="text" class="search-input" placeholder="Поиск по email…" oninput="filterTable('reports-tbody', this.value)">
+    </div>
+    <div class="count-badge">Всего обращений: {{ reports|length }}</div>
+    <table class="data-table">
+      <thead>
+        <tr><th>Дата</th><th>Email</th><th>Сообщение</th><th>Статус</th><th></th></tr>
+      </thead>
+      <tbody id="reports-tbody">
+      {% for r in reports %}
+      <tr data-search="{{ r.email|lower }}" {% if r.resolved %}style="opacity:0.45"{% endif %}>
+        <td style="white-space:nowrap;color:var(--sand)">{{ r.created_at }}</td>
+        <td>{{ r.email }}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:300px;">{{ r.message }}</td>
+        <td>{% if r.resolved %}<span class="badge-yes">закрыто</span>{% else %}<span class="badge-no">открыто</span>{% endif %}</td>
+        <td style="white-space:nowrap;display:flex;gap:6px;">
+          {% if not r.resolved %}
+          <button class="btn-send" onclick="sendLink(this, '{{ r.email }}')">Отправить ссылку</button>
+          <button class="btn-send" onclick="resolveReport(this, {{ r.id }})">Закрыть</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-msg">Обращений пока нет</div>
     {% endif %}
   </div>
 
@@ -442,6 +481,59 @@ function saveFreeCards() {
     .then(function(r) {
       if (r.ok) { st.className = 'grant-status ok'; st.textContent = 'Сохранено!'; }
       else { st.className = 'grant-status err'; st.textContent = 'Ошибка'; }
+    });
+}
+
+function toggleAllSales(masterCb) {
+  document.querySelectorAll('#sales-tbody .sale-cb').forEach(function(cb) {
+    var row = cb.closest('tr');
+    if (!row.classList.contains('hidden')) cb.checked = masterCb.checked;
+  });
+  updateDeleteBtn();
+}
+
+function updateDeleteBtn() {
+  var any = document.querySelectorAll('#sales-tbody .sale-cb:checked').length > 0;
+  document.getElementById('btn-delete-sales').style.display = any ? '' : 'none';
+}
+
+function deleteSelectedSales() {
+  var ids = [];
+  document.querySelectorAll('#sales-tbody .sale-cb:checked').forEach(function(cb) {
+    ids.push(cb.closest('tr').dataset.id);
+  });
+  if (!ids.length) return;
+  if (!confirm('Удалить ' + ids.length + ' записей? Это действие необратимо.')) return;
+  var data = new FormData();
+  data.append('ids', ids.join(','));
+  fetch('/admin/delete-sales', { method: 'POST', body: data })
+    .then(function(r) {
+      if (r.ok) {
+        ids.forEach(function(id) {
+          var row = document.querySelector('#sales-tbody tr[data-id="' + id + '"]');
+          if (row) row.remove();
+        });
+        document.getElementById('btn-delete-sales').style.display = 'none';
+        var cnt = document.getElementById('sales-count');
+        if (cnt) cnt.textContent = 'Всего записей: ' + document.querySelectorAll('#sales-tbody tr').length;
+      } else {
+        alert('Ошибка при удалении');
+      }
+    });
+}
+
+function resolveReport(btn, id) {
+  var data = new FormData();
+  data.append('id', id);
+  fetch('/admin/resolve-report', { method: 'POST', body: data })
+    .then(function(r) {
+      if (r.ok) {
+        var row = btn.closest('tr');
+        row.style.opacity = '0.45';
+        row.querySelector('td:last-child').innerHTML = '';
+        var badge = row.querySelector('.badge-no');
+        if (badge) { badge.className = 'badge-yes'; badge.textContent = 'закрыто'; }
+      }
     });
 }
 

@@ -436,7 +436,7 @@ def admin():
         ORDER BY total DESC
     ''').fetchall()
     sales = conn.execute(
-        'SELECT date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC LIMIT 2000'
+        'SELECT id, date, email, utm, blogger, amount, commission FROM sales ORDER BY id DESC'
     ).fetchall()
     try:
         reports = conn.execute(
@@ -478,6 +478,30 @@ def admin_resolve_report():
         from .db import get_db
         conn = get_db()
         conn.execute('UPDATE reports SET resolved=1 WHERE id=?', (report_id,))
+        conn.commit()
+        conn.close()
+        return '', 200
+    except Exception as e:
+        return f'Ошибка: {e}', 500
+
+
+@main.route('/admin/delete-sales', methods=['POST'])
+def admin_delete_sales():
+    if not _admin_required():
+        return 'Forbidden', 403
+    ids_raw = request.form.get('ids', '')
+    try:
+        ids = [int(x) for x in ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        return 'Bad request', 400
+    if not ids:
+        return 'Nothing to delete', 400
+    try:
+        from .db import get_db
+        conn = get_db()
+        conn.execute(
+            'DELETE FROM sales WHERE id IN ({})'.format(','.join('?' * len(ids))), ids
+        )
         conn.commit()
         conn.close()
         return '', 200
