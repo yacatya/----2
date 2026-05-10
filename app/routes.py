@@ -332,9 +332,18 @@ def auth_open():
                 conn2.close()
                 debug_info = f'Токен не найден в базе. Всего токенов: {any_row["cnt"]}. token_prefix={token[:8]}...'
             return render_template('auth.html', token_expired=True, debug_info=debug_info)
-        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (row['email'],))
-        user = conn.execute('SELECT * FROM users WHERE email=?', (row['email'],)).fetchone()
+        email = row['email']
+        if not email:
+            conn.close()
+            return render_template('auth.html', token_expired=True,
+                                   debug_info='Токен найден, но email пустой в базе')
+        conn.execute('INSERT OR IGNORE INTO users (email) VALUES (?)', (email,))
         conn.commit()
+        user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
+        if not user:
+            conn.close()
+            return render_template('auth.html', token_expired=True,
+                                   debug_info=f'Пользователь не создан: email={email}')
         conn.close()
         session.permanent = True
         session['user_id'] = user['id']
