@@ -109,7 +109,10 @@
 {% block nav %}
 <div class="adm-header">
   <div class="adm-logo">vere<span>very</span> · admin</div>
-  <a href="/admin/logout" class="adm-out">Выйти</a>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <a href="/admin/bloggers" style="color:#F5F0EB;font-size:13px;opacity:.75;text-decoration:none;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">CRM блогеров →</a>
+    <a href="/admin/logout" class="adm-out">Выйти</a>
+  </div>
 </div>
 {% endblock %}
 
@@ -187,7 +190,7 @@
     {% if blogger_stats %}
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
       <input type="text" class="search-input" style="margin:0;" placeholder="Поиск по блогеру…" oninput="filterTable('bloggers-tbody', this.value)">
-      <button class="btn-grant" style="background:#2e7d32;" onclick="exportCsv('bloggers-tbody', ['Блогер','Покупок','Сумма','К выплате (30%)','UTM'], 'блогеры')">↓ Скачать CSV</button>
+      <button class="btn-grant" style="background:#2e7d32;" onclick="exportCsv('bloggers-tbody', ['Блогер','Покупок','Сумма','К выплате (30%)', 'UTM'], 'блогеры')">↓ Скачать CSV</button>
     </div>
     <div class="count-badge">Всего блогеров: {{ blogger_stats|length }}</div>
 
