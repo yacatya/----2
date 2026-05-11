@@ -37,6 +37,31 @@ def init_db():
             commission REAL,
             created_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS bloggers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            platform TEXT DEFAULT '',
+            profile_url TEXT DEFAULT '',
+            email TEXT DEFAULT '',
+            utm_slug TEXT DEFAULT '',
+            utm_link TEXT DEFAULT '',
+            status TEXT DEFAULT 'new',
+            first_email_sent_at TEXT,
+            last_reply_at TEXT,
+            reply_sentiment TEXT,
+            sales_count INTEGER DEFAULT 0,
+            paid_out INTEGER DEFAULT 0,
+            notes TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS email_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            blogger_id INTEGER,
+            type TEXT NOT NULL,
+            sent_at TEXT NOT NULL,
+            status TEXT DEFAULT 'ok',
+            error TEXT DEFAULT ''
+        );
     ''')
     for col, definition in [
         ('has_access', 'INTEGER DEFAULT 0'),
