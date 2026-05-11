@@ -575,8 +575,35 @@ def _blogger_warning(blogger, now):
         return False
 
 
+def _ensure_email_templates_table(conn):
+    conn.execute('''CREATE TABLE IF NOT EXISTS email_templates (
+        key TEXT PRIMARY KEY,
+        subject TEXT NOT NULL,
+        body_text TEXT NOT NULL
+    )''')
+    for key, subject, body_text in [
+        ('blogger_first',
+         'Сотрудничество — колода карточек «Ближе» для пар',
+         'Привет, {name}! \U0001f44b\n\nМеня зовут Катя, я создала Vera — онлайн-колоду карточек «Ближе» для пар на verevery.ru.\n\nКарточки помогают восстановить близость в отношениях — основаны на доказательной психологии (Готтман, EFT, теория привязанности). Цена: 690 ₽.\n\nХочу предложить сотрудничество: вы рассказываете аудитории о проекте, получаете 30% с каждой продажи по вашей ссылке — 207 ₽ за покупку.\n\nЕсли интересно — напишу подробнее об условиях \U0001f64c\n\nКатя\nverevery.ru'),
+        ('blogger_second',
+         'Re: Сотрудничество — колода карточек «Ближе» для пар',
+         'Привет, {name}! Рада, что откликнулись \U0001f49b\n\nВот подробности о сотрудничестве:\n\n\U0001f4e6 Продукт: онлайн-колода «Ближе» — 60 карточек для пар (verevery.ru)\n\U0001f4b8 Комиссия: 30% = 207 ₽ с каждой продажи\n\U0001f517 Ваша ссылка: {utm_link}\n\nКак это работает:\n1. Вы публикуете пост или сторис со своей ссылкой\n2. Подписчики переходят и покупают\n3. Я считаю продажи по вашему UTM и перевожу комиссию раз в месяц\n\nМогу прислать описание продукта и примеры карточек — всё что нужно для публикации.\n\nГотова ответить на любые вопросы!\n\nКатя\nverevery.ru'),
+    ]:
+        try:
+            conn.execute(
+                'INSERT OR IGNORE INTO email_templates (key, subject, body_text) VALUES (?, ?, ?)',
+                (key, subject, body_text)
+            )
+        except Exception:
+            pass
+    conn.commit()
+
+
 def _get_template(conn, key):
-    row = conn.execute('SELECT subject, body_text FROM email_templates WHERE key=?', (key,)).fetchone()
+    try:
+        row = conn.execute('SELECT subject, body_text FROM email_templates WHERE key=?', (key,)).fetchone()
+    except Exception:
+        row = None
     if row:
         return row['subject'], row['body_text']
     if key == 'blogger_first':
@@ -971,6 +998,7 @@ def admin_bloggers_templates():
         return redirect(url_for('main.admin_login'))
     from .db import get_db
     conn = get_db()
+    _ensure_email_templates_table(conn)
     t1 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_first'").fetchone()
     t2 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_second'").fetchone()
     conn.close()
@@ -990,6 +1018,7 @@ def admin_bloggers_templates_save():
         return 'Пустые поля', 400
     from .db import get_db
     conn = get_db()
+    _ensure_email_templates_table(conn)
     conn.execute(
         'INSERT OR REPLACE INTO email_templates (key, subject, body_text) VALUES (?, ?, ?)',
         (key, subject, body_text)
