@@ -642,7 +642,7 @@ def _send_blogger_email(blogger, email_type, conn):
     resend.api_key = os.environ.get('RESEND_API_KEY', '')
     template_key = 'blogger_first' if email_type == 'first' else 'blogger_second'
     subject, body_text = _get_template(conn, template_key)
-    html_body = _render_email_html(body_text, blogger['name'], blogger.get('utm_link') or '')
+    html_body = _render_email_html(body_text, blogger['name'], blogger['utm_link'] or '')
     now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
     try:
         resend.Emails.send({
@@ -851,7 +851,7 @@ def admin_bloggers_send_email(bid):
     if not blogger['email']:
         conn.close()
         return 'Email не указан', 400
-    ok, err = _send_blogger_email(blogger, email_type, conn)
+    ok, err = _send_blogger_email(dict(blogger), email_type, conn)
     if ok and email_type == 'first':
         conn.execute(
             "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
@@ -880,7 +880,7 @@ def admin_bloggers_send_bulk():
         b = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
         if not b or not b['email']:
             continue
-        ok, err = _send_blogger_email(b, 'first', conn)
+        ok, err = _send_blogger_email(dict(b), 'first', conn)
         if ok:
             conn.execute(
                 "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
@@ -953,6 +953,7 @@ def webhook_email_reply():
         if not blogger:
             conn.close()
             return '', 200
+        blogger = dict(blogger)
         bid = blogger['id']
         now_iso = datetime.utcnow().isoformat()
         now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
