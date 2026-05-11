@@ -588,7 +588,7 @@ def _send_blogger_email(blogger, email_type, conn):
     now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
     try:
         resend.Emails.send({
-            'from': 'Катя из Vera <katya@verevery.ru>',
+            'from': 'Vera <team@verevery.ru>',
             'reply_to': ['reply@verevery.ru'],
             'to': [blogger['email']],
             'subject': subject,
@@ -621,7 +621,7 @@ def _classify_reply_with_claude(text):
                 '- positive (заинтересован, хочет узнать больше, готов сотрудничать)\n'
                 '- negative (отказ, не интересно, не подходит)\n'
                 '- question (задаёт вопросы, нужна дополнительная информация)\n'
-                'Ответь только одним словом: positive, negative или question.\n'
+                'Ответить только одним словом: positive, negative или question.\n'
                 f'Текст ответа: {text[:2000]}'
             )}]
         )
