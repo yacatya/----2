@@ -198,9 +198,6 @@ def webhook_payment():
         from .db import get_db
         conn = get_db()
 
-        # Check before save — YooKassa sends the same webhook multiple times.
-        # Only send the magic link on the first delivery to avoid overwriting
-        # the token while the user still holds the link from the first email.
         already_processed = conn.execute(
             'SELECT 1 FROM sales WHERE payment_id=?', (payment.id,)
         ).fetchone()
@@ -261,8 +258,7 @@ def auth():
 def auth_verify():
     if request.method == 'GET':
         token = request.args.get('token', '')
-        if not token:
-            return redirect(url_for('main.auth'))
+        if not token:            return redirect(url_for('main.auth'))
         try:
             from .db import get_db
             conn = get_db()
@@ -288,9 +284,6 @@ def auth_open():
     try:
         from .db import get_db
         conn = get_db()
-        # Token is valid for 24h and can be used multiple times within that window.
-        # Yandex Mail and other scanners may hit /auth/open before the user does;
-        # not marking as used means the user's click always works within 24h.
         row = conn.execute(
             'SELECT * FROM magic_tokens WHERE token=? AND expires_at > ?',
             (token, datetime.utcnow().isoformat())
@@ -311,7 +304,6 @@ def auth_open():
             conn.close()
             return render_template('auth.html', token_expired=True)
 
-        # Find user; if missing create one (password_hash='' for legacy schema compatibility)
         user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if not user:
             user = conn.execute(
@@ -551,12 +543,13 @@ def admin_free_cards():
 COMMISSION_PER_SALE = 207  # 30% of 690 RUB
 
 BLOGGER_STATUSES = [
-    ('new',        'Новый',        '#8C7E72', '#F5F0EB'),
-    ('sent',       'Отправлено',   '#1a6fa6', '#e8f4fd'),
-    ('replied',    'Ответил',      '#a67c00', '#fff8e1'),
-    ('interested', 'Интересно',    '#2e7d32', '#e8f5e9'),
-    ('posted',     'Опубликовал',  '#1b5e20', '#c8e6c9'),
-    ('declined',   'Отказал',      '#c0392b', '#fbe9e7'),
+    ('new',        'Новый',          '#8C7E72', '#F5F0EB'),
+    ('sent',       'Отправлено',     '#1a6fa6', '#e8f4fd'),
+    ('replied',    'Ответил',        '#a67c00', '#fff8e1'),
+    ('interested', 'Интересно',      '#2e7d32', '#e8f5e9'),
+    ('agreed',     'Сотрудничаем',   '#1565c0', '#e3f2fd'),
+    ('posted',     'Опубликовал',    '#1b5e20', '#c8e6c9'),
+    ('declined',   'Отказал',        '#c0392b', '#fbe9e7'),
 ]
 
 
@@ -582,20 +575,78 @@ def _blogger_warning(blogger, now):
         return False
 
 
+def _ensure_email_templates_table(conn):
+    conn.execute('''CREATE TABLE IF NOT EXISTS email_templates (
+        key TEXT PRIMARY KEY,
+        subject TEXT NOT NULL,
+        body_text TEXT NOT NULL
+    )''')
+    for key, subject, body_text in [
+        ('blogger_first',
+         'Сотрудничество — колода карточек «Ближе» для пар',
+         'Привет, {name}! \U0001f44b\n\nМеня зовут Катя, я создала Vera — онлайн-колоду карточек «Ближе» для пар на verevery.ru.\n\nКарточки помогают восстановить близость в отношениях — основаны на доказательной психологии (Готтман, EFT, теория привязанности). Цена: 690 ₽.\n\nХочу предложить сотрудничество: вы рассказываете аудитории о проекте, получаете 30% с каждой продажи по вашей ссылке — 207 ₽ за покупку.\n\nЕсли интересно — напишу подробнее об условиях \U0001f64c\n\nКатя\nverevery.ru'),
+        ('blogger_second',
+         'Re: Сотрудничество — колода карточек «Ближе» для пар',
+         'Привет, {name}! Рада, что откликнулись \U0001f49b\n\nВот подробности о сотрудничестве:\n\n\U0001f4e6 Продукт: онлайн-колода «Ближе» — 60 карточек для пар (verevery.ru)\n\U0001f4b8 Комиссия: 30% = 207 ₽ с каждой продажи\n\U0001f517 Ваша ссылка: {utm_link}\n\nКак это работает:\n1. Вы публикуете пост или сторис со своей ссылкой\n2. Подписчики переходят и покупают\n3. Я считаю продажи по вашему UTM и перевожу комиссию раз в месяц\n\nМогу прислать описание продукта и примеры карточек — всё что нужно для публикации.\n\nГотова ответить на любые вопросы!\n\nКатя\nverevery.ru'),
+    ]:
+        try:
+            conn.execute(
+                'INSERT OR IGNORE INTO email_templates (key, subject, body_text) VALUES (?, ?, ?)',
+                (key, subject, body_text)
+            )
+        except Exception:
+            pass
+    conn.commit()
+
+
+def _get_template(conn, key):
+    try:
+        row = conn.execute('SELECT subject, body_text FROM email_templates WHERE key=?', (key,)).fetchone()
+    except Exception:
+        row = None
+    if row:
+        return row['subject'], row['body_text']
+    if key == 'blogger_first':
+        return ('Сотрудничество — колода карточек «Ближе» для пар',
+                'Привет, {name}! 👋\n\nМеня зовут Катя, я создала Vera — онлайн-колоду карточек «Ближе» для пар на verevery.ru.\n\nКарточки помогают восстановить близость в отношениях — основаны на доказательной психологии (Готтман, EFT, теория привязанности). Цена: 690 ₽.\n\nХочу предложить сотрудничество: вы рассказываете аудитории о проекте, получаете 30% с каждой продажи по вашей ссылке — 207 ₽ за покупку.\n\nЕсли интересно — напишу подробнее об условиях 🙌\n\nКатя\nverevery.ru')
+    return ('Re: Сотрудничество — колода карточек «Ближе» для пар',
+            'Привет, {name}! Рада, что откликнулись 💛\n\nВаша UTM-ссылка: {utm_link}\n\nКатя\nverevery.ru')
+
+
+def _render_email_html(body_text, name, utm_link=''):
+    import html as _html
+    text = body_text.replace('{name}', name).replace('{utm_link}', utm_link)
+    paragraphs = ''
+    for para in text.split('\n\n'):
+        para = para.strip()
+        if not para:
+            continue
+        lines = para.split('\n')
+        escaped = '<br>'.join(_html.escape(l) for l in lines)
+        paragraphs += f'<p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 14px;">{escaped}</p>'
+    return (
+        '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"></head>'
+        '<body style="margin:0;padding:0;background:#FAF7F2;font-family:Helvetica,Arial,sans-serif;">'
+        '<div style="max-width:480px;margin:0 auto;padding:40px 24px;">'
+        '<div style="font-family:Georgia,serif;font-size:22px;color:#2A2118;margin-bottom:32px;">'
+        'vere<span style="color:#A67C52;">very</span></div>'
+        '<div style="background:#FFFFFF;border:1px solid #EDE6DA;border-radius:20px;padding:32px 28px;">'
+        + paragraphs +
+        '</div></div></body></html>'
+    )
+
+
 def _send_blogger_email(blogger, email_type, conn):
     """Send first or second outreach email. Returns (ok, error_msg)."""
     import resend
     resend.api_key = os.environ.get('RESEND_API_KEY', '')
-    name = blogger['name']
-    html_body = (_first_email_html(name) if email_type == 'first'
-                 else _second_email_html(name, blogger['utm_link']))
-    subject = ('Сотрудничество — колода карточек «Ближе» для пар'
-               if email_type == 'first'
-               else 'Re: Сотрудничество — колода карточек «Ближе» для пар')
+    template_key = 'blogger_first' if email_type == 'first' else 'blogger_second'
+    subject, body_text = _get_template(conn, template_key)
+    html_body = _render_email_html(body_text, blogger['name'], blogger.get('utm_link') or '')
     now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
     try:
         resend.Emails.send({
-            'from': 'Катя из Vera <katya@verevery.ru>',
+            'from': 'Vera <team@verevery.ru>',
             'reply_to': ['reply@verevery.ru'],
             'to': [blogger['email']],
             'subject': subject,
@@ -628,7 +679,7 @@ def _classify_reply_with_claude(text):
                 '- positive (заинтересован, хочет узнать больше, готов сотрудничать)\n'
                 '- negative (отказ, не интересно, не подходит)\n'
                 '- question (задаёт вопросы, нужна дополнительная информация)\n'
-                'Ответь только одним словом: positive, negative или question.\n'
+                'Ответить только одним словом: positive, negative или question.\n'
                 f'Текст ответа: {text[:2000]}'
             )}]
         )
@@ -702,7 +753,7 @@ def admin_bloggers():
     if conditions:
         query += ' WHERE ' + ' AND '.join(conditions)
     query += ' ORDER BY b.created_at DESC'
-    bloggers_rows = conn.execute(query, params).fetchall()
+    bloggers_rows = [dict(r) for r in conn.execute(query, params).fetchall()]
 
     status_counts = {'': 0}
     for row in conn.execute('SELECT status, COUNT(*) as cnt FROM bloggers GROUP BY status'):
@@ -941,59 +992,40 @@ def webhook_email_reply():
     return '', 200
 
 
-def _first_email_html(name):
-    return f'''<!DOCTYPE html>
-<html lang="ru"><head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#FAF7F2;font-family:Helvetica,Arial,sans-serif;">
-<div style="max-width:480px;margin:0 auto;padding:40px 24px;">
-  <div style="font-family:Georgia,serif;font-size:22px;color:#2A2118;margin-bottom:32px;">
-    vere<span style="color:#A67C52;">very</span></div>
-  <div style="background:#FFFFFF;border:1px solid #EDE6DA;border-radius:20px;padding:32px 28px;">
-    <p style="font-size:15px;color:#2A2118;line-height:1.8;margin:0 0 16px;">Привет, {name}! 👋</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 16px;">
-      Меня зовут Катя, я создала Vera — онлайн-колоду карточек «Ближе» для пар на
-      <a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a>.</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 16px;">
-      Карточки помогают восстановить близость в отношениях — основаны на доказательной психологии
-      (Готтман, EFT, теория привязанности). Цена: 690 ₽.</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 24px;">
-      Хочу предложить сотрудничество: вы рассказываете аудитории о проекте, получаете
-      <strong>30% с каждой продажи по вашей ссылке — 207 ₽ за покупку</strong>.</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 24px;">
-      Если интересно — напишу подробнее об условиях 🙌</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0;">
-      Катя<br><a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a></p>
-  </div>
-</div></body></html>'''
+@main.route('/admin/bloggers/templates')
+def admin_bloggers_templates():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    from .db import get_db
+    conn = get_db()
+    _ensure_email_templates_table(conn)
+    t1 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_first'").fetchone()
+    t2 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_second'").fetchone()
+    conn.close()
+    return render_template('admin_bloggers_templates.html', t1=t1, t2=t2)
 
 
-def _second_email_html(name, utm_link):
-    return f'''<!DOCTYPE html>
-<html lang="ru"><head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#FAF7F2;font-family:Helvetica,Arial,sans-serif;">
-<div style="max-width:480px;margin:0 auto;padding:40px 24px;">
-  <div style="font-family:Georgia,serif;font-size:22px;color:#2A2118;margin-bottom:32px;">
-    vere<span style="color:#A67C52;">very</span></div>
-  <div style="background:#FFFFFF;border:1px solid #EDE6DA;border-radius:20px;padding:32px 28px;">
-    <p style="font-size:15px;color:#2A2118;line-height:1.8;margin:0 0 20px;">
-      Привет, {name}! Рада, что откликнулись 💛</p>
-    <p style="font-size:14px;font-weight:500;color:#2A2118;margin:0 0 8px;">Вот подробности о сотрудничестве:</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:2;margin:0 0 20px;">
-      📦 Продукт: онлайн-колода «Ближе» — 60 карточек для пар (<a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a>)<br>
-      💸 Комиссия: 30% = 207 ₽ с каждой продажи<br>
-      🔗 Ваша ссылка: <a href="{utm_link}" style="color:#A67C52;">{utm_link}</a></p>
-    <p style="font-size:14px;font-weight:500;color:#2A2118;margin:0 0 8px;">Как это работает:</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:2;margin:0 0 20px;">
-      1. Вы публикуете пост или сторис со своей ссылкой<br>
-      2. Подписчики переходят и покупают<br>
-      3. Я считаю продажи по вашему UTM и перевожу комиссию раз в месяц</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0 0 20px;">
-      Могу прислать описание продукта и примеры карточек — всё что нужно для публикации.</p>
-    <p style="font-size:14px;font-weight:300;color:#5C4F44;line-height:1.8;margin:0;">
-      Готова ответить на любые вопросы!<br><br>
-      Катя<br><a href="https://verevery.ru" style="color:#A67C52;">verevery.ru</a></p>
-  </div>
-</div></body></html>'''
+@main.route('/admin/bloggers/templates/save', methods=['POST'])
+def admin_bloggers_templates_save():
+    if not _admin_required():
+        return 'Forbidden', 403
+    key = request.form.get('key', '')
+    if key not in ('blogger_first', 'blogger_second'):
+        return 'Bad key', 400
+    subject = request.form.get('subject', '').strip()[:500]
+    body_text = request.form.get('body_text', '').strip()[:5000]
+    if not subject or not body_text:
+        return 'Пустые поля', 400
+    from .db import get_db
+    conn = get_db()
+    _ensure_email_templates_table(conn)
+    conn.execute(
+        'INSERT OR REPLACE INTO email_templates (key, subject, body_text) VALUES (?, ?, ?)',
+        (key, subject, body_text)
+    )
+    conn.commit()
+    conn.close()
+    return '', 200
 
 
 def _magic_link_email(link):
