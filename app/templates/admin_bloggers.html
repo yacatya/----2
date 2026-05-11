@@ -58,6 +58,8 @@
   .bulk-bar { display: none; align-items: center; gap: 12px; background: var(--dark); color: white; padding: 12px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 13px; }
   .bulk-bar.visible { display: flex; } .bulk-count { font-weight: 600; }
   .empty-msg { font-size: 13px; color: var(--sand); text-align: center; padding: 48px 0; }
+  .note-text a { color: var(--accent); text-decoration: none; }
+  .note-text a:hover { text-decoration: underline; }
 </style>
 {% endblock %}
 
@@ -131,8 +133,8 @@
         {% if b.profile_url %}<br><a href="{{ b.profile_url }}" target="_blank" style="font-size:11px;color:var(--accent)">профиль →</a>{% endif %}
       </td>
       <td style="font-size:12px;color:var(--muted)">
-        {{ b.email or '' }}
-        {% if b.notes %}<br><span style="font-size:11px;font-style:italic;">{{ b.notes[:60] }}{% if b.notes|length > 60 %}…{% endif %}</span>{% endif %}
+        {{ b.email or '—' }}
+        {% if b.notes %}<br><span class="note-text" data-raw="{{ b.notes }}" style="font-size:11px;color:var(--dark)">{{ b.notes[:120] }}{% if b.notes|length > 120 %}…{% endif %}</span>{% endif %}
       </td>
       <td>
         <div class="utm-cell">
@@ -153,7 +155,7 @@
       <td style="text-align:center;font-weight:600">{{ b.real_sales }}</td>
       <td style="text-align:center;{% if debt > 0 %}color:#a67c00;font-weight:600{% else %}color:var(--sand){% endif %}">{{ debt }} ₽</td>
       <td style="white-space:nowrap;">
-        <button class="btn-sm" onclick="openEditModal({{ b.id }}, {{ b|tojson }})">✏️</button>
+        <button class="btn-sm" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
         {% if b.email and b.status in ('new',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
         {% elif b.email and b.status in ('interested',) %}
@@ -216,8 +218,8 @@
       </div>
     </div>
     <div class="f-group">
-      <label class="f-label">Заметки / стадия переговоров</label>
-      <textarea class="f-textarea" id="m-notes" placeholder="Например: отправила DM в IG 10.05, жду ответа…"></textarea>
+      <label class="f-label">Заметки / контакт для связи</label>
+      <textarea class="f-textarea" id="m-notes" placeholder="Например: @jaMasha, отправила DM 10.05…"></textarea>
     </div>
     <div class="f-group" id="paid-group" style="display:none">
       <label class="f-label">Выплачено ₽</label>
@@ -377,5 +379,19 @@ function exportBloggersCsv(){
   a.download='блогеры_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
 }
+function linkifyNotes() {
+  document.querySelectorAll('.note-text').forEach(function(el) {
+    var raw = el.dataset.raw || el.textContent;
+    var esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    esc = esc.replace(/https?:\/\/[^\s<>"]+/g, function(u) {
+      return '<a href="'+u+'" target="_blank">'+u+'</a>';
+    });
+    esc = esc.replace(/@([A-Za-z0-9_]{3,})/g, function(m, h) {
+      return '<a href="https://t.me/'+h+'" target="_blank">'+m+'</a>';
+    });
+    el.innerHTML = esc;
+  });
+}
+document.addEventListener('DOMContentLoaded', linkifyNotes);
 </script>
 {% endblock %}
