@@ -753,7 +753,7 @@ def admin_bloggers():
     if conditions:
         query += ' WHERE ' + ' AND '.join(conditions)
     query += ' ORDER BY b.created_at DESC'
-    bloggers_rows = conn.execute(query, params).fetchall()
+    bloggers_rows = [dict(r) for r in conn.execute(query, params).fetchall()]
 
     status_counts = {'': 0}
     for row in conn.execute('SELECT status, COUNT(*) as cnt FROM bloggers GROUP BY status'):
