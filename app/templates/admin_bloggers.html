@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}CRM Блогеров — verevery{% endblock %}
+
+{% block head %}
+<style>
+  body { padding-top: 58px; }
+  .adm-header { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: var(--dark); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .adm-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); white-space: nowrap; }
+  .adm-logo span { color: var(--light-accent); }
+  .adm-nav { display: flex; gap: 10px; align-items: center; }
+  .adm-link { font-size: 12px; color: var(--sand); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 50px; white-space: nowrap; }
+  .adm-link:hover { color: white; border-color: rgba(255,255,255,0.4); }
+  .adm-body { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+  .status-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .sf-pill { padding: 7px 16px; border-radius: 50px; border: 1px solid var(--beige); font-family: 'Exo 2', sans-serif; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; background: transparent; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+  .sf-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .sf-pill.active { background: var(--dark); color: white; border-color: var(--dark); }
+  .sf-count { font-size: 10px; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 50px; }
+  .sf-pill:not(.active) .sf-count { background: var(--beige); color: var(--muted); }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .search-input { flex: 1; min-width: 200px; max-width: 320px; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: var(--cream); outline: none; box-sizing: border-box; }
+  .search-input:focus { border-color: var(--accent); }
+  .btn-primary { padding: 10px 18px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-green { background: #2e7d32; } .btn-green:hover { background: #1b5e20; }
+  .btn-red { background: #c0392b; } .btn-red:hover { background: #96281b; }
+  .count-badge { font-size: 11px; color: var(--sand); margin-bottom: 10px; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--beige); color: var(--sand); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .data-table td { padding: 8px 10px; border-bottom: 1px solid var(--beige); color: var(--dark); vertical-align: middle; }
+  .data-table tr:hover td { background: #faf8f5; }
+  .data-table tr.hidden { display: none; }
+  .s-badge { padding: 2px 10px; border-radius: 50px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .sent-pos { color: #2e7d32; font-size: 11px; } .sent-neg { color: #c0392b; font-size: 11px; } .sent-q { color: #a67c00; font-size: 11px; }
+  .btn-sm { padding: 4px 10px; background: transparent; border: 1px solid var(--beige); border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.15s; color: var(--muted); }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm.ok { border-color: #2e7d32; color: #2e7d32; } .btn-sm.err { border-color: #c0392b; color: #c0392b; } .btn-sm.loading { opacity: 0.5; }
+  .btn-icon { background: none; border: none; cursor: pointer; font-size: 14px; padding: 4px 6px; border-radius: 6px; transition: background 0.15s; }
+  .btn-icon:hover { background: var(--beige); }
+  .utm-cell { display: flex; align-items: center; gap: 6px; max-width: 200px; }
+  .utm-text { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .warn-icon { color: #e67e22; font-size: 13px; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 500; justify-content: center; align-items: flex-start; padding: 60px 20px; overflow-y: auto; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: white; border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 540px; position: relative; }
+  .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); margin-bottom: 20px; }
+  .modal-close { position: absolute; top: 16px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--sand); }
+  .f-group { margin-bottom: 14px; }
+  .f-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--sand); margin-bottom: 6px; display: block; }
+  .f-input, .f-select, .f-textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: var(--cream); outline: none; box-sizing: border-box; }
+  .f-input:focus, .f-select:focus, .f-textarea:focus { border-color: var(--accent); }
+  .f-textarea { resize: vertical; min-height: 70px; line-height: 1.6; }
+  .f-hint { font-size: 11px; color: var(--sand); margin-top: 4px; }
+  .f-row { display: flex; gap: 10px; } .f-row > * { flex: 1; }
+  .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-status { font-size: 12px; margin-top: 8px; min-height: 18px; }
+  .modal-status.ok { color: #2e7d32; } .modal-status.err { color: #c0392b; }
+  .bulk-bar { display: none; align-items: center; gap: 12px; background: var(--dark); color: white; padding: 12px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 13px; }
+  .bulk-bar.visible { display: flex; } .bulk-count { font-weight: 600; }
+  .empty-msg { font-size: 13px; color: var(--sand); text-align: center; padding: 48px 0; }
+</style>
+{% endblock %}
+
+{% block nav %}
+<div class="adm-header">
+  <div class="adm-logo">vere<span>very</span> · CRM блогеров</div>
+  <div class="adm-nav">
+    <a href="/admin/bloggers/analytics" class="adm-link">📊 Аналитика</a>
+    <a href="/admin" class="adm-link">← Главная</a>
+    <a href="/admin/logout" class="adm-link">Выйти</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="adm-body">
+
+  <div class="status-filters">
+    <a href="/admin/bloggers" class="sf-pill {% if not status_filter %}active{% endif %}">
+      Все <span class="sf-count">{{ status_counts.get('', 0) }}</span>
+    </a>
+    {% for slug, label, color, bg in statuses %}
+    <a href="/admin/bloggers?status={{ slug }}" class="sf-pill {% if status_filter == slug %}active{% endif %}"
+       style="{% if status_filter == slug %}background:{{ color }};border-color:{{ color }};{% else %}color:{{ color }};border-color:{{ color }}20;{% endif %}">
+      {{ label }} <span class="sf-count">{{ status_counts.get(slug, 0) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="toolbar">
+    <input type="text" class="search-input" id="search-box" placeholder="Поиск по имени или email…" value="{{ search }}" oninput="liveSearch(this.value)">
+    <button class="btn-primary btn-green" onclick="openAddModal()">+ Добавить блогера</button>
+    <button class="btn-primary" onclick="exportBloggersCsv()" style="background:#555">↓ CSV</button>
+  </div>
+
+  <div class="bulk-bar" id="bulk-bar">
+    <span>Выбрано: <span class="bulk-count" id="bulk-count">0</span></span>
+    <button class="btn-primary btn-green" onclick="sendBulk()">Отправить письмо выбранным</button>
+    <button class="btn-primary btn-red" style="margin-left:auto;" onclick="clearSelection()">Отменить</button>
+    <span id="bulk-status" style="font-size:12px;opacity:0.8;"></span>
+  </div>
+
+  <div class="count-badge" id="row-count">Показано: {{ bloggers|length }}</div>
+
+  {% if bloggers %}
+  <table class="data-table" id="bloggers-table">
+    <thead>
+      <tr>
+        <th style="width:32px;"><input type="checkbox" id="check-all" onchange="toggleAll(this)"></th>
+        <th></th>
+        <th>Имя / Платформа</th>
+        <th>Email / Контакт</th>
+        <th>UTM-ссылка</th>
+        <th>Статус</th>
+        <th>Продаж</th>
+        <th>Долг ₽</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="bloggers-tbody">
+    {% for b in bloggers %}
+    {% set warn = blogger_warning(b, now) %}
+    {% set debt = b.real_sales * cps - b.paid_out %}
+    <tr data-id="{{ b.id }}" data-search="{{ (b.name ~ ' ' ~ b.email ~ ' ' ~ (b.notes or ''))|lower }}">
+      <td><input type="checkbox" class="row-cb" onchange="updateBulk()"></td>
+      <td>{% if warn %}<span class="warn-icon" title="3+ дня без ответа">⏰</span>{% endif %}</td>
+      <td>
+        <strong style="font-size:13px;">{{ b.name }}</strong>
+        {% if b.platform %}<br><span style="font-size:11px;color:var(--sand)">{{ b.platform }}</span>{% endif %}
+        {% if b.profile_url %}<br><a href="{{ b.profile_url }}" target="_blank" style="font-size:11px;color:var(--accent)">профиль →</a>{% endif %}
+      </td>
+      <td style="font-size:12px;color:var(--muted)">
+        {{ b.email or '' }}
+        {% if b.notes %}<br><span style="font-size:11px;font-style:italic;">{{ b.notes[:60] }}{% if b.notes|length > 60 %}…{% endif %}</span>{% endif %}
+      </td>
+      <td>
+        <div class="utm-cell">
+          <span class="utm-text" title="{{ b.utm_link }}">{{ b.utm_link }}</span>
+          <button class="btn-icon" onclick="copyText('{{ b.utm_link }}', this)" title="Скопировать">📋</button>
+        </div>
+      </td>
+      <td>
+        {% for slug, label, color, bg in statuses %}{% if slug == b.status %}
+        <span class="s-badge" style="color:{{ color }};background:{{ bg }};">{{ label }}</span>
+        {% endif %}{% endfor %}
+        {% if b.reply_sentiment %}
+        <br><span class="{% if b.reply_sentiment == 'positive' %}sent-pos{% elif b.reply_sentiment == 'negative' %}sent-neg{% else %}sent-q{% endif %}">
+          {{ {'positive': '👍 позитив', 'negative': '👎 отказ', 'question': '❓ вопрос'}.get(b.reply_sentiment, '') }}
+        </span>
+        {% endif %}
+      </td>
+      <td style="text-align:center;font-weight:600">{{ b.real_sales }}</td>
+      <td style="text-align:center;{% if debt > 0 %}color:#a67c00;font-weight:600{% else %}color:var(--sand){% endif %}">{{ debt }} ₽</td>
+      <td style="white-space:nowrap;">
+        <button class="btn-sm" onclick="openEditModal({{ b.id }}, {{ b|tojson }})">✏️</button>
+        {% if b.email and b.status in ('new',) %}
+        <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
+        {% elif b.email and b.status in ('interested',) %}
+        <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'second', this)">Письмо 2</button>
+        {% endif %}
+        <button class="btn-sm" onclick="deleteBlogger({{ b.id }}, this)" style="color:#c0392b;border-color:#c0392b20">🗑</button>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-msg">Блогеров пока нет. Нажмите «+ Добавить блогера».</div>
+  {% endif %}
+
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModalBtn()">&#x2715;</button>
+    <div class="modal-title" id="modal-title">Добавить блогера</div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Имя / ник *</label>
+        <input class="f-input" id="m-name" placeholder="Маша Иванова" oninput="autoSlug()">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Платформа</label>
+        <select class="f-select" id="m-platform">
+          <option value="">—</option>
+          <option>Telegram</option>
+          <option>Instagram</option>
+          <option>YouTube</option>
+          <option>TikTok</option>
+          <option>ВКонтакте</option>
+        </select>
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Ссылка на профиль / канал</label>
+      <input class="f-input" id="m-profile_url" placeholder="https://t.me/channel">
+    </div>
+    <div class="f-group">
+      <label class="f-label">Email <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
+      <input class="f-input" type="email" id="m-email" placeholder="blogger@example.com">
+    </div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">UTM slug</label>
+        <input class="f-input" id="m-utm_slug" placeholder="masha_psy" oninput="updateUtmPreview()">
+        <div class="f-hint" id="utm-preview"></div>
+      </div>
+      <div class="f-group" id="status-group" style="display:none">
+        <label class="f-label">Статус</label>
+        <select class="f-select" id="m-status">
+          {% for slug, label, color, bg in statuses %}
+          <option value="{{ slug }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Заметки / стадия переговоров</label>
+      <textarea class="f-textarea" id="m-notes" placeholder="Например: отправила DM в IG 10.05, жду ответа…"></textarea>
+    </div>
+    <div class="f-group" id="paid-group" style="display:none">
+      <label class="f-label">Выплачено ₽</label>
+      <input class="f-input" type="number" id="m-paid_out" placeholder="0">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="modal-submit-btn" onclick="submitModal()">Сохранить</button>
+      <button class="btn-primary" style="background:var(--sand)" onclick="closeModalBtn()">Отмена</button>
+    </div>
+    <div class="modal-status" id="modal-status"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var editingId = null;
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Добавить блогера';
+  document.getElementById('modal-submit-btn').textContent = 'Добавить';
+  ['name','platform','profile_url','email','utm_slug','notes'].forEach(function(f){
+    var el = document.getElementById('m-'+f); if(el) el.value='';
+  });
+  document.getElementById('status-group').style.display='none';
+  document.getElementById('paid-group').style.display='none';
+  updateUtmPreview();
+  document.getElementById('modal-status').textContent='';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('m-name').focus(); },100);
+}
+function openEditModal(id,b) {
+  editingId=id;
+  document.getElementById('modal-title').textContent='Редактировать блогера';
+  document.getElementById('modal-submit-btn').textContent='Сохранить';
+  document.getElementById('m-name').value=b.name||'';
+  document.getElementById('m-platform').value=b.platform||'';
+  document.getElementById('m-profile_url').value=b.profile_url||'';
+  document.getElementById('m-email').value=b.email||'';
+  document.getElementById('m-utm_slug').value=b.utm_slug||'';
+  document.getElementById('m-notes').value=b.notes||'';
+  document.getElementById('m-status').value=b.status||'new';
+  document.getElementById('m-paid_out').value=b.paid_out||0;
+  document.getElementById('status-group').style.display='block';
+  document.getElementById('paid-group').style.display='block';
+  updateUtmPreview();
+  document.getElementById('modal-status').textContent='';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e){ if(e.target===document.getElementById('modal-overlay')) closeModalBtn(); }
+function closeModalBtn(){ document.getElementById('modal-overlay').classList.remove('open'); }
+function autoSlug(){
+  if(editingId) return;
+  var name=document.getElementById('m-name').value;
+  var slug=name.toLowerCase().trim().replace(/[\s\-]+/g,'_').replace(/[^a-z0-9_]/g,'');
+  document.getElementById('m-utm_slug').value=slug.slice(0,50);
+  updateUtmPreview();
+}
+function updateUtmPreview(){
+  var slug=document.getElementById('m-utm_slug').value.trim();
+  document.getElementById('utm-preview').textContent=slug?'verevery.ru/free?utm='+slug:'';
+}
+function submitModal(){
+  var name=document.getElementById('m-name').value.trim();
+  if(!name){showModalStatus('Введите имя',false);return;}
+  var data=new FormData();
+  ['name','platform','profile_url','email','utm_slug','notes'].forEach(function(f){
+    data.append(f,document.getElementById('m-'+f).value.trim());
+  });
+  if(editingId){
+    data.append('status',document.getElementById('m-status').value);
+    data.append('paid_out',document.getElementById('m-paid_out').value);
+  }
+  var url=editingId?'/admin/bloggers/'+editingId+'/update':'/admin/bloggers/add';
+  fetch(url,{method:'POST',body:data}).then(function(r){
+    if(r.ok){closeModalBtn();location.reload();}
+    else r.text().then(function(t){showModalStatus(t||'Ошибка',false);});
+  });
+}
+function showModalStatus(msg,ok){
+  var el=document.getElementById('modal-status');
+  el.textContent=msg; el.className='modal-status '+(ok?'ok':'err');
+}
+function deleteBlogger(id,btn){
+  if(!confirm('Удалить блогера?')) return;
+  fetch('/admin/bloggers/'+id+'/delete',{method:'POST'}).then(function(r){if(r.ok)btn.closest('tr').remove();});
+}
+function sendEmail(id,type,btn){
+  btn.textContent='…'; btn.disabled=true; btn.classList.add('loading');
+  var data=new FormData(); data.append('type',type);
+  fetch('/admin/bloggers/'+id+'/send-email',{method:'POST',body:data}).then(function(r){
+    btn.disabled=false; btn.classList.remove('loading');
+    if(r.ok){btn.textContent='✓ Отправлено';btn.classList.add('ok');setTimeout(function(){location.reload();},1500);}
+    else r.text().then(function(t){btn.textContent='✗ Ошибка';btn.classList.add('err');btn.title=t;});
+  });
+}
+function copyText(text,btn){
+  navigator.clipboard.writeText(text).then(function(){
+    var orig=btn.textContent; btn.textContent='✓';
+    setTimeout(function(){btn.textContent=orig;},1500);
+  });
+}
+function liveSearch(q){
+  q=q.toLowerCase().trim();
+  var rows=document.querySelectorAll('#bloggers-tbody tr'); var shown=0;
+  rows.forEach(function(row){
+    var match=!q||(row.dataset.search||'').indexOf(q)!==-1;
+    row.classList.toggle('hidden',!match); if(match) shown++;
+  });
+  document.getElementById('row-count').textContent='Показано: '+shown;
+  updateBulk();
+}
+function toggleAll(cb){
+  document.querySelectorAll('#bloggers-tbody .row-cb').forEach(function(c){
+    var row=c.closest('tr'); if(!row.classList.contains('hidden')) c.checked=cb.checked;
+  }); updateBulk();
+}
+function clearSelection(){
+  document.querySelectorAll('.row-cb').forEach(function(c){c.checked=false;});
+  document.getElementById('check-all').checked=false; updateBulk();
+}
+function updateBulk(){
+  var checked=document.querySelectorAll('#bloggers-tbody .row-cb:checked');
+  var bar=document.getElementById('bulk-bar');
+  if(checked.length>0){bar.classList.add('visible');document.getElementById('bulk-count').textContent=checked.length;}
+  else bar.classList.remove('visible');
+}
+function sendBulk(){
+  var ids=[];
+  document.querySelectorAll('#bloggers-tbody .row-cb:checked').forEach(function(c){ids.push(c.closest('tr').dataset.id);});
+  if(!ids.length) return;
+  var st=document.getElementById('bulk-status'); st.textContent='Отправляем…';
+  var data=new FormData(); data.append('ids',ids.join(','));
+  fetch('/admin/bloggers/send-bulk',{method:'POST',body:data}).then(function(r){
+    r.text().then(function(t){st.textContent=t;setTimeout(function(){location.reload();},2000);});
+  });
+}
+function exportBloggersCsv(){
+  var headers=['Имя','Платформа','Email / контакт','UTM ссылка','Статус','Продаж','Долг ₽'];
+  var rows=document.querySelectorAll('#bloggers-tbody tr:not(.hidden)');
+  var lines=[headers.join(';')];
+  rows.forEach(function(row){
+    var cells=row.querySelectorAll('td');
+    var name=cells[2]&&cells[2].querySelector('strong')?cells[2].querySelector('strong').textContent.trim():'';
+    var platform=cells[2]&&cells[2].querySelectorAll('span')[0]?cells[2].querySelectorAll('span')[0].textContent.trim():'';
+    var contact=cells[3]?cells[3].textContent.trim().replace(/\s+/g,' '):'';
+    var utm=cells[4]&&cells[4].querySelector('.utm-text')?cells[4].querySelector('.utm-text').textContent.trim():'';
+    var status=cells[5]&&cells[5].querySelector('.s-badge')?cells[5].querySelector('.s-badge').textContent.trim():'';
+    var sales=cells[6]?cells[6].textContent.trim():'';
+    var debt=cells[7]?cells[7].textContent.trim():'';
+    var vals=[name,platform,contact,utm,status,sales,debt];
+    lines.push(vals.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(';'));
+  });
+  var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='блогеры_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+</script>
+{% endblock %}
