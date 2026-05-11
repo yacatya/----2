@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Инструкция по работе с CRM блогеров — verevery.ru</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; color: #2A2118; background: #FAF7F2; line-height: 1.7; }
+  .page { max-width: 800px; margin: 0 auto; padding: 40px 32px 60px; }
+  .cover { background: #2A2118; color: white; padding: 60px 48px; border-radius: 20px; margin-bottom: 40px; position: relative; overflow: hidden; }
+  .cover::before { content: ''; position: absolute; top: -60px; right: -60px; width: 240px; height: 240px; border-radius: 50%; background: rgba(166,124,82,0.15); }
+  .cover-logo { font-size: 28px; font-weight: 300; letter-spacing: 1px; margin-bottom: 32px; color: #EDE6DA; }
+  .cover-logo span { color: #A67C52; }
+  .cover-title { font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 12px; }
+  .cover-sub { font-size: 15px; color: #B0A090; font-weight: 300; }
+  .cover-date { margin-top: 40px; font-size: 12px; color: #7A6A5A; letter-spacing: 0.5px; }
+  .toc { background: white; border: 1px solid #EDE6DA; border-radius: 16px; padding: 28px 32px; margin-bottom: 32px; }
+  .toc-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #8C7E72; margin-bottom: 16px; }
+  .toc-list { list-style: none; columns: 2; gap: 24px; }
+  .toc-list li { padding: 4px 0; display: flex; align-items: center; gap: 8px; break-inside: avoid; }
+  .toc-list a { color: #2A2118; text-decoration: none; font-size: 13px; }
+  .toc-num { width: 22px; height: 22px; border-radius: 50%; background: #F5F0EB; color: #8C7E72; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .section { background: white; border: 1px solid #EDE6DA; border-radius: 16px; padding: 32px; margin-bottom: 24px; }
+  .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #F0EBE3; }
+  .section-num { width: 36px; height: 36px; border-radius: 10px; background: #2A2118; color: white; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .section-title { font-size: 20px; font-weight: 600; color: #2A2118; }
+  .section-desc { font-size: 12px; color: #8C7E72; font-weight: 400; margin-top: 2px; }
+  h3 { font-size: 14px; font-weight: 600; color: #2A2118; margin: 20px 0 10px; display: flex; align-items: center; gap: 6px; }
+  h3:first-child { margin-top: 0; }
+  p { margin-bottom: 10px; color: #4A3F36; }
+  p:last-child { margin-bottom: 0; }
+  ul, ol { margin: 8px 0 12px 0; padding-left: 20px; color: #4A3F36; }
+  li { margin-bottom: 5px; }
+  .status-row { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  .status-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: #FAFAF8; border: 1px solid #EDE6DA; }
+  .status-badge { padding: 3px 12px; border-radius: 50px; font-size: 11px; font-weight: 600; white-space: nowrap; min-width: 110px; text-align: center; }
+  .status-desc { font-size: 13px; color: #4A3F36; }
+  .status-action { font-size: 11px; color: #8C7E72; margin-left: auto; text-align: right; }
+  .funnel { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .funnel-step { display: flex; align-items: stretch; gap: 0; }
+  .funnel-left { width: 140px; padding: 12px 14px; border-radius: 10px 0 0 10px; font-size: 12px; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; }
+  .funnel-right { flex: 1; padding: 12px 16px; border-radius: 0 10px 10px 0; border: 1px solid #EDE6DA; border-left: none; font-size: 12px; color: #4A3F36; background: #FAFAF8; display: flex; align-items: center; }
+  .funnel-arrow { text-align: center; color: #C4B89E; font-size: 16px; padding: 3px 0; width: 140px; line-height: 1; }
+  .steps { display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
+  .step { display: flex; gap: 14px; align-items: flex-start; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: #F5F0EB; color: #8C7E72; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-content { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; color: #2A2118; margin-bottom: 3px; }
+  .step-desc { font-size: 12px; color: #6A5E55; line-height: 1.6; }
+  .info-box { border-radius: 12px; padding: 14px 16px; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+  .info-box.tip { background: #E8F4FD; border: 1px solid #B3D4FF; color: #1a4a7a; }
+  .info-box.warn { background: #FFF8E1; border: 1px solid #FFE082; color: #7a6200; }
+  .info-box.success { background: #E8F5E9; border: 1px solid #A5D6A7; color: #1b5e20; }
+  .info-box.note { background: #F5F0EB; border: 1px solid #DDD5C8; color: #5C4F44; }
+  .info-box strong { font-weight: 600; }
+  .guide-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  .guide-table th { text-align: left; padding: 8px 12px; background: #F5F0EB; color: #8C7E72; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; }
+  .guide-table th:first-child { border-radius: 8px 0 0 0; }
+  .guide-table th:last-child { border-radius: 0 8px 0 0; }
+  .guide-table td { padding: 8px 12px; border-bottom: 1px solid #EDE6DA; color: #4A3F36; vertical-align: top; }
+  .guide-table tr:last-child td { border-bottom: none; }
+  .url-block { background: #F5F0EB; border: 1px solid #DDD5C8; border-radius: 10px; padding: 10px 16px; font-family: 'Courier New', monospace; font-size: 13px; color: #2A2118; margin: 8px 0; word-break: break-all; }
+  .checklist { list-style: none; padding: 0; margin: 10px 0; }
+  .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid #F0EBE3; font-size: 13px; color: #4A3F36; }
+  .checklist li:last-child { border-bottom: none; }
+  .check-box { width: 18px; height: 18px; border: 1.5px solid #C4B89E; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+  .highlight { background: #FFF3E0; border-left: 3px solid #A67C52; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 13px; color: #4A3F36; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+  .col-box { background: #FAFAF8; border: 1px solid #EDE6DA; border-radius: 10px; padding: 14px; }
+  .col-box-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #8C7E72; margin-bottom: 8px; }
+  .col-box p { font-size: 12px; margin-bottom: 5px; }
+  .footer { text-align: center; color: #B0A090; font-size: 11px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #EDE6DA; }
+  @media print {
+    body { background: white; font-size: 12px; }
+    .page { padding: 20px 24px; }
+    .section { page-break-inside: avoid; break-inside: avoid; }
+    .cover { page-break-after: always; break-after: always; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="cover">
+  <div class="cover-logo">vere<span>very</span>.ru</div>
+  <div class="cover-title">Инструкция по работе<br>с CRM блогеров</div>
+  <div class="cover-sub">Как искать блогеров, добавлять их в систему<br>и вести переписку через админ-панель</div>
+  <div class="cover-date">Май 2026 · verevery.ru/admin/bloggers</div>
+</div>
+
+<div class="toc">
+  <div class="toc-title">Содержание</div>
+  <ul class="toc-list">
+    <li><span class="toc-num">1</span><a href="#s1">Вход в админ-панель</a></li>
+    <li><span class="toc-num">2</span><a href="#s2">Что такое CRM блогеров</a></li>
+    <li><span class="toc-num">3</span><a href="#s3">Как добавить блогера</a></li>
+    <li><span class="toc-num">4</span><a href="#s4">Статусы и воронка</a></li>
+    <li><span class="toc-num">5</span><a href="#s5">Отправка писем</a></li>
+    <li><span class="toc-num">6</span><a href="#s6">Слежение за ответами</a></li>
+    <li><span class="toc-num">7</span><a href="#s7">Редактирование блогера</a></li>
+    <li><span class="toc-num">8</span><a href="#s8">Аналитика и выплаты</a></li>
+    <li><span class="toc-num">9</span><a href="#s9">Что делать каждый день</a></li>
+    <li><span class="toc-num">10</span><a href="#s10">Частые вопросы</a></li>
+  </ul>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-header"><div class="section-num">1</div><div><div class="section-title">Вход в админ-панель</div><div class="section-desc">Как открыть и авторизоваться</div></div></div>
+  <h3>🌐 Адрес</h3>
+  <div class="url-block">https://verevery.ru/admin</div>
+  <h3>🔑 Вход</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Открой ссылку выше</div><div class="step-desc">Если уже залогинен — сразу попадёшь в дашборд. Если нет — откроется форма ввода пароля.</div></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Введи пароль</div><div class="step-desc">Пароль хранится у Кати. Одна сессия работает 30 дней — заходить повторно не нужно.</div></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><div class="step-title">Перейди в раздел «CRM блогеров»</div><div class="step-desc">Прямая ссылка: <strong>verevery.ru/admin/bloggers</strong> — это твой основной рабочий экран.</div></div></div>
+  </div>
+  <div class="info-box tip"><strong>Совет:</strong> Добавь ссылку <strong>verevery.ru/admin/bloggers</strong> в закладки браузера — это самый быстрый способ попасть в CRM.</div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-header"><div class="section-num">2</div><div><div class="section-title">Что такое CRM блогеров</div><div class="section-desc">Зачем это нужно и как работает</div></div></div>
+  <p>CRM — это база данных блогеров, с которыми мы работаем или хотим работать. Здесь хранится вся информация: контакты, статус переговоров, сколько продаж они принесли.</p>
+  <h3>💡 Суть сотрудничества с блогером</h3>
+  <div class="highlight">Мы предлагаем блогеру рассказать своей аудитории о колоде карточек «Ближе» (verevery.ru). За каждую покупку по их ссылке блогер получает <strong>30% = 207 ₽</strong>. Нам не нужна предоплата — только пост или сторис.</div>
+  <h3>🎯 Кого искать</h3>
+  <div class="two-col">
+    <div class="col-box"><div class="col-box-title">✅ Подходит</div><p>• Психологи, коучи по отношениям</p><p>• Блогеры о паре, семье, любви</p><p>• Мамы-блогеры (тема близости)</p><p>• Женские лайфстайл-блоги</p><p>• Блоги о саморазвитии</p></div>
+    <div class="col-box"><div class="col-box-title">❌ Не подходит</div><p>• Блоги о политике, спорте, технологиях</p><p>• Аудитория в основном мужчины 18–24</p><p>• Развлекательные мемы без темы</p><p>• Накрученные боты (мало лайков)</p><p>• Блоги с агрессивной рекламой</p></div>
+  </div>
+  <h3>📊 Где искать блогеров</h3>
+  <table class="guide-table"><thead><tr><th>Платформа</th><th>Где искать</th><th>На что смотреть</th></tr></thead><tbody>
+    <tr><td><strong>Telegram</strong></td><td>tgstat.ru → поиск «психология», «пара», «отношения»</td><td>ER (вовлечённость), подписчики, дата последнего поста</td></tr>
+    <tr><td><strong>Instagram</strong></td><td>Хэштеги #психолог #отношения #пара</td><td>Живые комментарии, регулярность постов</td></tr>
+    <tr><td><strong>ВКонтакте</strong></td><td>Поиск сообществ «отношения», «психология»</td><td>Охват поста, активность аудитории</td></tr>
+    <tr><td><strong>YouTube</strong></td><td>«как улучшить отношения», «психология пар»</td><td>Просмотры, комментарии, дата видео</td></tr>
+  </tbody></table>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-header"><div class="section-num">3</div><div><div class="section-title">Как добавить блогера</div><div class="section-desc">Пошаговая инструкция</div></div></div>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Нажми «+ Добавить блогера»</div><div class="step-desc">Зелёная кнопка в правом верхнем углу страницы CRM.</div></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Заполни форму</div><div class="step-desc">Обязательное поле — только «Имя / ник». Остальное по возможности.</div></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><div class="step-title">Нажми «Добавить»</div><div class="step-desc">Блогер появится в списке со статусом «Новый». UTM-ссылка создастся автоматически.</div></div></div>
+  </div>
+  <h3>📋 Поля формы</h3>
+  <table class="guide-table"><thead><tr><th>Поле</th><th>Что вводить</th><th>Обязательно?</th></tr></thead><tbody>
+    <tr><td><strong>Имя / ник</strong></td><td>«Маша Иванова» или «@masha_psy»</td><td>✅ Да</td></tr>
+    <tr><td><strong>Платформа</strong></td><td>Telegram, Instagram, YouTube, TikTok, ВКонтакте</td><td>Желательно</td></tr>
+    <tr><td><strong>Ссылка на профиль</strong></td><td>Полная ссылка на канал/аккаунт</td><td>Желательно</td></tr>
+    <tr><td><strong>Email</strong></td><td>Email блогера — нужен для отправки письма из системы</td><td>Для email</td></tr>
+    <tr><td><strong>UTM slug</strong></td><td>Создаётся автоматически из имени. Не меняй.</td><td>Авто</td></tr>
+    <tr><td><strong>Заметки</strong></td><td>@ник в Telegram, «написала DM 10.05», «просила скидку»</td><td>Нет</td></tr>
+  </tbody></table>
+  <div class="info-box note"><strong>Если у блогера нет email:</strong> добавляй его в систему всё равно. Укажи в «Заметках» его @username — и пиши вручную. Статус потом обновишь через карандаш ✏️.</div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-header"><div class="section-num">4</div><div><div class="section-title">Статусы и воронка</div><div class="section-desc">Как блогер проходит путь от нового контакта до публикации</div></div></div>
+  <h3>🔄 Воронка (путь блогера)</h3>
+  <div class="funnel">
+    <div class="funnel-step"><div class="funnel-left" style="background:#F5F0EB;color:#8C7E72;">🆕 Новый</div><div class="funnel-right">Только добавлен в систему. Ещё не связывались.</div></div>
+    <div class="funnel-step"><div class="funnel-arrow">↓ отправили письмо / написали в Telegram</div></div>
+    <div class="funnel-step"><div class="funnel-left" style="background:#E8F4FD;color:#1a6fa6;">📤 Отправлено</div><div class="funnel-right">Первое сообщение отправлено. Ждём ответа.</div></div>
+    <div class="funnel-step"><div class="funnel-arrow">↓ блогер ответил</div></div>
+    <div class="funnel-step"><div class="funnel-left" style="background:#fff8e1;color:#a67c00;">💬 Ответил</div><div class="funnel-right">Задаёт вопросы, уточняет детали.</div></div>
+    <div class="funnel-step"><div class="funnel-arrow">↓ заинтересовался</div></div>
+    <div class="funnel-step"><div class="funnel-left" style="background:#e8f5e9;color:#2e7d32;">✨ Интересно</div><div class="funnel-right">Выразил интерес. Отправляем второе письмо с деталями и ссылкой.</div></div>
+    <div class="funnel-step"><div class="funnel-arrow">↓ договорились</div></div>
+    <div class="funnel-step"><div class="funnel-left" style="background:#e3f2fd;color:#1565c0;">🤝 Сотрудничаем</div><div class="funnel-right">Договорились. Ждём публикацию.</div></div>
+    <div class="funnel-step"><div class="funnel-arrow">↓ опубликовал</div></div>
+    <div class="funnel-step"><div class="funnel-left" style="background:#c8e6c9;color:#1b5e20;">🎉 Опубликовал</div><div class="funnel-right">Сделал пост/сторис. Отслеживаем продажи по его UTM.</div></div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="funnel-step"><div class="funnel-left" style="background:#fbe9e7;color:#c0392b;">❌ Отказал</div><div class="funnel-right">Ответил отказом. Не удаляем — может вернуться позже.</div></div>
+  </div>
+  <div class="info-box warn" style="margin-top:16px;"><strong>⏰ Значок часов</strong> — появляется если прошло <strong>3+ дня</strong> после отправки, а ответа нет. Сигнал: написать повторно или попробовать другой канал.</div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-header"><div class="section-num">5</div><div><div class="section-title">Отправка писем</div><div class="section-desc">Как система отправляет письма и когда нажимать кнопку</div></div></div>
+  <h3>✉️ Письмо 1 — первичное предложение</h3>
+  <p>Когда у блогера статус <strong>«Новый»</strong> и указан email — в строке появится кнопка <strong>«Отправить»</strong>.</p>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Нажми «Отправить»</div><div class="step-desc">Система автоматически отправит письмо. Имя блогера подставится из карточки.</div></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Статус сменится на «Отправлено»</div><div class="step-desc">Автоматически после успешной отправки. Повторно нажимать не нужно.</div></div></div>
+  </div>
+  <h3>✉️ Письмо 2 — детали сотрудничества</h3>
+  <p>Когда блогер заинтересовался (статус <strong>«Интересно»</strong>) — появится кнопка <strong>«Письмо 2»</strong>. В нём — подробности условий и персональная UTM-ссылка блогера.</p>
+  <div class="info-box success"><strong>Что в письмах:</strong><br><strong>Письмо 1:</strong> кратко о продукте + предложение 30% комиссии<br><strong>Письмо 2:</strong> все детали + персональная ссылка + как это работает</div>
+  <h3>📤 Массовая рассылка</h3>
+  <p>Выбери нескольких блогеров чекбоксами → нажми <strong>«Отправить письмо выбранным»</strong>. Удобно, если добавил сразу много блогеров.</p>
+  <div class="info-box warn"><strong>Важно!</strong> Письмо отправляется только если у блогера заполнен <strong>email</strong>. Если email не указан — пиши вручную в Telegram/Instagram и обновляй статус через ✏️.</div>
+  <h3>🔗 UTM-ссылка блогера</h3>
+  <p>У каждого блогера есть уникальная ссылка:</p>
+  <div class="url-block">https://verevery.ru/free?utm=имя_блогера</div>
+  <p>Когда кто-то покупает по этой ссылке — продажа записывается на счёт блогера. Скопировать: кнопка 📋 в колонке UTM-ссылка.</p>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-header"><div class="section-num">6</div><div><div class="section-title">Слежение за ответами</div><div class="section-desc">Как узнать, что блогер ответил</div></div></div>
+  <h3>📬 Куда приходят ответы</h3>
+  <p>Блогер отвечает на письмо — его ответ приходит на ящик <strong>reply@verevery.ru</strong>, который пересылает письма на личную почту Кати.</p>
+  <div class="info-box note">Ответы приходят на личную почту. Статус в CRM нужно обновлять <strong>вручную</strong> через кнопку ✏️.</div>
+  <h3>✏️ Как обновить статус после ответа</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Получили ответ от блогера на почте</div><div class="step-desc">Прочитали — понятно: заинтересован, отказал или задал вопрос.</div></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Найди блогера в CRM</div><div class="step-desc">Через строку поиска вверху по имени или email.</div></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><div class="step-title">Нажми ✏️ (карандаш)</div><div class="step-desc">Измени поле «Статус» на нужный: Ответил / Интересно / Отказал / Сотрудничаем.</div></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><div class="step-title">Нажми «Сохранить»</div><div class="step-desc">Можно добавить заметку — например «просит материалы для поста».</div></div></div>
+  </div>
+  <h3>🔎 Фильтры по статусам</h3>
+  <p>Цветные кнопки над таблицей — нажми на статус и увидишь только блогеров с этим статусом. Удобно проверять кто не ответил, кто интересуется, с кем договорились.</p>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-header"><div class="section-num">7</div><div><div class="section-title">Редактирование блогера</div><div class="section-desc">Что можно менять и как</div></div></div>
+  <p>В каждой строке таблицы есть кнопка <strong>✏️</strong>. Нажми — откроется форма со всеми данными.</p>
+  <table class="guide-table"><thead><tr><th>Что можно изменить</th><th>Когда это нужно</th></tr></thead><tbody>
+    <tr><td><strong>Имя, платформа, ссылка, email</strong></td><td>Нашёл более точную информацию</td></tr>
+    <tr><td><strong>Статус</strong></td><td>После получения ответа — обновить вручную</td></tr>
+    <tr><td><strong>Заметки</strong></td><td>«обещал пост в пятницу», «написала в Telegram»</td></tr>
+    <tr><td><strong>Выплачено ₽</strong></td><td>После перевода денег блогеру</td></tr>
+  </tbody></table>
+  <h3>🗑️ Удаление</h3>
+  <p>Кнопка 🗑️ удаляет блогера. Удалять стоит только дубли или спамеров. Если блогер отказал — оставь со статусом «Отказал»: может вернуться позже.</p>
+  <h3>📋 Экспорт в CSV</h3>
+  <p>Кнопка <strong>↓ CSV</strong> скачает таблицу всех видимых блогеров в файл Excel.</p>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-header"><div class="section-num">8</div><div><div class="section-title">Аналитика и выплаты</div><div class="section-desc">Как смотреть продажи и считать комиссию</div></div></div>
+  <h3>📊 Страница аналитики</h3>
+  <div class="url-block">https://verevery.ru/admin/bloggers/analytics</div>
+  <p>Сводная статистика: сколько блогеров на каждом этапе воронки, кто принёс продажи, сколько нужно выплатить.</p>
+  <h3>💰 Как считается комиссия</h3>
+  <div class="info-box success"><strong>Цена продукта:</strong> 690 ₽<br><strong>Комиссия блогера:</strong> 30% = <strong>207 ₽</strong> с каждой покупки<br><strong>Формула:</strong> количество продаж по UTM × 207 ₽ = сумма к выплате</div>
+  <p>В колонке <strong>«Долг ₽»</strong> видно сколько нужно выплатить — считается автоматически по фактическим продажам через UTM-ссылку блогера.</p>
+  <h3>💳 Отметить выплату</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Перевели деньги блогеру</div><div class="step-desc">Через банк или другим способом.</div></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Открой карточку блогера (✏️)</div><div class="step-desc">Поле «Выплачено ₽» — введи сумму перевода. Нажми «Сохранить».</div></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><div class="step-title">Долг пересчитается</div><div class="step-desc">Колонка «Долг ₽» покажет остаток: (продажи × 207) − выплачено.</div></div></div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-header"><div class="section-num">9</div><div><div class="section-title">Что делать каждый день</div><div class="section-desc">Ежедневный чеклист</div></div></div>
+  <h3>☀️ Утренняя рутина (15–30 минут)</h3>
+  <ul class="checklist">
+    <li><span class="check-box"></span>Проверить почту — нет ли ответов от блогеров. Обновить статусы в CRM.</li>
+    <li><span class="check-box"></span>Зайти в CRM → фильтр «Отправлено». Посмотреть у кого ⏰ — 3+ дня без ответа.</li>
+    <li><span class="check-box"></span>Написать повторно блогерам с ⏰ (в Telegram или ответ на письмо).</li>
+    <li><span class="check-box"></span>Добавить 3–5 новых блогеров, найденных накануне.</li>
+    <li><span class="check-box"></span>Отправить письма новым блогерам с email (кнопка «Отправить»).</li>
+  </ul>
+  <h3>🔍 Где искать новых блогеров</h3>
+  <div class="info-box tip"><strong>tgstat.ru</strong> — поиск Telegram-каналов. Тематика: «психология», «отношения», «семья». ER больше 10% — хороший знак.<br><br><strong>Instagram</strong> — хэштеги #психологонлайн #отношениявпаре #семейнаяпсихология<br><br><strong>Подписки</strong> — посмотри на кого подписаны уже известные тебе психологи-блогеры.</div>
+  <h3>📝 Блогер без email</h3>
+  <ol>
+    <li>Добавь в CRM (имя, платформа, ссылка)</li>
+    <li>В «Заметках» напиши его @username</li>
+    <li>Напиши ему в директ / Telegram</li>
+    <li>После ответа — обнови статус через ✏️</li>
+  </ol>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-header"><div class="section-num">10</div><div><div class="section-title">Частые вопросы</div><div class="section-desc">Ответы на типичные ситуации</div></div></div>
+  <h3>❓ Кнопки «Отправить» нет — почему?</h3>
+  <div class="info-box note">Кнопка появляется только если: (1) указан email, и (2) статус «Новый». Если email не указан — добавь через ✏️.</div>
+  <h3>❓ Блогер попросил ссылку — где взять?</h3>
+  <p>Персональная UTM-ссылка в колонке «UTM-ссылка». Нажми 📋 — скопируется. Вставь в ответ.</p>
+  <h3>❓ Блогер написал сам — что делать?</h3>
+  <ol>
+    <li>Найди его в CRM (или добавь нового)</li>
+    <li>Обнови статус на «Ответил» или «Интересно»</li>
+    <li>Добавь в заметки канал контакта</li>
+    <li>Если «Интересно» — нажми «Письмо 2» или отправь детали вручную</li>
+  </ol>
+  <h3>❓ Блогер опубликовал пост — что дальше?</h3>
+  <ol>
+    <li>Обнови статус на «Опубликовал» через ✏️</li>
+    <li>Добавь в заметки дату и ссылку на пост</li>
+    <li>Через неделю зайди в Аналитику — посмотри продажи по его UTM</li>
+  </ol>
+  <h3>❓ Как написать блогеру без email?</h3>
+  <p>Пиши в Telegram, Instagram Direct или ВКонтакте. Примерный текст:</p>
+  <div class="highlight">«Привет! Меня зовут Катя, я создала онлайн-колоду карточек для пар «Ближе» на verevery.ru. Хочу предложить сотрудничество: вы рассказываете аудитории о проекте и получаете 30% с каждой продажи по вашей ссылке (207 ₽ за покупку). Если интересно — напишу подробнее 🙌»</div>
+  <h3>❓ Что-то не работает?</h3>
+  <div class="info-box warn">Написать Кате в Telegram. Описать: на какой странице, что нажимал, что произошло. Скриншот поможет разобраться быстрее.</div>
+  <h3>❓ Сколько блогеров нужно добавлять в день?</h3>
+  <p>Ориентир: <strong>5–10 новых блогеров в день</strong>. За месяц — база 150–300 контактов. При конверсии 5% — это 7–15 активных партнёров.</p>
+</div>
+
+<div class="section">
+  <div class="section-header"><div class="section-num" style="background:#A67C52;">★</div><div><div class="section-title">Быстрая справка</div><div class="section-desc">Самое важное на одной странице</div></div></div>
+  <div class="two-col">
+    <div class="col-box"><div class="col-box-title">📍 Основные ссылки</div><p><strong>CRM:</strong> verevery.ru/admin/bloggers</p><p><strong>Аналитика:</strong> verevery.ru/admin/bloggers/analytics</p><p><strong>Шаблоны писем:</strong> verevery.ru/admin/bloggers/templates</p><p><strong>Главная:</strong> verevery.ru/admin</p></div>
+    <div class="col-box"><div class="col-box-title">💡 Кнопки в таблице</div><p><strong>✏️</strong> — редактировать карточку</p><p><strong>📋</strong> — скопировать UTM-ссылку</p><p><strong>Отправить</strong> — письмо 1 (новым)</p><p><strong>Письмо 2</strong> — для заинтересованных</p><p><strong>🗑️</strong> — удалить блогера</p></div>
+  </div>
+  <div class="two-col" style="margin-top:0">
+    <div class="col-box"><div class="col-box-title">💰 Экономика</div><p><strong>Цена продукта:</strong> 690 ₽</p><p><strong>Комиссия:</strong> 30% = 207 ₽</p><p><strong>Долг</strong> = продажи × 207 − выплачено</p></div>
+    <div class="col-box"><div class="col-box-title">⏰ Предупреждения</div><p><strong>⏰</strong> — нет ответа 3+ дня</p><p>→ написать повторно</p><p>→ попробовать другой канал</p></div>
+  </div>
+  <h3 style="margin-top:20px;">🔄 Статусы по порядку</h3>
+  <div class="status-row">
+    <div class="status-item"><span class="status-badge" style="color:#8C7E72;background:#F5F0EB;">Новый</span><span class="status-desc">Добавлен, ещё не писали</span><span class="status-action">→ отправить письмо или написать в мессенджер</span></div>
+    <div class="status-item"><span class="status-badge" style="color:#1a6fa6;background:#e8f4fd;">Отправлено</span><span class="status-desc">Написали, ждём ответа</span><span class="status-action">→ ждать, при ⏰ — написать повторно</span></div>
+    <div class="status-item"><span class="status-badge" style="color:#a67c00;background:#fff8e1;">Ответил</span><span class="status-desc">Задаёт вопросы, уточняет</span><span class="status-action">→ ответить на вопрос</span></div>
+    <div class="status-item"><span class="status-badge" style="color:#2e7d32;background:#e8f5e9;">Интересно</span><span class="status-desc">Заинтересован, хочет подробности</span><span class="status-action">→ нажать «Письмо 2» или отправить вручную</span></div>
+    <div class="status-item"><span class="status-badge" style="color:#1565c0;background:#e3f2fd;">Сотрудничаем</span><span class="status-desc">Договорились, ждём пост</span><span class="status-action">→ ждать публикацию</span></div>
+    <div class="status-item"><span class="status-badge" style="color:#1b5e20;background:#c8e6c9;">Опубликовал</span><span class="status-desc">Опубликовал рекламу</span><span class="status-action">→ считать продажи, платить комиссию</span></div>
+    <div class="status-item"><span class="status-badge" style="color:#c0392b;background:#fbe9e7;">Отказал</span><span class="status-desc">Отказался от сотрудничества</span><span class="status-action">→ оставить в базе, не удалять</span></div>
+  </div>
+</div>
+
+<div class="footer">verevery.ru · CRM блогеров · Инструкция для работы с партнёрами<br>По вопросам писать Кате в Telegram</div>
+
+</div>
+</body>
+</html>
