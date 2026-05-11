@@ -258,8 +258,7 @@ def auth():
 def auth_verify():
     if request.method == 'GET':
         token = request.args.get('token', '')
-        if not token:
-            return redirect(url_for('main.auth'))
+        if not token:            return redirect(url_for('main.auth'))
         try:
             from .db import get_db
             conn = get_db()
@@ -544,12 +543,13 @@ def admin_free_cards():
 COMMISSION_PER_SALE = 207  # 30% of 690 RUB
 
 BLOGGER_STATUSES = [
-    ('new',        'Новый',        '#8C7E72', '#F5F0EB'),
-    ('sent',       'Отправлено',   '#1a6fa6', '#e8f4fd'),
-    ('replied',    'Ответил',      '#a67c00', '#fff8e1'),
-    ('interested', 'Интересно',    '#2e7d32', '#e8f5e9'),
-    ('posted',     'Опубликовал',  '#1b5e20', '#c8e6c9'),
-    ('declined',   'Отказал',      '#c0392b', '#fbe9e7'),
+    ('new',        'Новый',          '#8C7E72', '#F5F0EB'),
+    ('sent',       'Отправлено',     '#1a6fa6', '#e8f4fd'),
+    ('replied',    'Ответил',        '#a67c00', '#fff8e1'),
+    ('interested', 'Интересно',      '#2e7d32', '#e8f5e9'),
+    ('agreed',     'Сотрудничаем',   '#1565c0', '#e3f2fd'),
+    ('posted',     'Опубликовал',    '#1b5e20', '#c8e6c9'),
+    ('declined',   'Отказал',        '#c0392b', '#fbe9e7'),
 ]
 
 
