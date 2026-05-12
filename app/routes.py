@@ -13,6 +13,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 BASE_URL = os.environ.get('BASE_URL', 'https://verevery.ru')
 SHOP_ID = os.environ.get('SHOP_ID', '1343976')
 SHEET_ID = '11mZ-sB0H7OiaF9yv2iCiTlA3vkMJW8u9D9ypuf4QeAs'
+REPLY_TO_EMAIL = os.environ.get('REPLY_TO_EMAIL', 'team.verevery@gmail.com')
 
 FREE_CARD_IDS_DEFAULT = ['А-02', 'З-03', 'В-03', 'В-11', 'З-01']
 FREE_CARDS_CONFIG = os.path.join(os.path.dirname(__file__), 'data', 'free_cards.json')
@@ -647,7 +648,7 @@ def _send_blogger_email(blogger, email_type, conn):
     try:
         resend.Emails.send({
             'from': 'Vera <team@verevery.ru>',
-            'reply_to': [os.environ.get('REPLY_TO_EMAIL', 'reply@verevery.ru')],
+            'reply_to': [REPLY_TO_EMAIL],
             'to': [blogger['email']],
             'subject': subject,
             'html': html_body,
