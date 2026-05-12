@@ -647,7 +647,7 @@ def _send_blogger_email(blogger, email_type, conn):
     try:
         resend.Emails.send({
             'from': 'Vera <team@verevery.ru>',
-            'reply_to': ['reply@verevery.ru'],
+            'reply_to': [os.environ.get('REPLY_TO_EMAIL', 'reply@verevery.ru')],
             'to': [blogger['email']],
             'subject': subject,
             'html': html_body,
