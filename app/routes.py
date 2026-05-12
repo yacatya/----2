@@ -356,6 +356,10 @@ def auth_report():
         )
         conn.commit()
         conn.close()
+        _notify_admin(
+            f'Новое обращение от {email}',
+            f'Email: {email}\n\nСообщение:\n{message}'
+        )
         return '', 200
     except Exception:
         return '', 500
