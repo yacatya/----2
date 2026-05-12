@@ -9,6 +9,7 @@ on:
       - 'requirements.txt'
       - 'app/**'
       - 'cards_*.json'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
