@@ -674,35 +674,45 @@ def _send_blogger_email(blogger, email_type, conn):
 
 
 def _send_via_make(blogger, email_type, conn):
-    """Send outreach via Make webhook (instagram/telegram). Returns (ok, error_msg)."""
+    """Send outreach via Make webhook (any channel). Returns (ok, error_msg)."""
     webhook = os.environ.get('MAKE_OUTBOUND_WEBHOOK', '').strip()
     now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
-    channel = (blogger.get('channel') or '').lower()
+    channel = (blogger.get('channel') or 'email').lower()
     if not webhook:
         conn.execute(
             'INSERT INTO email_log (blogger_id, type, sent_at, status, error) VALUES (?,?,?,?,?)',
             (blogger['id'], email_type, now_fmt, 'error', 'MAKE_OUTBOUND_WEBHOOK not set')
         )
         return False, 'MAKE_OUTBOUND_WEBHOOK не настроен'
-    recipient = blogger.get('ig_username') if channel == 'instagram' else blogger.get('tg_username')
+    if channel == 'instagram':
+        recipient = blogger.get('ig_username') or ''
+    elif channel == 'telegram':
+        recipient = blogger.get('tg_username') or ''
+    else:
+        recipient = blogger.get('email') or ''
     if not recipient:
         conn.execute(
             'INSERT INTO email_log (blogger_id, type, sent_at, status, error) VALUES (?,?,?,?,?)',
-            (blogger['id'], email_type, now_fmt, 'error', f'username for {channel} not set')
+            (blogger['id'], email_type, now_fmt, 'error', f'recipient for {channel} not set')
         )
-        return False, f'username для {channel} не указан'
+        return False, f'контакт для {channel} не указан'
     template_key = 'blogger_first' if email_type == 'first' else 'blogger_second'
     subject, body_text = _get_template(conn, template_key)
     text = body_text.replace('{name}', blogger['name']).replace('{utm_link}', blogger.get('utm_link') or '')
+    html = _render_email_html(body_text, blogger['name'], blogger.get('utm_link') or '')
     payload = {
         'channel': channel,
         'blogger_id': blogger['id'],
         'blogger_name': blogger['name'],
         'recipient': recipient,
+        'email': blogger.get('email') or '',
         'ig_username': blogger.get('ig_username') or '',
         'tg_username': blogger.get('tg_username') or '',
         'subject': subject,
         'text': text,
+        'html': html,
+        'from_email': 'team@verevery.ru',
+        'reply_to': REPLY_TO_EMAIL,
         'email_type': email_type,
         'utm_link': blogger.get('utm_link') or '',
     }
@@ -936,14 +946,7 @@ def admin_bloggers_send_email(bid):
         conn.close()
         return 'Блогер не найден', 404
     blogger = dict(blogger)
-    channel = (blogger.get('channel') or 'email').lower()
-    if channel == 'email':
-        if not blogger['email']:
-            conn.close()
-            return 'Email не указан', 400
-        ok, err = _send_blogger_email(blogger, email_type, conn)
-    else:
-        ok, err = _send_via_make(blogger, email_type, conn)
+    ok, err = _send_via_make(blogger, email_type, conn)
     if ok and email_type == 'first':
         conn.execute(
             "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
@@ -970,9 +973,9 @@ def admin_bloggers_send_bulk():
     now_iso = datetime.utcnow().isoformat()
     for bid in ids:
         b = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
-        if not b or not b['email']:
+        if not b:
             continue
-        ok, err = _send_blogger_email(dict(b), 'first', conn)
+        ok, err = _send_via_make(dict(b), 'first', conn)
         if ok:
             conn.execute(
                 "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
@@ -1025,23 +1028,40 @@ def admin_bloggers_analytics():
                            cps=COMMISSION_PER_SALE)
 
 
+@main.route('/webhook/reply', methods=['POST'])
 @main.route('/webhook/email-reply', methods=['POST'])
-def webhook_email_reply():
+def webhook_reply():
     secret = os.environ.get('WEBHOOK_SECRET', '')
     if secret and request.args.get('secret') != secret:
         return 'Forbidden', 403
     try:
         payload = request.get_json(force=True, silent=True) or {}
         data = payload.get('data', payload)
-        sender = (data.get('from') or '').strip().lower()
-        text = (data.get('text') or data.get('plain_text') or '').strip()
+        channel = (data.get('channel') or '').strip().lower()
+        sender = (data.get('from') or data.get('sender') or '').strip()
+        text = (data.get('text') or data.get('plain_text') or data.get('message') or '').strip()
         if not sender or not text:
             return '', 200
+        if not channel:
+            channel = 'email' if '@' in sender else 'unknown'
         from .db import get_db
         conn = get_db()
-        blogger = conn.execute(
-            'SELECT * FROM bloggers WHERE LOWER(email)=?', (sender,)
-        ).fetchone()
+        if channel == 'email':
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(email)=?', (sender.lower(),)
+            ).fetchone()
+        elif channel == 'instagram':
+            handle = sender.lstrip('@').lower()
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(ig_username)=?', (handle,)
+            ).fetchone()
+        elif channel == 'telegram':
+            handle = sender.lstrip('@').lower()
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(tg_username)=?', (handle,)
+            ).fetchone()
+        else:
+            blogger = None
         if not blogger:
             conn.close()
             return '', 200
@@ -1054,17 +1074,18 @@ def webhook_email_reply():
             'UPDATE bloggers SET last_reply_at=?, reply_sentiment=? WHERE id=?',
             (now_iso, sentiment, bid)
         )
+        contact_info = f'Канал: {channel}\nКонтакт: {sender}'
         if sentiment == 'positive':
             conn.execute("UPDATE bloggers SET status='interested' WHERE id=?", (bid,))
             conn.commit()
-            _send_blogger_email(blogger, 'second', conn)
+            _send_via_make(blogger, 'second', conn)
             conn.commit()
         elif sentiment == 'negative':
             conn.execute("UPDATE bloggers SET status='declined' WHERE id=?", (bid,))
             conn.commit()
             _notify_admin(
                 f'Блогер {blogger["name"]} отказал',
-                f'Email: {blogger["email"]}\n\nОтвет:\n{text}'
+                f'{contact_info}\n\nОтвет:\n{text}'
             )
         else:
             conn.execute("UPDATE bloggers SET status='replied' WHERE id=?", (bid,))
@@ -1072,7 +1093,7 @@ def webhook_email_reply():
             draft = _draft_reply_with_claude(blogger['name'], text)
             _notify_admin(
                 f'Блогер {blogger["name"]} задал вопрос',
-                f'Email: {blogger["email"]}\n\nОтвет блогера:\n{text}\n\n---\nЧерновик ответа:\n{draft}'
+                f'{contact_info}\n\nОтвет блогера:\n{text}\n\n---\nЧерновик ответа:\n{draft}'
             )
         conn.execute(
             'INSERT INTO email_log (blogger_id, type, sent_at, status) VALUES (?,?,?,?)',
