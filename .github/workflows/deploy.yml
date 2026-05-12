@@ -84,6 +84,7 @@ jobs:
             grep -q "ANTHROPIC_API_KEY"   /opt/verevery/.env || echo "ANTHROPIC_API_KEY=" >> /opt/verevery/.env
             grep -q "WEBHOOK_SECRET"      /opt/verevery/.env || echo "WEBHOOK_SECRET=" >> /opt/verevery/.env
             grep -q "ADMIN_NOTIFY_EMAIL"  /opt/verevery/.env || echo "ADMIN_NOTIFY_EMAIL=katya@verevery.ru" >> /opt/verevery/.env
+            sed -i '/^REPLY_TO_EMAIL=/d' /opt/verevery/.env && echo "REPLY_TO_EMAIL=1646386@gmail.com" >> /opt/verevery/.env
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
