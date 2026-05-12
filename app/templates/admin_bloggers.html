@@ -225,7 +225,7 @@
       <div class="f-group">
         <label class="f-label">UTM slug</label>
         <input class="f-input" id="m-utm_slug" placeholder="masha_psy" oninput="updateUtmPreview(); updateTemplatePreview()">
-        <div class="f-hint" id="utm-preview"></div>
+        <div class="f-hint" id="utm-preview">Введите латинский ник, например: natasha_psy</div>
       </div>
       <div class="f-group" id="status-group" style="display:none">
         <label class="f-label">Статус</label>
@@ -315,7 +315,7 @@ function updateChannelFields(){
 function autoSlug(){
   if(editingId) return;
   var name=document.getElementById('m-name').value;
-  var slug=name.toLowerCase().trim().replace(/[\s\-]+/g,'_').replace(/[^a-z0-9_]/g,'');
+  var slug=name.toLowerCase().trim().replace(/[\s\-]+/g,'_').replace(/[^a-z0-9_]/g,'').replace(/^_+|_+$/g,'');
   if(slug){
     document.getElementById('m-utm_slug').value=slug.slice(0,50);
     updateUtmPreview();
@@ -325,25 +325,32 @@ function autoSlug(){
 }
 function autoSlugFromUrl(){
   if(editingId) return;
-  var urlVal=document.getElementById('m-profile_url').value.trim();
-  if(!urlVal) return;
   var currentSlug=document.getElementById('m-utm_slug').value.trim();
   if(currentSlug) return;
-  try{
-    var u=new URL(urlVal);
-    var parts=u.pathname.replace(/^\/+|\/+$/g,'').split('/');
-    var seg=parts[parts.length-1]||'';
-    seg=seg.replace(/^@/,'').toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
-    if(seg){
-      document.getElementById('m-utm_slug').value=seg.slice(0,50);
-      updateUtmPreview();
-      updateTemplatePreview();
-    }
-  }catch(e){}
+  var urlVal=document.getElementById('m-profile_url').value.trim();
+  if(!urlVal) return;
+  var seg='';
+  // handle @username or username directly
+  var atMatch=urlVal.match(/^@?([A-Za-z0-9_.]{3,})$/);
+  if(atMatch){
+    seg=atMatch[1];
+  } else {
+    try{
+      var u=new URL(urlVal);
+      var parts=u.pathname.replace(/^\/+|\/+$/g,'').split('/');
+      seg=parts[parts.length-1]||'';
+    }catch(e){}
+  }
+  seg=seg.replace(/^@/,'').toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  if(seg){
+    document.getElementById('m-utm_slug').value=seg.slice(0,50);
+    updateUtmPreview();
+    updateTemplatePreview();
+  }
 }
 function updateUtmPreview(){
   var slug=document.getElementById('m-utm_slug').value.trim();
-  document.getElementById('utm-preview').textContent=slug?'verevery.ru/free?utm='+slug:'';
+  document.getElementById('utm-preview').textContent=slug?'verevery.ru/free?utm='+slug:'Введите латинский ник, например: natasha_psy';
 }
 function updateTemplatePreview(){
   var statusEl=document.getElementById('m-status');
