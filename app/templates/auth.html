@@ -35,7 +35,21 @@
   <div class="auth-inner">
     <div class="auth-logo">vere<span>very</span></div>
 
-    {% if sent %}
+    {% if confirm_token %}
+      <h1 class="auth-title">Колода готова</h1>
+      <p class="auth-sub">Нажмите кнопку, чтобы открыть колоду «Ближе»</p>
+      <div class="auth-card" style="text-align:center;">
+        <button class="btn-primary" style="width:100%;border:none;cursor:pointer;"
+                onclick="location.href='/auth/open?token={{ confirm_token }}'">
+          Открыть колоду →
+        </button>
+        <p style="font-size:11px;font-weight:300;color:var(--sand);margin-top:16px;line-height:1.6;">
+          Ссылка одноразовая — её можно использовать только один раз
+        </p>
+      </div>
+      <p class="auth-link">Ссылка не работает? <a href="/auth">Запросить новую</a></p>
+
+    {% elif sent %}
       <h1 class="auth-title">Проверьте почту</h1>
       <p class="auth-sub">&nbsp;</p>
       <div class="auth-card" style="text-align:center;">
@@ -44,11 +58,32 @@
           <span class="sent-email">{{ email }}</span>
         </p>
         <p style="font-size:12px;font-weight:300;color:var(--sand);margin-top:16px;line-height:1.6;">
-          Ссылка действует 30 минут.<br>
+          Ссылка действует 24 часа.<br>
           Если письмо не пришло — проверьте папку «Спам».
         </p>
       </div>
       <p class="auth-link">Ввели неверный email? <a href="/auth">Попробовать снова</a></p>
+
+    {% elif token_expired %}
+      <h1 class="auth-title">Ссылка устарела</h1>
+      <p class="auth-sub">Ссылка уже использована или срок её действия истёк</p>
+      <div class="auth-card" style="text-align:center;">
+        {% if debug_info %}
+        <p style="font-size:11px;color:#888;background:#f5f5f5;border-radius:8px;padding:10px;margin-bottom:16px;text-align:left;word-break:break-all;">{{ debug_info }}</p>
+        {% endif %}
+        <p style="font-size:14px;font-weight:300;color:var(--muted);line-height:1.7;margin:0 0 24px;">
+          Введите ваш email и мы пришлём новую ссылку для входа.
+        </p>
+        <form method="POST" action="/auth">
+          <label class="field-label" for="email-input" style="text-align:left;display:block;">Email</label>
+          <input class="field-input" type="email" id="email-input" name="email"
+                 placeholder="your@email.com" required autocomplete="email">
+          <button type="submit" class="btn-primary">Получить новую ссылку</button>
+        </form>
+        <p style="font-size:11px;font-weight:300;color:var(--sand);margin-top:14px;line-height:1.6;">
+          Используйте тот же email, на который оформляли покупку
+        </p>
+      </div>
 
     {% else %}
       <h1 class="auth-title">Вход</h1>
@@ -63,7 +98,7 @@
                  placeholder="your@email.com" required autocomplete="email">
           <button type="submit" class="btn-primary">Получить ссылку для входа</button>
         </form>
-        <p class="auth-note">Ссылка действует 30 минут</p>
+        <p class="auth-note">Ссылка действует 24 часа</p>
       </div>
     {% endif %}
   </div>

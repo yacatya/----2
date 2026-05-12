@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Шаблоны писем — verevery{% endblock %}
+
+{% block head %}
+<style>
+  body { padding-top: 58px; }
+  .adm-header { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: var(--dark); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .adm-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); white-space: nowrap; }
+  .adm-logo span { color: var(--light-accent); }
+  .adm-nav { display: flex; gap: 10px; align-items: center; }
+  .adm-link { font-size: 12px; color: var(--sand); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 50px; white-space: nowrap; }
+  .adm-link:hover { color: white; border-color: rgba(255,255,255,0.4); }
+  .adm-body { max-width: 780px; margin: 0 auto; padding: 32px 20px 80px; }
+  .page-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: var(--dark); margin-bottom: 8px; }
+  .page-sub { font-size: 13px; color: var(--sand); margin-bottom: 36px; line-height: 1.6; }
+  .tpl-card { background: white; border: 1px solid var(--beige); border-radius: 16px; padding: 28px 28px 24px; margin-bottom: 28px; }
+  .tpl-label { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--sand); margin-bottom: 4px; }
+  .tpl-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); margin-bottom: 20px; }
+  .f-group { margin-bottom: 16px; }
+  .f-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--sand); margin-bottom: 6px; display: block; }
+  .f-input, .f-textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: var(--cream); outline: none; box-sizing: border-box; }
+  .f-input:focus, .f-textarea:focus { border-color: var(--accent); }
+  .f-textarea { resize: vertical; min-height: 220px; line-height: 1.7; }
+  .f-hint { font-size: 11px; color: var(--sand); margin-top: 5px; }
+  .tpl-footer { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+  .btn-save { padding: 10px 24px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+  .btn-save:hover { background: var(--accent); }
+  .save-status { font-size: 12px; min-height: 18px; }
+  .save-status.ok { color: #2e7d32; }
+  .save-status.err { color: #c0392b; }
+</style>
+{% endblock %}
+
+{% block nav %}
+<div class="adm-header">
+  <div class="adm-logo">vere<span>very</span> · Шаблоны писем</div>
+  <div class="adm-nav">
+    <a href="/admin/bloggers" class="adm-link">← Блогеры</a>
+    <a href="/admin" class="adm-link">Главная</a>
+    <a href="/admin/logout" class="adm-link">Выйти</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="adm-body">
+  <div class="page-title">Шаблоны писем</div>
+  <div class="page-sub">
+    Редактируйте тексты писем блогерам. Используйте <code>{name}</code> — имя блогера,
+    <code>{utm_link}</code> — персональная UTM-ссылка. Абзацы разделяйте пустой строкой.
+  </div>
+
+  {% for t, label in [(t1, 'Письмо 1 — первое обращение'), (t2, 'Письмо 2 — подробности (после согласия)')] %}
+  {% set key = t.key if t else ('blogger_first' if loop.index == 1 else 'blogger_second') %}
+  <div class="tpl-card">
+    <div class="tpl-label">Шаблон {{ loop.index }}</div>
+    <div class="tpl-name">{{ label }}</div>
+    <form onsubmit="saveTpl(event, '{{ key }}', this)">
+      <input type="hidden" name="key" value="{{ key }}">
+      <div class="f-group">
+        <label class="f-label">Тема письма</label>
+        <input class="f-input" name="subject" value="{{ t.subject if t else '' }}" required>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Текст письма</label>
+        <textarea class="f-textarea" name="body_text" required>{{ t.body_text if t else '' }}</textarea>
+        <div class="f-hint">Подстановки: {name} — имя блогера, {utm_link} — UTM-ссылка (только в письме 2)</div>
+      </div>
+      <div class="tpl-footer">
+        <button type="submit" class="btn-save">Сохранить</button>
+        <span class="save-status" id="status-{{ key }}"></span>
+      </div>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function saveTpl(e, key, form) {
+  e.preventDefault();
+  var st = document.getElementById('status-' + key);
+  st.textContent = 'Сохраняем…'; st.className = 'save-status';
+  var data = new FormData(form);
+  fetch('/admin/bloggers/templates/save', { method: 'POST', body: data })
+    .then(function(r) {
+      if (r.ok) { st.textContent = '✓ Сохранено'; st.className = 'save-status ok'; }
+      else r.text().then(function(t) { st.textContent = '✗ ' + t; st.className = 'save-status err'; });
+    })
+    .catch(function() { st.textContent = '✗ Ошибка сети'; st.className = 'save-status err'; });
+}
+</script>
+{% endblock %}

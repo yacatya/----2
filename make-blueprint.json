@@ -1,0 +1,147 @@
+{
+  "name": "verevery.ru → Google Sheets",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": 0,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "restore": {
+          "parameters": {
+            "hook": {
+              "label": "verevery webhook",
+              "data": { "editable": true }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "hook",
+            "type": "hook:gateway-webhook",
+            "label": "Webhook",
+            "required": true
+          },
+          {
+            "name": "maxResults",
+            "type": "number",
+            "label": "Maximum number of results"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "google-sheets:addRow",
+      "version": 2,
+      "parameters": {
+        "__IMTCONN__": 0
+      },
+      "mapper": {
+        "spreadsheetId": "11mZ-sB0H7OiaF9yv2iCiTlA3vkMJW8u9D9ypuf4QeAs",
+        "sheetId": "карточки для пар продажи",
+        "insertDataOption": "INSERT_ROWS",
+        "valueInputOption": "USER_ENTERED",
+        "values": {
+          "A": "{{1.date}}",
+          "B": "{{1.email}}",
+          "C": "{{1.utm}}",
+          "D": "{{1.blogger}}",
+          "E": "{{1.amount}}",
+          "F": "{{1.commission}}"
+        }
+      },
+      "metadata": {
+        "designer": { "x": 300, "y": 0 },
+        "restore": {
+          "parameters": {
+            "__IMTCONN__": {
+              "label": "Подключить Google Sheets",
+              "data": {
+                "scoped": true,
+                "connection": "google"
+              }
+            }
+          },
+          "expect": {
+            "spreadsheetId": {
+              "label": "verevery — продажи"
+            },
+            "sheetId": {
+              "label": "карточки для пар продажи",
+              "mode": "chose"
+            },
+            "insertDataOption": {
+              "label": "Insert rows"
+            },
+            "valueInputOption": {
+              "label": "User entered"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:google",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "spreadsheetId",
+            "type": "text",
+            "label": "Spreadsheet ID",
+            "required": true
+          },
+          {
+            "name": "sheetId",
+            "type": "select",
+            "label": "Sheet Name",
+            "required": true
+          },
+          {
+            "name": "insertDataOption",
+            "type": "select",
+            "label": "Insert data option"
+          },
+          {
+            "name": "valueInputOption",
+            "type": "select",
+            "label": "Value input option"
+          },
+          {
+            "name": "values",
+            "spec": [],
+            "type": "array",
+            "label": "Values"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "eu1.make.com"
+  }
+}

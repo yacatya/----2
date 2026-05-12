@@ -143,6 +143,11 @@ document.getElementById('btn-pay').addEventListener('click', function(e) {
     return;
   }
 
+  var btn = document.getElementById('btn-pay');
+  btn.textContent = 'Переходим к оплате…';
+  btn.style.opacity = '0.65';
+  btn.style.pointerEvents = 'none';
+
   var form = document.createElement('form');
   form.method = 'POST';
   form.action = '/pay';
