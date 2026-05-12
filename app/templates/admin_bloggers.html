@@ -133,7 +133,9 @@
         {% if b.profile_url %}<br><a href="{{ b.profile_url }}" target="_blank" style="font-size:11px;color:var(--accent)">профиль →</a>{% endif %}
       </td>
       <td style="font-size:12px;color:var(--muted)">
-        {{ b.email or '—' }}
+        {% if b.channel == 'instagram' %}<span title="Instagram Direct">📸 {{ b.ig_username or '—' }}</span>
+        {% elif b.channel == 'telegram' %}<span title="Telegram">✈️ {{ b.tg_username or '—' }}</span>
+        {% else %}{{ b.email or '—' }}{% endif %}
         {% if b.notes %}<br><span class="note-text" data-raw="{{ b.notes }}" style="font-size:11px;color:var(--dark)">{{ b.notes[:120] }}{% if b.notes|length > 120 %}…{% endif %}</span>{% endif %}
       </td>
       <td>
@@ -199,8 +201,25 @@
       <input class="f-input" id="m-profile_url" placeholder="https://t.me/channel" oninput="autoSlugFromUrl()">
     </div>
     <div class="f-group">
+      <label class="f-label">Канал отправки</label>
+      <select class="f-select" id="m-channel" onchange="updateChannelFields()">
+        <option value="email">📧 Email</option>
+        <option value="instagram">📸 Instagram Direct</option>
+        <option value="telegram">✈️ Telegram</option>
+      </select>
+    </div>
+    <div class="f-group" id="email-field">
       <label class="f-label">Email <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
       <input class="f-input" type="email" id="m-email" placeholder="blogger@example.com">
+    </div>
+    <div class="f-group" id="ig-field" style="display:none">
+      <label class="f-label">Instagram username</label>
+      <input class="f-input" id="m-ig_username" placeholder="@masha.psy">
+      <div class="f-hint">Без @ тоже можно, Make сам разберётся</div>
+    </div>
+    <div class="f-group" id="tg-field" style="display:none">
+      <label class="f-label">Telegram username</label>
+      <input class="f-input" id="m-tg_username" placeholder="@masha_psy">
     </div>
     <div class="f-row">
       <div class="f-group">
@@ -249,9 +268,11 @@ function openAddModal() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Добавить блогера';
   document.getElementById('modal-submit-btn').textContent = 'Добавить';
-  ['name','platform','profile_url','email','utm_slug','notes'].forEach(function(f){
+  ['name','platform','profile_url','email','utm_slug','notes','ig_username','tg_username'].forEach(function(f){
     var el = document.getElementById('m-'+f); if(el) el.value='';
   });
+  document.getElementById('m-channel').value='email';
+  updateChannelFields();
   document.getElementById('status-group').style.display='none';
   document.getElementById('paid-group').style.display='none';
   updateUtmPreview();
@@ -272,6 +293,10 @@ function openEditModal(id,b) {
   document.getElementById('m-notes').value=b.notes||'';
   document.getElementById('m-status').value=b.status||'new';
   document.getElementById('m-paid_out').value=b.paid_out||0;
+  document.getElementById('m-channel').value=b.channel||'email';
+  document.getElementById('m-ig_username').value=b.ig_username||'';
+  document.getElementById('m-tg_username').value=b.tg_username||'';
+  updateChannelFields();
   document.getElementById('status-group').style.display='block';
   document.getElementById('paid-group').style.display='block';
   updateUtmPreview();
@@ -281,6 +306,12 @@ function openEditModal(id,b) {
 }
 function closeModal(e){ if(e.target===document.getElementById('modal-overlay')) closeModalBtn(); }
 function closeModalBtn(){ document.getElementById('modal-overlay').classList.remove('open'); }
+function updateChannelFields(){
+  var ch=document.getElementById('m-channel').value;
+  document.getElementById('email-field').style.display=ch==='email'?'block':'none';
+  document.getElementById('ig-field').style.display=ch==='instagram'?'block':'none';
+  document.getElementById('tg-field').style.display=ch==='telegram'?'block':'none';
+}
 function autoSlug(){
   if(editingId) return;
   var name=document.getElementById('m-name').value;
@@ -338,9 +369,10 @@ function submitModal(){
   var name=document.getElementById('m-name').value.trim();
   if(!name){showModalStatus('Введите имя',false);return;}
   var data=new FormData();
-  ['name','platform','profile_url','email','utm_slug','notes'].forEach(function(f){
+  ['name','platform','profile_url','email','utm_slug','notes','ig_username','tg_username'].forEach(function(f){
     data.append(f,document.getElementById('m-'+f).value.trim());
   });
+  data.append('channel',document.getElementById('m-channel').value);
   if(editingId){
     data.append('status',document.getElementById('m-status').value);
     data.append('paid_out',document.getElementById('m-paid_out').value);

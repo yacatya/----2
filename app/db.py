@@ -96,5 +96,14 @@ def init_db():
             conn.execute(f'ALTER TABLE users ADD COLUMN {col} {definition}')
         except Exception:
             pass
+    for col, definition in [
+        ('channel',     "TEXT DEFAULT 'email'"),
+        ('ig_username', "TEXT DEFAULT ''"),
+        ('tg_username', "TEXT DEFAULT ''"),
+    ]:
+        try:
+            conn.execute(f'ALTER TABLE bloggers ADD COLUMN {col} {definition}')
+        except Exception:
+            pass
     conn.commit()
     conn.close()
