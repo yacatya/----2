@@ -83,7 +83,7 @@ jobs:
             sed -i '/^GOOGLE_SCRIPT_URL=/d' /opt/verevery/.env && echo "GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/AKfycbxg7aQgYy4DgwdpExdl4y7P-a1wQDU3s9gv_0Z81NvkdzaPAN9jjwVZcZTtCHimqh40/exec" >> /opt/verevery/.env
             grep -q "ANTHROPIC_API_KEY"   /opt/verevery/.env || echo "ANTHROPIC_API_KEY=" >> /opt/verevery/.env
             grep -q "WEBHOOK_SECRET"      /opt/verevery/.env || echo "WEBHOOK_SECRET=" >> /opt/verevery/.env
-            grep -q "MAKE_OUTBOUND_WEBHOOK" /opt/verevery/.env || echo "MAKE_OUTBOUND_WEBHOOK=" >> /opt/verevery/.env
+            sed -i '/^MAKE_OUTBOUND_WEBHOOK=/d' /opt/verevery/.env && echo "MAKE_OUTBOUND_WEBHOOK=https://hook.eu1.make.com/hczipjbn7qp315gutxe0tiijjaa42ykb" >> /opt/verevery/.env
             sed -i '/^ADMIN_NOTIFY_EMAIL=/d' /opt/verevery/.env && echo "ADMIN_NOTIFY_EMAIL=team.verevery@gmail.com" >> /opt/verevery/.env
             sed -i '/^REPLY_TO_EMAIL=/d' /opt/verevery/.env && echo "REPLY_TO_EMAIL=team.verevery@gmail.com" >> /opt/verevery/.env
 
