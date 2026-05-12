@@ -180,7 +180,7 @@
     <div class="f-row">
       <div class="f-group">
         <label class="f-label">Имя / ник *</label>
-        <input class="f-input" id="m-name" placeholder="Маша Иванова" oninput="autoSlug()">
+        <input class="f-input" id="m-name" placeholder="Маша Иванова" oninput="autoSlug(); updateTemplatePreview()">
       </div>
       <div class="f-group">
         <label class="f-label">Платформа</label>
@@ -196,7 +196,7 @@
     </div>
     <div class="f-group">
       <label class="f-label">Ссылка на профиль / канал</label>
-      <input class="f-input" id="m-profile_url" placeholder="https://t.me/channel">
+      <input class="f-input" id="m-profile_url" placeholder="https://t.me/channel" oninput="autoSlugFromUrl()">
     </div>
     <div class="f-group">
       <label class="f-label">Email <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
@@ -205,12 +205,12 @@
     <div class="f-row">
       <div class="f-group">
         <label class="f-label">UTM slug</label>
-        <input class="f-input" id="m-utm_slug" placeholder="masha_psy" oninput="updateUtmPreview()">
+        <input class="f-input" id="m-utm_slug" placeholder="masha_psy" oninput="updateUtmPreview(); updateTemplatePreview()">
         <div class="f-hint" id="utm-preview"></div>
       </div>
       <div class="f-group" id="status-group" style="display:none">
         <label class="f-label">Статус</label>
-        <select class="f-select" id="m-status">
+        <select class="f-select" id="m-status" onchange="updateTemplatePreview()">
           {% for slug, label, color, bg in statuses %}
           <option value="{{ slug }}">{{ label }}</option>
           {% endfor %}
@@ -225,7 +225,14 @@
       <label class="f-label">Выплачено ₽</label>
       <input class="f-input" type="number" id="m-paid_out" placeholder="0">
     </div>
-    <div class="modal-footer">
+    <div id="msg-preview-section" style="margin-top:16px;border-top:1px solid var(--beige);padding-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span class="f-label" style="margin:0" id="msg-preview-label">Письмо 1 — текст для отправки</span>
+        <button type="button" class="btn-sm" id="copy-msg-btn" onclick="copyMsgTemplate()">📋 Копировать</button>
+      </div>
+      <div id="msg-preview-text" style="background:var(--cream);border:1px solid var(--beige);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--dark);line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer" style="margin-top:16px;">
       <button class="btn-primary" id="modal-submit-btn" onclick="submitModal()">Сохранить</button>
       <button class="btn-primary" style="background:var(--sand)" onclick="closeModalBtn()">Отмена</button>
     </div>
@@ -237,6 +244,7 @@
 {% block scripts %}
 <script>
 var editingId = null;
+var EMAIL_TEMPLATES = {{ email_templates|tojson }};
 function openAddModal() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Добавить блогера';
@@ -247,6 +255,7 @@ function openAddModal() {
   document.getElementById('status-group').style.display='none';
   document.getElementById('paid-group').style.display='none';
   updateUtmPreview();
+  updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(function(){ document.getElementById('m-name').focus(); },100);
@@ -266,6 +275,7 @@ function openEditModal(id,b) {
   document.getElementById('status-group').style.display='block';
   document.getElementById('paid-group').style.display='block';
   updateUtmPreview();
+  updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -275,12 +285,54 @@ function autoSlug(){
   if(editingId) return;
   var name=document.getElementById('m-name').value;
   var slug=name.toLowerCase().trim().replace(/[\s\-]+/g,'_').replace(/[^a-z0-9_]/g,'');
-  document.getElementById('m-utm_slug').value=slug.slice(0,50);
-  updateUtmPreview();
+  if(slug){
+    document.getElementById('m-utm_slug').value=slug.slice(0,50);
+    updateUtmPreview();
+  } else {
+    autoSlugFromUrl();
+  }
+}
+function autoSlugFromUrl(){
+  if(editingId) return;
+  var urlVal=document.getElementById('m-profile_url').value.trim();
+  if(!urlVal) return;
+  var currentSlug=document.getElementById('m-utm_slug').value.trim();
+  if(currentSlug) return;
+  try{
+    var u=new URL(urlVal);
+    var parts=u.pathname.replace(/^\/+|\/+$/g,'').split('/');
+    var seg=parts[parts.length-1]||'';
+    seg=seg.replace(/^@/,'').toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+    if(seg){
+      document.getElementById('m-utm_slug').value=seg.slice(0,50);
+      updateUtmPreview();
+      updateTemplatePreview();
+    }
+  }catch(e){}
 }
 function updateUtmPreview(){
   var slug=document.getElementById('m-utm_slug').value.trim();
   document.getElementById('utm-preview').textContent=slug?'verevery.ru/free?utm='+slug:'';
+}
+function updateTemplatePreview(){
+  var statusEl=document.getElementById('m-status');
+  var status=statusEl?statusEl.value:'new';
+  var name=document.getElementById('m-name').value.trim()||'блогер';
+  var slug=document.getElementById('m-utm_slug').value.trim();
+  var utm=slug?'verevery.ru/free?utm='+slug:'verevery.ru/free';
+  var isSecond=status==='interested';
+  var tmpl=isSecond?(EMAIL_TEMPLATES.second||''):(EMAIL_TEMPLATES.first||'');
+  var text=tmpl.replace(/{name}/g,name).replace(/{utm_link}/g,utm);
+  document.getElementById('msg-preview-text').textContent=text;
+  document.getElementById('msg-preview-label').textContent=isSecond?'Письмо 2 — текст для отправки':'Письмо 1 — текст для отправки';
+}
+function copyMsgTemplate(){
+  var text=document.getElementById('msg-preview-text').textContent;
+  var btn=document.getElementById('copy-msg-btn');
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='✓ Скопировано';
+    setTimeout(function(){btn.textContent='📋 Копировать';},2000);
+  });
 }
 function submitModal(){
   var name=document.getElementById('m-name').value.trim();
