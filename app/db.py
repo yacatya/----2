@@ -52,6 +52,9 @@ def init_db():
             sales_count INTEGER DEFAULT 0,
             paid_out INTEGER DEFAULT 0,
             notes TEXT DEFAULT '',
+            channel TEXT DEFAULT 'email',
+            ig_username TEXT DEFAULT '',
+            tg_username TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
         CREATE TABLE IF NOT EXISTS email_log (
@@ -94,6 +97,15 @@ def init_db():
     ]:
         try:
             conn.execute(f'ALTER TABLE users ADD COLUMN {col} {definition}')
+        except Exception:
+            pass
+    for col, definition in [
+        ('channel', "TEXT DEFAULT 'email'"),
+        ('ig_username', "TEXT DEFAULT ''"),
+        ('tg_username', "TEXT DEFAULT ''"),
+    ]:
+        try:
+            conn.execute(f'ALTER TABLE bloggers ADD COLUMN {col} {definition}')
         except Exception:
             pass
     conn.commit()
