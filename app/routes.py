@@ -714,7 +714,7 @@ def _notify_admin(subject, body):
     try:
         import resend
         resend.api_key = os.environ.get('RESEND_API_KEY', '')
-        to = os.environ.get('ADMIN_NOTIFY_EMAIL', 'katya@verevery.ru')
+        to = os.environ.get('ADMIN_NOTIFY_EMAIL', 'team.verevery@gmail.com')
         resend.Emails.send({
             'from': 'Vera система <noreply@verevery.ru>',
             'to': [to],
