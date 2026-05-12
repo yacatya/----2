@@ -25,6 +25,17 @@
   .sent-email { font-weight: 500; color: var(--dark); word-break: break-all; }
   .auth-link { font-size: 12px; color: var(--muted); text-align: center; margin-top: 20px; }
   .auth-link a { color: var(--accent); text-decoration: none; }
+  .report-link { font-size: 12px; color: var(--sand); text-align: center; margin-top: 28px; }
+  .report-link a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--beige); cursor: pointer; }
+  .report-overlay { display: none; position: fixed; inset: 0; background: rgba(42,33,24,0.4); z-index: 100; align-items: flex-end; justify-content: center; }
+  .report-overlay.open { display: flex; }
+  .report-sheet { background: var(--white); border-radius: 24px 24px 0 0; padding: 28px 24px max(28px, env(safe-area-inset-bottom)); width: 100%; max-width: 480px; }
+  .report-handle { width: 36px; height: 4px; background: var(--beige); border-radius: 2px; margin: 0 auto 20px; }
+  .report-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--dark); margin-bottom: 6px; }
+  .report-sub { font-size: 13px; font-weight: 300; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+  .report-textarea { width: 100%; min-height: 100px; padding: 14px 18px; background: var(--cream); border: 1px solid var(--beige); border-radius: 12px; font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 300; color: var(--dark); outline: none; resize: none; box-sizing: border-box; transition: border-color 0.2s; }
+  .report-textarea:focus { border-color: var(--accent); }
+  .report-sent { text-align: center; padding: 20px 0; font-size: 14px; font-weight: 300; color: var(--muted); display: none; }
 </style>
 {% endblock %}
 
@@ -101,6 +112,44 @@
         <p class="auth-note">Ссылка действует 24 часа</p>
       </div>
     {% endif %}
+
+    <p class="report-link"><a onclick="openReport()">Столкнулись с проблемой?</a></p>
   </div>
 </div>
+
+<div class="report-overlay" id="reportOverlay" onclick="if(event.target===this)closeReport()">
+  <div class="report-sheet">
+    <div class="report-handle"></div>
+    <div id="reportForm">
+      <div class="report-title">Сообщите о проблеме</div>
+      <div class="report-sub">Опишите, что случилось — мы разберёмся и ответим</div>
+      <label class="field-label" for="rep-email">Ваш email</label>
+      <input class="field-input" type="email" id="rep-email" placeholder="your@email.com"
+             value="{{ email if email else '' }}" autocomplete="email">
+      <label class="field-label" for="rep-msg" style="margin-top:4px;">Опишите проблему</label>
+      <textarea class="report-textarea" id="rep-msg" placeholder="Что происходит?"></textarea>
+      <button class="btn-primary" style="margin-top:16px;width:100%;border:none;cursor:pointer;" onclick="submitReport()">Отправить</button>
+    </div>
+    <div class="report-sent" id="reportSent">Спасибо! Мы получили ваше сообщение и скоро ответим.</div>
+  </div>
+</div>
+
+<script>
+function openReport() { document.getElementById('reportOverlay').classList.add('open'); }
+function closeReport() { document.getElementById('reportOverlay').classList.remove('open'); }
+function submitReport() {
+  var email = document.getElementById('rep-email').value.trim();
+  var msg = document.getElementById('rep-msg').value.trim();
+  if (!email || !msg) { alert('Заполните email и описание'); return; }
+  fetch('/auth/report', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'email=' + encodeURIComponent(email) + '&message=' + encodeURIComponent(msg)
+  }).then(function() {
+    document.getElementById('reportForm').style.display = 'none';
+    document.getElementById('reportSent').style.display = 'block';
+    setTimeout(closeReport, 2500);
+  });
+}
+</script>
 {% endblock %}

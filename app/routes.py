@@ -231,7 +231,7 @@ def cards():
     blocks = {}
     for block, info in BLOCK_INFO.items():
         blocks[block] = {**info, 'cards': load_block(block)}
-    return render_template('cards.html', blocks=blocks)
+    return render_template('cards.html', blocks=blocks, user_email=session.get('email', ''))
 
 
 @main.route('/auth', methods=['GET', 'POST'])
