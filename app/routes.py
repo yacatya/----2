@@ -759,6 +759,14 @@ def admin_bloggers():
     for row in conn.execute('SELECT status, COUNT(*) as cnt FROM bloggers GROUP BY status'):
         status_counts[row['status']] = row['cnt']
         status_counts[''] += row['cnt']
+
+    _ensure_email_templates_table(conn)
+    t1 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_first'").fetchone()
+    t2 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_second'").fetchone()
+    email_templates = {
+        'first': t1['body_text'] if t1 else '',
+        'second': t2['body_text'] if t2 else '',
+    }
     conn.close()
 
     now = datetime.utcnow()
@@ -770,7 +778,8 @@ def admin_bloggers():
                            statuses=BLOGGER_STATUSES,
                            now=now,
                            cps=COMMISSION_PER_SALE,
-                           blogger_warning=_blogger_warning)
+                           blogger_warning=_blogger_warning,
+                           email_templates=email_templates)
 
 
 @main.route('/admin/bloggers/add', methods=['POST'])
