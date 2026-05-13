@@ -1051,6 +1051,30 @@ def webhook_email_reply():
     return '', 200
 
 
+@main.route('/webhook/save-ig-id', methods=['POST'])
+def webhook_save_ig_id():
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        ig_username = (payload.get('ig_username') or '').strip().lstrip('@').lower()
+        ig_user_id = (payload.get('ig_user_id') or '').strip()
+        if not ig_username or not ig_user_id:
+            return '', 200
+        from .db import get_db
+        conn = get_db()
+        blogger = conn.execute(
+            "SELECT id, ig_user_id FROM bloggers WHERE LOWER(ig_username)=?", (ig_username,)
+        ).fetchone()
+        if blogger and not blogger['ig_user_id']:
+            conn.execute(
+                "UPDATE bloggers SET ig_user_id=? WHERE id=?", (ig_user_id, blogger['id'])
+            )
+            conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return '', 200
+
+
 @main.route('/admin/bloggers/templates')
 def admin_bloggers_templates():
     if not _admin_required():
