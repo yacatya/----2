@@ -54,6 +54,7 @@ def init_db():
             notes TEXT DEFAULT '',
             channel TEXT DEFAULT 'email',
             ig_username TEXT DEFAULT '',
+            ig_user_id TEXT DEFAULT '',
             tg_username TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
@@ -102,6 +103,7 @@ def init_db():
     for col, definition in [
         ('channel', "TEXT DEFAULT 'email'"),
         ('ig_username', "TEXT DEFAULT ''"),
+        ('ig_user_id', "TEXT DEFAULT ''"),
         ('tg_username', "TEXT DEFAULT ''"),
     ]:
         try:
