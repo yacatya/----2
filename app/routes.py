@@ -994,7 +994,7 @@ def admin_bloggers_analytics():
 @main.route('/webhook/email-reply', methods=['POST'])
 def webhook_email_reply():
     secret = os.environ.get('WEBHOOK_SECRET', '')
-    if secret and request.args.get('secret') != secret:
+    if secret and request.headers.get('X-Vera-Token') != secret and request.args.get('secret') != secret:
         return 'Forbidden', 403
     try:
         payload = request.get_json(force=True, silent=True) or {}
@@ -1051,8 +1051,94 @@ def webhook_email_reply():
     return '', 200
 
 
+@main.route('/webhook/reply', methods=['POST'])
+def webhook_reply():
+    token = os.environ.get('WEBHOOK_SECRET', '')
+    if token and request.headers.get('X-Vera-Token') != token:
+        return 'Forbidden', 403
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        channel = (payload.get('channel') or '').strip().lower()
+        sender = (payload.get('sender') or '').strip()
+        text = (payload.get('text') or '').strip()
+        if not channel or not sender or not text:
+            return '', 200
+        from .db import get_db
+        conn = get_db()
+        blogger = None
+        if channel == 'email':
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(email)=?', (sender.lower(),)
+            ).fetchone()
+        elif channel == 'instagram':
+            handle = sender.lstrip('@').lower()
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(ig_username)=? OR ig_user_id=?', (handle, sender)
+            ).fetchone()
+        elif channel == 'telegram':
+            handle = sender.lstrip('@').lower()
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(tg_username)=?', (handle,)
+            ).fetchone()
+        if not blogger:
+            conn.close()
+            return '', 200
+        blogger = dict(blogger)
+        bid = blogger['id']
+        # debounce: skip if last reply was within 60 seconds (handles Telegram multi-message bursts)
+        last_reply = blogger.get('last_reply_at') or ''
+        if last_reply:
+            try:
+                from datetime import timezone
+                last_dt = datetime.fromisoformat(last_reply)
+                diff = (datetime.utcnow() - last_dt).total_seconds()
+                if diff < 60:
+                    conn.close()
+                    return '', 200
+            except Exception:
+                pass
+        now_iso = datetime.utcnow().isoformat()
+        now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+        sentiment = _classify_reply_with_claude(text)
+        conn.execute(
+            'UPDATE bloggers SET last_reply_at=?, reply_sentiment=? WHERE id=?',
+            (now_iso, sentiment, bid)
+        )
+        if sentiment == 'positive':
+            conn.execute("UPDATE bloggers SET status='interested' WHERE id=?", (bid,))
+            conn.commit()
+            _send_via_make(blogger, 'second', conn)
+        elif sentiment == 'negative':
+            conn.execute("UPDATE bloggers SET status='declined' WHERE id=?", (bid,))
+            conn.commit()
+            _notify_admin(
+                f'Блогер {blogger["name"]} отказал',
+                f'Канал: {channel}\nОтвет:\n{text}'
+            )
+        else:
+            conn.execute("UPDATE bloggers SET status='replied' WHERE id=?", (bid,))
+            conn.commit()
+            draft = _draft_reply_with_claude(blogger['name'], text)
+            _notify_admin(
+                f'Блогер {blogger["name"]} задал вопрос',
+                f'Канал: {channel}\nОтвет блогера:\n{text}\n\n---\nЧерновик ответа:\n{draft}'
+            )
+        conn.execute(
+            'INSERT INTO email_log (blogger_id, type, sent_at, status) VALUES (?,?,?,?)',
+            (bid, f'inbound_{channel}', now_fmt, sentiment)
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return '', 200
+
+
 @main.route('/webhook/save-ig-id', methods=['POST'])
 def webhook_save_ig_id():
+    token = os.environ.get('WEBHOOK_SECRET', '')
+    if token and request.headers.get('X-Vera-Token') != token:
+        return 'Forbidden', 403
     try:
         payload = request.get_json(force=True, silent=True) or {}
         ig_username = (payload.get('ig_username') or '').strip().lstrip('@').lower()
