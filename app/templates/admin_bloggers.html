@@ -133,9 +133,9 @@
         {% if b.profile_url %}<br><a href="{{ b.profile_url }}" target="_blank" style="font-size:11px;color:var(--accent)">профиль →</a>{% endif %}
       </td>
       <td style="font-size:12px;color:var(--muted)">
-        {% if b.channel == 'instagram' %}<span title="Instagram Direct">📸 @{{ b.ig_username or '—' }}</span>
-        {% elif b.channel == 'telegram' %}<span title="Telegram">✈️ @{{ b.tg_username or '—' }}</span>
-        {% else %}✉️ {{ b.email or '—' }}{% endif %}
+        {% if b.channel == 'instagram' %}<span title="Instagram Direct">📸 {{ b.ig_username or '—' }}</span>
+        {% elif b.channel == 'telegram' %}<span title="Telegram">✈️ {{ b.tg_username or '—' }}</span>
+        {% else %}{{ b.email or '—' }}{% endif %}
         {% if b.notes %}<br><span class="note-text" data-raw="{{ b.notes }}" style="font-size:11px;color:var(--dark)">{{ b.notes[:120] }}{% if b.notes|length > 120 %}…{% endif %}</span>{% endif %}
       </td>
       <td>
@@ -158,10 +158,9 @@
       <td style="text-align:center;{% if debt > 0 %}color:#a67c00;font-weight:600{% else %}color:var(--sand){% endif %}">{{ debt }} ₽</td>
       <td style="white-space:nowrap;">
         <button class="btn-sm" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
-        {% set has_contact = (b.channel == 'email' and b.email) or (b.channel == 'instagram' and b.ig_username) or (b.channel == 'telegram' and b.tg_username) %}
-        {% if has_contact and b.status in ('new',) %}
+        {% if b.email and b.status in ('new',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
-        {% elif has_contact and b.status in ('interested',) %}
+        {% elif b.email and b.status in ('interested',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'second', this)">Письмо 2</button>
         {% endif %}
         <button class="btn-sm" onclick="deleteBlogger({{ b.id }}, this)" style="color:#c0392b;border-color:#c0392b20">🗑</button>
@@ -199,35 +198,37 @@
     </div>
     <div class="f-group">
       <label class="f-label">Ссылка на профиль / канал</label>
-      <input class="f-input" id="m-profile_url" placeholder="https://t.me/channel или @username" oninput="autoSlugFromUrl()">
+      <input class="f-input" id="m-profile_url" placeholder="https://t.me/channel" oninput="autoSlugFromUrl()">
     </div>
     <div class="f-group">
+      <label class="f-label">Канал отправки</label>
+      <select class="f-select" id="m-channel" onchange="updateChannelFields()">
+        <option value="email">📧 Email</option>
+        <option value="instagram">📸 Instagram Direct</option>
+        <option value="telegram">✈️ Telegram</option>
+      </select>
+    </div>
+    <div class="f-group" id="email-field">
       <label class="f-label">Email <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
       <input class="f-input" type="email" id="m-email" placeholder="blogger@example.com">
     </div>
-    <div class="f-row">
-      <div class="f-group">
-        <label class="f-label">Канал отправки</label>
-        <select class="f-select" id="m-channel" onchange="updateChannelFields()">
-          <option value="email">Email</option>
-          <option value="instagram">Instagram Direct</option>
-          <option value="telegram">Telegram</option>
-        </select>
-      </div>
-      <div class="f-group" id="ig-group" style="display:none">
-        <label class="f-label">@instagram_username</label>
-        <input class="f-input" id="m-ig_username" placeholder="natasha.romanowskaya" oninput="autoSlugFromUsername()">
-      </div>
-      <div class="f-group" id="tg-group" style="display:none">
-        <label class="f-label">@telegram_username</label>
-        <input class="f-input" id="m-tg_username" placeholder="natasha_blog" oninput="autoSlugFromUsername()">
-      </div>
+    <div class="f-group" id="ig-field" style="display:none">
+      <label class="f-label">Instagram username</label>
+      <input class="f-input" id="m-ig_username" placeholder="@masha.psy" oninput="autoSlugFromUsername()">
+      <div class="f-hint">Без @ тоже можно, Make сам разберётся</div>
+      <label class="f-label" style="margin-top:8px">Instagram User ID <span style="color:var(--muted);font-size:10px;">(числовой)</span></label>
+      <input class="f-input" id="m-ig_user_id" placeholder="17841400000000000" inputmode="numeric">
+      <div class="f-hint">Цифровой ID нужен для Instagram DM API — без него сообщение не дойдёт</div>
+    </div>
+    <div class="f-group" id="tg-field" style="display:none">
+      <label class="f-label">Telegram username</label>
+      <input class="f-input" id="m-tg_username" placeholder="@masha_psy" oninput="autoSlugFromUsername()">
     </div>
     <div class="f-row">
       <div class="f-group">
-        <label class="f-label">UTM псевдоним *</label>
-        <input class="f-input" id="m-utm_slug" placeholder="natasha_blog" oninput="updateUtmPreview(); updateTemplatePreview()">
-        <div class="f-hint" id="utm-preview">Короткое имя латиницей — заполнится автоматически из username</div>
+        <label class="f-label">UTM slug</label>
+        <input class="f-input" id="m-utm_slug" placeholder="masha_psy" oninput="updateUtmPreview(); updateTemplatePreview()">
+        <div class="f-hint" id="utm-preview">Введите латинский ник, например: natasha_psy</div>
       </div>
       <div class="f-group" id="status-group" style="display:none">
         <label class="f-label">Статус</label>
@@ -270,13 +271,13 @@ function openAddModal() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Добавить блогера';
   document.getElementById('modal-submit-btn').textContent = 'Добавить';
-  ['name','platform','profile_url','email','utm_slug','notes','ig_username','tg_username'].forEach(function(f){
+  ['name','platform','profile_url','email','utm_slug','notes','ig_username','ig_user_id','tg_username'].forEach(function(f){
     var el = document.getElementById('m-'+f); if(el) el.value='';
   });
   document.getElementById('m-channel').value='email';
+  updateChannelFields();
   document.getElementById('status-group').style.display='none';
   document.getElementById('paid-group').style.display='none';
-  updateChannelFields();
   updateUtmPreview();
   updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
@@ -297,10 +298,11 @@ function openEditModal(id,b) {
   document.getElementById('m-paid_out').value=b.paid_out||0;
   document.getElementById('m-channel').value=b.channel||'email';
   document.getElementById('m-ig_username').value=b.ig_username||'';
+  document.getElementById('m-ig_user_id').value=b.ig_user_id||'';
   document.getElementById('m-tg_username').value=b.tg_username||'';
+  updateChannelFields();
   document.getElementById('status-group').style.display='block';
   document.getElementById('paid-group').style.display='block';
-  updateChannelFields();
   updateUtmPreview();
   updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
@@ -308,73 +310,66 @@ function openEditModal(id,b) {
 }
 function closeModal(e){ if(e.target===document.getElementById('modal-overlay')) closeModalBtn(); }
 function closeModalBtn(){ document.getElementById('modal-overlay').classList.remove('open'); }
-
-function _makeSlugFromHandle(handle) {
-  return handle.replace(/^@/,'').toLowerCase()
-    .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+function updateChannelFields(){
+  var ch=document.getElementById('m-channel').value;
+  document.getElementById('email-field').style.display=ch==='email'?'block':'none';
+  document.getElementById('ig-field').style.display=ch==='instagram'?'block':'none';
+  document.getElementById('tg-field').style.display=ch==='telegram'?'block':'none';
 }
-
 function autoSlug(){
+  if(editingId) return;
   var name=document.getElementById('m-name').value;
-  var slug=name.toLowerCase().trim().replace(/[\s\-]+/g,'_').replace(/[^a-z0-9_]/g,'');
+  var slug=name.toLowerCase().trim().replace(/[\s\-]+/g,'_').replace(/[^a-z0-9_]/g,'').replace(/^_+|_+$/g,'');
   if(slug){
-    if(!editingId) document.getElementById('m-utm_slug').value=slug.slice(0,50);
+    document.getElementById('m-utm_slug').value=slug.slice(0,50);
     updateUtmPreview();
   } else {
-    autoSlugFromUsername();
-    if(!document.getElementById('m-utm_slug').value) autoSlugFromUrl();
+    autoSlugFromUrl();
   }
 }
-
-function autoSlugFromUsername(){
+function autoSlugFromUrl(){
+  if(editingId) return;
   var currentSlug=document.getElementById('m-utm_slug').value.trim();
-  if(currentSlug && editingId) return;
+  if(currentSlug) return;
+  var urlVal=document.getElementById('m-profile_url').value.trim();
+  if(!urlVal) return;
+  var seg='';
+  // handle @username or username directly
+  var atMatch=urlVal.match(/^@?([A-Za-z0-9_.]{3,})$/);
+  if(atMatch){
+    seg=atMatch[1];
+  } else {
+    try{
+      var u=new URL(urlVal);
+      var parts=u.pathname.replace(/^\/+|\/+$/g,'').split('/');
+      seg=parts[parts.length-1]||'';
+    }catch(e){}
+  }
+  seg=seg.replace(/^@/,'').toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  if(seg){
+    document.getElementById('m-utm_slug').value=seg.slice(0,50);
+    updateUtmPreview();
+    updateTemplatePreview();
+  }
+}
+function autoSlugFromUsername(){
+  if(editingId) return;
+  var currentSlug=document.getElementById('m-utm_slug').value.trim();
+  if(currentSlug) return;
   var ch=document.getElementById('m-channel').value;
   var handle='';
   if(ch==='instagram') handle=document.getElementById('m-ig_username').value.trim();
   else if(ch==='telegram') handle=document.getElementById('m-tg_username').value.trim();
-  if(!handle) return;
-  var seg=_makeSlugFromHandle(handle);
+  handle=handle.replace(/^@/,'');
+  var seg=handle.toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
   if(seg){
     document.getElementById('m-utm_slug').value=seg.slice(0,50);
     updateUtmPreview(); updateTemplatePreview();
   }
-}
-
-function autoSlugFromUrl(){
-  var urlVal=document.getElementById('m-profile_url').value.trim();
-  if(!urlVal) return;
-  var currentSlug=document.getElementById('m-utm_slug').value.trim();
-  if(currentSlug) return;
-  var seg='';
-  if(urlVal.match(/^@/)){
-    seg=urlVal.slice(1);
-  } else {
-    try{
-      var u=new URL(urlVal.startsWith('http')?urlVal:'https://'+urlVal);
-      var parts=u.pathname.replace(/^\/+|\/+$/g,'').split('/');
-      seg=parts[parts.length-1]||'';
-      seg=seg.replace(/^@/,'');
-    }catch(e){
-      seg=urlVal.replace(/^@/,'');
-    }
-  }
-  seg=seg.toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
-  if(seg){
-    document.getElementById('m-utm_slug').value=seg.slice(0,50);
-    updateUtmPreview(); updateTemplatePreview();
-  }
-}
-
-function updateChannelFields(){
-  var ch=document.getElementById('m-channel').value;
-  document.getElementById('ig-group').style.display=(ch==='instagram')?'block':'none';
-  document.getElementById('tg-group').style.display=(ch==='telegram')?'block':'none';
 }
 function updateUtmPreview(){
   var slug=document.getElementById('m-utm_slug').value.trim();
-  var hint=document.getElementById('utm-preview');
-  hint.textContent=slug?'verevery.ru/free?utm='+slug:'Короткое имя латиницей — заполнится автоматически из username';
+  document.getElementById('utm-preview').textContent=slug?'verevery.ru/free?utm='+slug:'Введите латинский ник, например: natasha_psy';
 }
 function updateTemplatePreview(){
   var statusEl=document.getElementById('m-status');
@@ -400,9 +395,10 @@ function submitModal(){
   var name=document.getElementById('m-name').value.trim();
   if(!name){showModalStatus('Введите имя',false);return;}
   var data=new FormData();
-  ['name','platform','profile_url','email','utm_slug','notes','channel','ig_username','tg_username'].forEach(function(f){
+  ['name','platform','profile_url','email','utm_slug','notes','ig_username','ig_user_id','tg_username'].forEach(function(f){
     data.append(f,document.getElementById('m-'+f).value.trim());
   });
+  data.append('channel',document.getElementById('m-channel').value);
   if(editingId){
     data.append('status',document.getElementById('m-status').value);
     data.append('paid_out',document.getElementById('m-paid_out').value);
