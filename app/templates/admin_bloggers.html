@@ -158,10 +158,13 @@
       <td style="text-align:center;{% if debt > 0 %}color:#a67c00;font-weight:600{% else %}color:var(--sand){% endif %}">{{ debt }} ₽</td>
       <td style="white-space:nowrap;">
         <button class="btn-sm" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
-        {% if b.email and b.status in ('new',) %}
+        {% set can_send = (b.channel == 'email' and b.email) or (b.channel == 'instagram' and b.ig_user_id) or (b.channel == 'telegram' and b.tg_user_id) %}
+        {% if can_send and b.status in ('new',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
-        {% elif b.email and b.status in ('interested',) %}
+        {% elif can_send and b.status in ('interested',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'second', this)">Письмо 2</button>
+        {% elif not can_send and b.status in ('new', 'interested') %}
+        <span class="btn-sm" title="{% if b.channel == 'instagram' %}Ждём первого ответа — нет ID{% elif b.channel == 'telegram' %}Блогер должен написать боту{% endif %}" style="opacity:0.4;cursor:default">⏳</span>
         {% endif %}
         <button class="btn-sm" onclick="deleteBlogger({{ b.id }}, this)" style="color:#c0392b;border-color:#c0392b20">🗑</button>
       </td>
@@ -217,8 +220,8 @@
       <input class="f-input" id="m-ig_username" placeholder="@masha.psy" oninput="autoSlugFromUsername()">
       <div class="f-hint">Без @ тоже можно, Make сам разберётся</div>
       <label class="f-label" style="margin-top:8px">Instagram User ID <span style="color:var(--muted);font-size:10px;">(числовой)</span></label>
-      <input class="f-input" id="m-ig_user_id" placeholder="17841400000000000" inputmode="numeric">
-      <div class="f-hint">Цифровой ID нужен для Instagram DM API — без него сообщение не дойдёт</div>
+      <input class="f-input" id="m-ig_user_id" placeholder="заполнится автоматически при первом ответе" inputmode="numeric">
+      <div class="f-hint">Не вводи вручную — придёт автоматически когда блогер ответит в директе</div>
     </div>
     <div class="f-group" id="tg-field" style="display:none">
       <label class="f-label">Telegram username</label>

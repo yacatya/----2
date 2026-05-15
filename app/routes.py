@@ -916,13 +916,25 @@ def admin_bloggers_send_email(bid):
     if not blogger:
         conn.close()
         return 'Блогер не найден', 404
-    if not blogger['email']:
-        conn.close()
-        return 'Email не указан', 400
     b = dict(blogger)
     channel = b.get('channel', 'email') or 'email'
     if channel == 'email':
+        if not b.get('email'):
+            conn.close()
+            return 'Email не указан', 400
         ok, err = _send_blogger_email(b, email_type, conn)
+    elif channel == 'instagram':
+        ig_id = (b.get('ig_user_id') or '').strip()
+        if not ig_id:
+            conn.close()
+            return 'Instagram User ID не получен — дождитесь первого входящего сообщения от блогера', 400
+        ok, err = _send_via_make(b, email_type, conn)
+    elif channel == 'telegram':
+        tg_id = (b.get('tg_user_id') or '').strip()
+        if not tg_id:
+            conn.close()
+            return 'Telegram ID не получен — блогер должен сначала написать боту', 400
+        ok, err = _send_via_make(b, email_type, conn)
     else:
         ok, err = _send_via_make(b, email_type, conn)
     if ok and email_type == 'first':
