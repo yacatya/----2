@@ -101,6 +101,7 @@ def init_db():
         ('ig_username',  "TEXT DEFAULT ''"),
         ('ig_user_id',   "TEXT DEFAULT ''"),
         ('tg_username',  "TEXT DEFAULT ''"),
+        ('tg_user_id',   "TEXT DEFAULT ''"),
         ('last_message', "TEXT DEFAULT ''"),
     ]:
         try:

@@ -658,7 +658,9 @@ def _send_via_make(blogger, email_type, conn):
             'blogger_id': blogger['id'],
             'name': blogger['name'],
             'ig_username': blogger.get('ig_username', ''),
+            'ig_user_id': blogger.get('ig_user_id', ''),
             'tg_username': blogger.get('tg_username', ''),
+            'tg_user_id': blogger.get('tg_user_id', ''),
             'utm_link': blogger.get('utm_link', ''),
             'text': text,
         }, timeout=10)
@@ -837,14 +839,16 @@ def admin_bloggers_add():
     notes = request.form.get('notes', '').strip()[:2000]
     channel = request.form.get('channel', 'email').strip()
     ig_username = request.form.get('ig_username', '').strip()[:200]
+    ig_user_id = request.form.get('ig_user_id', '').strip()[:100]
     tg_username = request.form.get('tg_username', '').strip()[:200]
+    tg_user_id = request.form.get('tg_user_id', '').strip()[:50]
     try:
         from .db import get_db
         conn = get_db()
         conn.execute(
-            'INSERT INTO bloggers (name, platform, profile_url, email, utm_slug, utm_link, notes, channel, ig_username, tg_username) '
-            'VALUES (?,?,?,?,?,?,?,?,?,?)',
-            (name, platform, profile_url, email, utm_slug, utm_link, notes, channel, ig_username, tg_username)
+            'INSERT INTO bloggers (name, platform, profile_url, email, utm_slug, utm_link, notes, channel, ig_username, ig_user_id, tg_username, tg_user_id) '
+            'VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+            (name, platform, profile_url, email, utm_slug, utm_link, notes, channel, ig_username, ig_user_id, tg_username, tg_user_id)
         )
         conn.commit()
         conn.close()
@@ -859,7 +863,7 @@ def admin_bloggers_update(bid):
         return 'Forbidden', 403
     allowed = {'name', 'platform', 'profile_url', 'email', 'utm_slug',
                'status', 'notes', 'paid_out', 'reply_sentiment',
-               'channel', 'ig_username', 'tg_username'}
+               'channel', 'ig_username', 'ig_user_id', 'tg_username', 'tg_user_id'}
     updates = {k: request.form[k].strip() for k in allowed if k in request.form}
     if 'utm_slug' in updates:
         updates['utm_link'] = f'{BASE_URL}/free?utm={updates["utm_slug"]}'
@@ -1100,6 +1104,7 @@ def webhook_reply():
         channel = (payload.get('channel') or '').strip().lower()
         sender = (payload.get('sender') or '').strip()
         text = (payload.get('text') or '').strip()
+        tg_user_id_incoming = (payload.get('tg_user_id') or '').strip()
         if not channel or not sender or not text:
             return '', 200
         from .db import get_db
@@ -1117,13 +1122,19 @@ def webhook_reply():
         elif channel == 'telegram':
             handle = sender.lstrip('@').lower()
             blogger = conn.execute(
-                'SELECT * FROM bloggers WHERE LOWER(tg_username)=?', (handle,)
+                'SELECT * FROM bloggers WHERE LOWER(tg_username)=? OR tg_user_id=?',
+                (handle, sender)
             ).fetchone()
         if not blogger:
             conn.close()
             return '', 200
         blogger = dict(blogger)
         bid = blogger['id']
+        # auto-save tg_user_id on first reply
+        if channel == 'telegram' and tg_user_id_incoming and not blogger.get('tg_user_id'):
+            conn.execute('UPDATE bloggers SET tg_user_id=? WHERE id=?', (tg_user_id_incoming, bid))
+            conn.commit()
+            blogger['tg_user_id'] = tg_user_id_incoming
         # debounce: skip if last reply was within 60 seconds (handles Telegram multi-message bursts)
         last_reply = blogger.get('last_reply_at') or ''
         if last_reply:
