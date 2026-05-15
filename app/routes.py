@@ -1051,6 +1051,45 @@ def webhook_email_reply():
     return '', 200
 
 
+@main.route('/api/v1/check-blogger', methods=['GET'])
+def api_check_blogger():
+    token = os.environ.get('WEBHOOK_SECRET', '')
+    if token and request.headers.get('X-Vera-Token') != token:
+        return 'Forbidden', 403
+    email = (request.args.get('email') or '').strip().lower()
+    username = (request.args.get('username') or '').strip().lstrip('@').lower()
+    if not email and not username:
+        return {'found': False, 'error': 'email or username required'}, 400
+    try:
+        from .db import get_db
+        conn = get_db()
+        blogger = None
+        if email:
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(email)=?', (email,)
+            ).fetchone()
+        if not blogger and username:
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(ig_username)=? OR LOWER(tg_username)=?',
+                (username, username)
+            ).fetchone()
+        conn.close()
+        if not blogger:
+            return {'found': False}, 200
+        b = dict(blogger)
+        contacted = b.get('status', 'new') != 'new'
+        return {
+            'found': True,
+            'contacted': contacted,
+            'blogger_id': b['id'],
+            'name': b['name'],
+            'status': b['status'],
+            'channel': b.get('channel', 'email'),
+        }, 200
+    except Exception:
+        return {'found': False}, 200
+
+
 @main.route('/webhook/reply', methods=['POST'])
 def webhook_reply():
     token = os.environ.get('WEBHOOK_SECRET', '')
@@ -1101,8 +1140,8 @@ def webhook_reply():
         now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
         sentiment = _classify_reply_with_claude(text)
         conn.execute(
-            'UPDATE bloggers SET last_reply_at=?, reply_sentiment=? WHERE id=?',
-            (now_iso, sentiment, bid)
+            'UPDATE bloggers SET last_reply_at=?, reply_sentiment=?, last_message=? WHERE id=?',
+            (now_iso, sentiment, text[:2000], bid)
         )
         if sentiment == 'positive':
             conn.execute("UPDATE bloggers SET status='interested' WHERE id=?", (bid,))
@@ -1141,8 +1180,8 @@ def webhook_save_ig_id():
         return 'Forbidden', 403
     try:
         payload = request.get_json(force=True, silent=True) or {}
-        ig_username = (payload.get('ig_username') or '').strip().lstrip('@').lower()
-        ig_user_id = (payload.get('ig_user_id') or '').strip()
+        ig_username = (payload.get('ig_username') or payload.get('username') or '').strip().lstrip('@').lower()
+        ig_user_id = (payload.get('ig_user_id') or payload.get('psid') or '').strip()
         if not ig_username or not ig_user_id:
             return '', 200
         from .db import get_db
@@ -1195,3 +1234,38 @@ def admin_bloggers_templates_save():
     conn.commit()
     conn.close()
     return '', 200
+
+
+def _magic_link_email(link):
+    return f'''<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#FAF7F2;font-family:Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+  <div style="font-family:Georgia,serif;font-size:22px;color:#2A2118;margin-bottom:32px;">
+    vere<span style="color:#A67C52;">very</span>
+  </div>
+  <div style="background:#FFFFFF;border:1px solid #EDE6DA;border-radius:20px;padding:32px 28px;">
+    <div style="font-family:Georgia,serif;font-size:26px;color:#2A2118;margin-bottom:12px;line-height:1.25;">
+      Ваша колода готова
+    </div>
+    <p style="font-size:14px;font-weight:300;color:#8C7E72;line-height:1.7;margin:0 0 28px;">
+      Нажмите кнопку ниже, чтобы войти в колоду «Ближе».<br>Ссылка действует 24 часа.
+    </p>
+    <a href="{link}"
+       style="display:block;text-align:center;background:#2A2118;color:#FFFFFF;
+              text-decoration:none;padding:16px 24px;border-radius:50px;
+              font-size:14px;font-weight:500;letter-spacing:0.5px;">
+      Открыть колоду
+    </a>
+    <p style="font-size:11px;color:#D4C8B5;text-align:center;margin:20px 0 0;line-height:1.6;">
+      Если кнопка не открывается:<br>
+      <a href="{link}" style="color:#A67C52;word-break:break-all;">{link}</a>
+    </p>
+  </div>
+  <p style="font-size:11px;color:#D4C8B5;text-align:center;margin-top:24px;line-height:1.6;">
+    Если вы не совершали покупку — просто проигнорируйте это письмо.
+  </p>
+</div>
+</body>
+</html>'''

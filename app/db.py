@@ -52,10 +52,6 @@ def init_db():
             sales_count INTEGER DEFAULT 0,
             paid_out INTEGER DEFAULT 0,
             notes TEXT DEFAULT '',
-            channel TEXT DEFAULT 'email',
-            ig_username TEXT DEFAULT '',
-            ig_user_id TEXT DEFAULT '',
-            tg_username TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
         CREATE TABLE IF NOT EXISTS email_log (
@@ -101,10 +97,11 @@ def init_db():
         except Exception:
             pass
     for col, definition in [
-        ('channel', "TEXT DEFAULT 'email'"),
-        ('ig_username', "TEXT DEFAULT ''"),
-        ('ig_user_id', "TEXT DEFAULT ''"),
-        ('tg_username', "TEXT DEFAULT ''"),
+        ('channel',      "TEXT DEFAULT 'email'"),
+        ('ig_username',  "TEXT DEFAULT ''"),
+        ('ig_user_id',   "TEXT DEFAULT ''"),
+        ('tg_username',  "TEXT DEFAULT ''"),
+        ('last_message', "TEXT DEFAULT ''"),
     ]:
         try:
             conn.execute(f'ALTER TABLE bloggers ADD COLUMN {col} {definition}')
