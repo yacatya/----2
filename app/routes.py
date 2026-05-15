@@ -648,15 +648,26 @@ def _send_via_make(blogger, email_type, conn):
     if not webhook_url:
         return False, 'MAKE_OUTBOUND_WEBHOOK не настроен'
     template_key = 'blogger_first' if email_type == 'first' else 'blogger_second'
-    _, body_text = _get_template(conn, template_key)
+    subject, body_text = _get_template(conn, template_key)
     text = body_text.replace('{name}', blogger['name']).replace('{utm_link}', blogger['utm_link'] or '')
+    channel = blogger.get('channel', 'email')
+    # psid: numeric ID for Instagram and Telegram (unified field Make expects)
+    if channel == 'instagram':
+        psid = blogger.get('ig_user_id', '')
+    elif channel == 'telegram':
+        psid = blogger.get('tg_user_id', '')
+    else:
+        psid = ''
     now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
     try:
         _req.post(webhook_url, json={
-            'channel': blogger.get('channel', 'email'),
+            'channel': channel,
             'email_type': email_type,
             'blogger_id': blogger['id'],
             'name': blogger['name'],
+            'psid': psid,
+            'recipient': blogger.get('email', '') if channel == 'email' else psid,
+            'subject': subject,
             'ig_username': blogger.get('ig_username', ''),
             'ig_user_id': blogger.get('ig_user_id', ''),
             'tg_username': blogger.get('tg_username', ''),
