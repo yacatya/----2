@@ -661,7 +661,6 @@ def _send_via_make(blogger, email_type, conn):
     subject, body_text = _get_template(conn, template_key)
     text = body_text.replace('{name}', blogger['name']).replace('{utm_link}', blogger['utm_link'] or '')
     channel = blogger.get('channel', 'email')
-    # psid: numeric ID for Instagram and Telegram (unified field Make expects)
     if channel == 'instagram':
         psid = blogger.get('ig_user_id', '')
     elif channel == 'telegram':
@@ -1163,16 +1162,13 @@ def webhook_reply():
             return '', 200
         blogger = dict(blogger)
         bid = blogger['id']
-        # auto-save tg_user_id on first reply
         if channel == 'telegram' and tg_user_id_incoming and not blogger.get('tg_user_id'):
             conn.execute('UPDATE bloggers SET tg_user_id=? WHERE id=?', (tg_user_id_incoming, bid))
             conn.commit()
             blogger['tg_user_id'] = tg_user_id_incoming
-        # debounce: skip if last reply was within 60 seconds (handles Telegram multi-message bursts)
         last_reply = blogger.get('last_reply_at') or ''
         if last_reply:
             try:
-                from datetime import timezone
                 last_dt = datetime.fromisoformat(last_reply)
                 diff = (datetime.utcnow() - last_dt).total_seconds()
                 if diff < 60:
@@ -1373,7 +1369,7 @@ def partner_login():
             if blogger:
                 base_url = os.environ.get('BASE_URL', 'https://verevery.ru')
                 _send_partner_invite(dict(blogger), base_url)
-            sent = True  # always show "check email" to avoid enumeration
+            sent = True
     return render_template('partner_login.html', error=error, sent=sent)
 
 
@@ -1426,7 +1422,6 @@ def partner_dashboard():
     month_start = now.strftime('%Y-%m-01')
     today = now.strftime('%Y-%m-%d')
 
-    # Sales stats
     def q(sql, *args):
         row = conn.execute(sql, args).fetchone()
         return dict(row) if row else {}
@@ -1435,23 +1430,19 @@ def partner_dashboard():
     s_month = q("SELECT COUNT(*) cnt, COALESCE(SUM(commission),0) comm FROM sales WHERE utm=? AND date>=?", utm, month_start)
     s_today = q("SELECT COUNT(*) cnt, COALESCE(SUM(commission),0) comm FROM sales WHERE utm=? AND date LIKE ?", utm, today+'%')
 
-    # Click stats
     c_all = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=?", (utm,)).fetchone()['cnt']
     c_month = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=? AND visited_at>=?", (utm, month_start)).fetchone()['cnt']
     c_today = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=? AND date(visited_at)=?", (utm, today)).fetchone()['cnt']
 
-    # Payments
     total_earned = int(s_all.get('comm', 0))
     paid_out = blogger.get('paid_out') or 0
     balance = max(0, total_earned - paid_out)
 
-    # Recent sales
     recent = conn.execute(
         "SELECT date, amount, commission FROM sales WHERE utm=? ORDER BY id DESC LIMIT 10", (utm,)
     ).fetchall()
     recent = [dict(r) for r in recent]
 
-    # Conversion
     conversion = round(s_all['cnt'] / c_all * 100, 1) if c_all else 0
 
     conn.close()
@@ -1469,6 +1460,117 @@ def partner_dashboard():
         recent=recent,
         conversion=conversion,
     )
+
+
+@main.route('/partner/sales')
+def partner_sales():
+    pid = session.get('partner_id')
+    if not pid:
+        return redirect(url_for('main.partner_login'))
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (pid,)).fetchone()
+    if not blogger:
+        session.pop('partner_id', None)
+        conn.close()
+        return redirect(url_for('main.partner_login'))
+    blogger = dict(blogger)
+    utm = blogger['utm_slug'] or ''
+
+    date_from = request.args.get('from', '')
+    date_to = request.args.get('to', '')
+
+    query = "SELECT date, amount, commission FROM sales WHERE utm=?"
+    params = [utm]
+    if date_from:
+        query += " AND date >= ?"
+        params.append(date_from)
+    if date_to:
+        query += " AND date <= ?"
+        params.append(date_to + 'T23:59:59')
+    query += " ORDER BY id DESC"
+
+    sales = [dict(r) for r in conn.execute(query, params).fetchall()]
+    total_comm = sum(s['commission'] for s in sales)
+    conn.close()
+    return render_template('partner_sales.html',
+        blogger=blogger, sales=sales,
+        total_comm=int(total_comm),
+        date_from=date_from, date_to=date_to,
+    )
+
+
+@main.route('/partner/payments')
+def partner_payments():
+    pid = session.get('partner_id')
+    if not pid:
+        return redirect(url_for('main.partner_login'))
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (pid,)).fetchone()
+    if not blogger:
+        session.pop('partner_id', None)
+        conn.close()
+        return redirect(url_for('main.partner_login'))
+    blogger = dict(blogger)
+    utm = blogger['utm_slug'] or ''
+
+    payments = [dict(r) for r in conn.execute(
+        'SELECT * FROM partner_payments WHERE blogger_id=? ORDER BY paid_date DESC', (pid,)
+    ).fetchall()]
+
+    total_earned_row = conn.execute(
+        "SELECT COALESCE(SUM(commission),0) s FROM sales WHERE utm=?", (utm,)
+    ).fetchone()
+    total_earned = int(total_earned_row['s'])
+    paid_out = blogger.get('paid_out') or 0
+    balance = max(0, total_earned - paid_out)
+    conn.close()
+
+    from datetime import date
+    today = date.today()
+    if today.day <= 15:
+        next_payment = today.replace(day=15).isoformat()
+    else:
+        if today.month == 12:
+            next_payment = today.replace(year=today.year+1, month=1, day=15).isoformat()
+        else:
+            next_payment = today.replace(month=today.month+1, day=15).isoformat()
+
+    return render_template('partner_payments.html',
+        blogger=blogger,
+        payments=payments,
+        total_earned=total_earned,
+        paid_out=paid_out,
+        balance=balance,
+        next_payment=next_payment,
+    )
+
+
+@main.route('/admin/bloggers/<int:bid>/add-payment', methods=['POST'])
+def admin_add_payment(bid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    amount = request.form.get('amount', '').strip()
+    paid_date = request.form.get('paid_date', '').strip()
+    method = request.form.get('method', '').strip()[:100]
+    note = request.form.get('note', '').strip()[:500]
+    if not amount or not paid_date:
+        return 'Сумма и дата обязательны', 400
+    try:
+        amount = int(float(amount))
+    except ValueError:
+        return 'Некорректная сумма', 400
+    from .db import get_db
+    conn = get_db()
+    conn.execute(
+        'INSERT INTO partner_payments (blogger_id, amount, paid_date, method, note) VALUES (?,?,?,?,?)',
+        (bid, amount, paid_date, method, note)
+    )
+    conn.execute('UPDATE bloggers SET paid_out = paid_out + ? WHERE id=?', (amount, bid))
+    conn.commit()
+    conn.close()
+    return '', 200
 
 
 def _magic_link_email(link):
