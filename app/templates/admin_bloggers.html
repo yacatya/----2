@@ -161,6 +161,9 @@
         {% if b.email and b.status not in ('new',) %}
         <button class="btn-sm" onclick="sendInvite({{ b.id }}, this)" title="Пригласить в кабинет партнёра">📩</button>
         {% endif %}
+        {% if b.status in ('partner', 'interested') %}
+        <button class="btn-sm" onclick="openPaymentModal({{ b.id }})" title="Добавить выплату">💳</button>
+        {% endif %}
         {% set can_send = (b.channel == 'email' and b.email) or (b.channel == 'instagram' and b.ig_user_id) or (b.channel == 'telegram' and b.tg_user_id) %}
         {% if can_send and b.status in ('new',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
@@ -267,6 +270,35 @@
     <div class="modal-status" id="modal-status"></div>
   </div>
 </div>
+
+<div class="modal-overlay" id="payment-overlay" onclick="closePaymentModal(event)">
+  <div class="modal-box" style="max-width:400px">
+    <button class="modal-close" onclick="document.getElementById('payment-overlay').classList.remove('open')">&#x2715;</button>
+    <div class="modal-title">Добавить выплату</div>
+    <input type="hidden" id="pay-blogger-id">
+    <div class="f-group">
+      <label class="f-label">Сумма ₽ *</label>
+      <input class="f-input" type="number" id="pay-amount" placeholder="2000">
+    </div>
+    <div class="f-group">
+      <label class="f-label">Дата *</label>
+      <input class="f-input" type="date" id="pay-date">
+    </div>
+    <div class="f-group">
+      <label class="f-label">Способ</label>
+      <input class="f-input" id="pay-method" placeholder="СБП / карта">
+    </div>
+    <div class="f-group">
+      <label class="f-label">Заметка</label>
+      <input class="f-input" id="pay-note" placeholder="Необязательно">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary btn-green" onclick="submitPayment()">Сохранить</button>
+      <button class="btn-primary" style="background:var(--sand)" onclick="document.getElementById('payment-overlay').classList.remove('open')">Отмена</button>
+    </div>
+    <div class="modal-status" id="pay-status"></div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -340,7 +372,6 @@ function autoSlugFromUrl(){
   var urlVal=document.getElementById('m-profile_url').value.trim();
   if(!urlVal) return;
   var seg='';
-  // handle @username or username directly
   var atMatch=urlVal.match(/^@?([A-Za-z0-9_.]{3,})$/);
   if(atMatch){
     seg=atMatch[1];
@@ -515,6 +546,30 @@ function sendInvite(id, btn) {
     btn.disabled=false;
     if(r.ok){btn.textContent='✓';btn.classList.add('ok');setTimeout(function(){btn.textContent='📩';btn.classList.remove('ok');},3000);}
     else r.text().then(function(t){btn.textContent='✗';btn.classList.add('err');btn.title=t;setTimeout(function(){btn.textContent='📩';btn.classList.remove('err');},3000);});
+  });
+}
+function openPaymentModal(id) {
+  document.getElementById('pay-blogger-id').value=id;
+  document.getElementById('pay-amount').value='';
+  document.getElementById('pay-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('pay-method').value='';
+  document.getElementById('pay-note').value='';
+  document.getElementById('pay-status').textContent='';
+  document.getElementById('payment-overlay').classList.add('open');
+}
+function closePaymentModal(e){ if(e.target===document.getElementById('payment-overlay')) document.getElementById('payment-overlay').classList.remove('open'); }
+function submitPayment(){
+  var id=document.getElementById('pay-blogger-id').value;
+  var amount=document.getElementById('pay-amount').value;
+  var date=document.getElementById('pay-date').value;
+  if(!amount||!date){document.getElementById('pay-status').textContent='Заполните сумму и дату';return;}
+  var data=new FormData();
+  data.append('amount',amount); data.append('paid_date',date);
+  data.append('method',document.getElementById('pay-method').value);
+  data.append('note',document.getElementById('pay-note').value);
+  fetch('/admin/bloggers/'+id+'/add-payment',{method:'POST',body:data}).then(function(r){
+    if(r.ok){document.getElementById('payment-overlay').classList.remove('open');location.reload();}
+    else r.text().then(function(t){document.getElementById('pay-status').textContent=t||'Ошибка';});
   });
 }
 </script>
