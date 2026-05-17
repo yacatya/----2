@@ -70,7 +70,6 @@ def _send_magic_link(email, conn):
 
 
 def _upsert_user(conn, email):
-    """Insert user if not exists (compatible with password_hash NOT NULL schema), then grant access."""
     conn.execute(
         'INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)', (email, '')
     )
@@ -576,7 +575,6 @@ def _make_utm_slug(name):
 
 
 def _blogger_warning(blogger, now):
-    """Return True if status is sent/replied, 3+ days passed, no reply yet."""
     if blogger['status'] not in ('sent', 'replied'):
         return False
     if not blogger['first_email_sent_at']:
@@ -603,6 +601,9 @@ def _ensure_email_templates_table(conn):
         ('blogger_second',
          'Re: Сотрудничество — колода карточек «Ближе» для пар',
          'Привет, {name}! Рада, что откликнулись \U0001f49b\n\nВот подробности о сотрудничестве:\n\n\U0001f4e6 Продукт: онлайн-колода «Ближе» — 60 карточек для пар (verevery.ru)\n\U0001f4b8 Комиссия: 30% = 207 ₽ с каждой продажи\n\U0001f517 Ваша ссылка: {utm_link}\n\nКак это работает:\n1. Вы публикуете пост или сторис со своей ссылкой\n2. Подписчики переходят и покупают\n3. Я считаю продажи по вашему UTM и перевожу комиссию раз в месяц\n\nМогу прислать описание продукта и примеры карточек — всё что нужно для публикации.\n\nГотова ответить на любые вопросы!\n\nКатя\nverevery.ru'),
+        ('blogger_third',
+         '{name}, делюсь рекомендациями по работе с контентом',
+         'Привет, {name}!\n\nДелюсь рекомендациями по формату публикации. Это не жёсткие требования — финальный вид всегда за вами. Но эти подходы по нашему опыту дают лучший отклик.\n\n\U0001f4cc ВАЖНО ПРО ФОРМАТ ПРОДУКТА\n\nКарточки — цифровые, открываются в браузере на экране телефона.\nЭто не одна категория, а три блока по 20 карточек:\n\n— Вопрос — глубокие вопросы для разговора с партнёром\n— Действие — конкретные совместные практики (прогулка без телефона, записка в кармане и т.д.)\n— Забота — готовые фразы поддержки и принятия\n\nВнутри каждого блока — три уровня сложности: Лёгкий → Средний → Сложный. Можно начинать с лёгких и идти глубже.\n\nУ каждой карточки есть не только текст вопроса/действия, но и объяснение зачем это работает с точки зрения нейробиологии и ссылкой на исследования (Готтман, EFT, КПТ, ACT). Это важный момент — это не «вопросы для знакомства», это инструмент.\n\n\U0001f4f1 ОСНОВНОЙ ПОСТ\n\nФормат 1 — Карусель «Три карточки которые меня прибили» (5-7 слайдов)\n\nСамый сильный формат для цифровых карточек. Структура:\n\nСлайд 1 — Хук со скриншотом одной карточки\nСкриншот самой сильной карточки крупным планом. Например карточка В-01 «Лучший момент»: «Какой момент, проведённый с тобой, я вспоминаю чаще всего — и почему именно он?»\nПодпись поверх или рядом: «Этот вопрос я бы никогда не задала сама. А зря».\n\nСлайды 2-4 — Личное размышление\nВ вашем обычном стиле. Реакция на карточки, личный опыт, размышление про близость. Не реклама — продолжение вашего обычного контента.\n\nСлайд 5 — Скриншоты карточек из разных блоков\nОдин скриншот вопроса, один действия, один заботы. Подпись сбоку: «Вопрос. Действие. Забота. 60 карточек, три блока, три уровня сложности».\n\nСлайд 6 — Что внутри\nКратко про научную базу: «Каждая карточка построена на исследованиях — Готтман, КПТ, теория привязанности. И к каждой есть объяснение почему это работает в мозге».\n\nСлайд 7 — Призыв\n«5 карточек бесплатно — посмотреть как это устроено. Полная колода — по моей ссылке: {utm_link}»\n\nФормат 2 — Рилс (15-45 секунд)\n\nСценарий А — «Три вопроса которые поменяли разговор»\nЗапись экрана: листаете карточки в браузере, останавливаетесь на трёх самых сильных вопросах. Голос за кадром: «Купила недавно. Задала мужу эти три вопроса. Говорили два часа без перерыва.»\n\nСценарий Б — Screen recording по блокам\nБыстрая смена скриншотов — Вопрос / Действие / Забота. Голос или текст: «В отношениях обычно не хватает не любви. Не хватает поводов поговорить. Вот 60 поводов, разделённые на три категории.»\n\nСценарий В — Реакция на одну карточку\nКамера на вас, в кадре телефон с одной карточкой. Читаете вопрос вслух, реагируете честно.\n\nСценарий Г — «Категория Забота — это что-то отдельное»\nФокус только на блоке Забота. Скриншоты 2-3 карточек заботы + ваша реакция: «Это не вопросы. Это просто фразы. Но попробуй их сказать вслух — поймёшь почему сложно».\n\n\U0001f4f2 STORIES (2-3 ШТУКИ)\n\nStories 1 — Тизер за день до поста\nСкриншот одной мощной карточки + ваш комментарий.\n\nStories 2 — В день публикации\nСкриншот поста + ссылка-стикер.\n\nStories 3 — Через 1-2 дня\nЛичная реакция или цитата без давления — продолжение темы.\n\n\U0001f4e6 ВИЗУАЛЬНЫЕ МАТЕРИАЛЫ ОТ НАС\n\nЯ пришлю:\n— Подборку скриншотов карточек в высоком разрешении из всех трёх блоков\n— Mockup-изображения телефона с открытыми карточками\n— Screen recording прохождения карточек на телефоне\n— Готовые тексты постов и stories\n\n\U0001f7e2 ЧТО ХОРОШО РАБОТАЕТ\n\n— Скриншоты конкретных вопросов или фраз из колоды\n— Подсветка структуры (три блока, три уровня)\n— Упоминание научной базы (Готтман, КПТ, исследования)\n— Личная реакция на конкретную карточку «вот эта меня прибила»\n— Акцент что у каждой карточки есть объяснение зачем\n\n\U0001f534 ЧТО НЕ РАБОТАЕТ\n\n— «Карточки помогут улучшить отношения» — пустая фраза без конкретики\n— Скрывать что продукт цифровой\n— Не упоминать три категории и градацию сложности\n— Слова «уникальный», «революционный», «единственный»\n— Прямая реклама без личной обёртки\n\n\U0001f552 ПО ТАЙМИНГУ\n\nЛучшее время для публикации в нише отношений:\n— Будни: вечер 19:00–21:30\n— Выходные: первая половина дня 11:00–14:00\n\n⚠️ ОБЯЗАТЕЛЬНО\n\n— Маркировка рекламы по закону РФ: пометка «реклама», ИНН рекламодателя и ERID. Пришлю данные после регистрации креатива в ОРД.\n— Чёткое указание что продукт цифровой (онлайн-формат, открывается в браузере на телефоне)\n— Партнёрская ссылка в шапке профиля или ссылке-стикере stories: {utm_link}\n\nЕсли хотите обсудить идеи — пишите. Могу помочь подобрать конкретные карточки под раскадровку рилс или текст поста.\n\nС уважением,\nКатя'),
     ]:
         try:
             conn.execute(
@@ -624,6 +625,9 @@ def _get_template(conn, key):
     if key == 'blogger_first':
         return ('Сотрудничество — колода карточек «Ближе» для пар',
                 'Привет, {name}! 👋\n\nМеня зовут Катя, я создала Vera — онлайн-колоду карточек «Ближе» для пар на verevery.ru.\n\nКарточки помогают восстановить близость в отношениях — основаны на доказательной психологии (Готтман, EFT, теория привязанности). Цена: 690 ₽.\n\nХочу предложить сотрудничество: вы рассказываете аудитории о проекте, получаете 30% с каждой продажи по вашей ссылке — 207 ₽ за покупку.\n\nЕсли интересно — напишу подробнее об условиях 🙌\n\nКатя\nverevery.ru')
+    if key == 'blogger_third':
+        return ('{name}, делюсь рекомендациями по работе с контентом',
+                'Привет, {name}!\n\nДелюсь рекомендациями по формату публикации.\n\nКатя\nverevery.ru')
     return ('Re: Сотрудничество — колода карточек «Ближе» для пар',
             'Привет, {name}! Рада, что откликнулись 💛\n\nВаша UTM-ссылка: {utm_link}\n\nКатя\nverevery.ru')
 
@@ -652,12 +656,11 @@ def _render_email_html(body_text, name, utm_link=''):
 
 
 def _send_via_make(blogger, email_type, conn):
-    """Send message via Make.com webhook for instagram/telegram channels. Returns (ok, error_msg)."""
     import requests as _req
     webhook_url = os.environ.get('MAKE_OUTBOUND_WEBHOOK', '')
     if not webhook_url:
         return False, 'MAKE_OUTBOUND_WEBHOOK не настроен'
-    template_key = 'blogger_first' if email_type == 'first' else 'blogger_second'
+    template_key = {'first': 'blogger_first', 'second': 'blogger_second', 'third': 'blogger_third'}.get(email_type, 'blogger_first')
     subject, body_text = _get_template(conn, template_key)
     text = body_text.replace('{name}', blogger['name']).replace('{utm_link}', blogger['utm_link'] or '')
     channel = blogger.get('channel', 'email')
@@ -699,10 +702,9 @@ def _send_via_make(blogger, email_type, conn):
 
 
 def _send_blogger_email(blogger, email_type, conn):
-    """Send first or second outreach email. Returns (ok, error_msg)."""
     import resend
     resend.api_key = os.environ.get('RESEND_API_KEY', '')
-    template_key = 'blogger_first' if email_type == 'first' else 'blogger_second'
+    template_key = {'first': 'blogger_first', 'second': 'blogger_second', 'third': 'blogger_third'}.get(email_type, 'blogger_first')
     subject, body_text = _get_template(conn, template_key)
     html_body = _render_email_html(body_text, blogger['name'], blogger['utm_link'] or '')
     now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
@@ -825,9 +827,11 @@ def admin_bloggers():
     _ensure_email_templates_table(conn)
     t1 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_first'").fetchone()
     t2 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_second'").fetchone()
+    t3 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_third'").fetchone()
     email_templates = {
         'first': t1['body_text'] if t1 else '',
         'second': t2['body_text'] if t2 else '',
+        'third': t3['body_text'] if t3 else '',
     }
     conn.close()
 
@@ -1169,6 +1173,7 @@ def webhook_reply():
         last_reply = blogger.get('last_reply_at') or ''
         if last_reply:
             try:
+                from datetime import timezone
                 last_dt = datetime.fromisoformat(last_reply)
                 diff = (datetime.utcnow() - last_dt).total_seconds()
                 if diff < 60:
@@ -1249,8 +1254,9 @@ def admin_bloggers_templates():
     _ensure_email_templates_table(conn)
     t1 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_first'").fetchone()
     t2 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_second'").fetchone()
+    t3 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_third'").fetchone()
     conn.close()
-    return render_template('admin_bloggers_templates.html', t1=t1, t2=t2)
+    return render_template('admin_bloggers_templates.html', t1=t1, t2=t2, t3=t3)
 
 
 @main.route('/admin/bloggers/templates/save', methods=['POST'])
@@ -1258,10 +1264,10 @@ def admin_bloggers_templates_save():
     if not _admin_required():
         return 'Forbidden', 403
     key = request.form.get('key', '')
-    if key not in ('blogger_first', 'blogger_second'):
+    if key not in ('blogger_first', 'blogger_second', 'blogger_third'):
         return 'Bad key', 400
     subject = request.form.get('subject', '').strip()[:500]
-    body_text = request.form.get('body_text', '').strip()[:5000]
+    body_text = request.form.get('body_text', '').strip()[:10000]
     if not subject or not body_text:
         return 'Пустые поля', 400
     from .db import get_db
