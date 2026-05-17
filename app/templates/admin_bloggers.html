@@ -169,6 +169,8 @@
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
         {% elif can_send and b.status in ('interested',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'second', this)">Письмо 2</button>
+        {% elif can_send and b.status in ('agreed', 'posted') %}
+        <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'third', this)">Рек. 3</button>
         {% elif not can_send and b.status in ('new', 'interested') %}
         <span class="btn-sm" title="{% if b.channel == 'instagram' %}Ждём первого ответа — нет ID{% elif b.channel == 'telegram' %}Блогер должен написать боту{% endif %}" style="opacity:0.4;cursor:default">⏳</span>
         {% endif %}
@@ -416,10 +418,12 @@ function updateTemplatePreview(){
   var slug=document.getElementById('m-utm_slug').value.trim();
   var utm=slug?'verevery.ru/free?utm='+slug:'verevery.ru/free';
   var isSecond=status==='interested';
-  var tmpl=isSecond?(EMAIL_TEMPLATES.second||''):(EMAIL_TEMPLATES.first||'');
+  var isThird=status==='agreed'||status==='posted';
+  var tmpl=isThird?(EMAIL_TEMPLATES.third||''):isSecond?(EMAIL_TEMPLATES.second||''):(EMAIL_TEMPLATES.first||'');
   var text=tmpl.replace(/{name}/g,name).replace(/{utm_link}/g,utm);
   document.getElementById('msg-preview-text').textContent=text;
-  document.getElementById('msg-preview-label').textContent=isSecond?'Письмо 2 — текст для отправки':'Письмо 1 — текст для отправки';
+  var label=isThird?'Письмо 3 — рекомендации по контенту':isSecond?'Письмо 2 — текст для отправки':'Письмо 1 — текст для отправки';
+  document.getElementById('msg-preview-label').textContent=label;
 }
 function copyMsgTemplate(){
   var text=document.getElementById('msg-preview-text').textContent;
