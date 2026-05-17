@@ -1471,6 +1471,118 @@ def partner_dashboard():
     )
 
 
+@main.route('/partner/sales')
+def partner_sales():
+    pid = session.get('partner_id')
+    if not pid:
+        return redirect(url_for('main.partner_login'))
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (pid,)).fetchone()
+    if not blogger:
+        session.pop('partner_id', None)
+        conn.close()
+        return redirect(url_for('main.partner_login'))
+    blogger = dict(blogger)
+    utm = blogger['utm_slug'] or ''
+
+    date_from = request.args.get('from', '')
+    date_to = request.args.get('to', '')
+
+    query = "SELECT date, amount, commission FROM sales WHERE utm=?"
+    params = [utm]
+    if date_from:
+        query += " AND date >= ?"
+        params.append(date_from)
+    if date_to:
+        query += " AND date <= ?"
+        params.append(date_to + 'T23:59:59')
+    query += " ORDER BY id DESC"
+
+    sales = [dict(r) for r in conn.execute(query, params).fetchall()]
+    total_comm = sum(s['commission'] for s in sales)
+    conn.close()
+    return render_template('partner_sales.html',
+        blogger=blogger, sales=sales,
+        total_comm=int(total_comm),
+        date_from=date_from, date_to=date_to,
+    )
+
+
+@main.route('/partner/payments')
+def partner_payments():
+    pid = session.get('partner_id')
+    if not pid:
+        return redirect(url_for('main.partner_login'))
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (pid,)).fetchone()
+    if not blogger:
+        session.pop('partner_id', None)
+        conn.close()
+        return redirect(url_for('main.partner_login'))
+    blogger = dict(blogger)
+    utm = blogger['utm_slug'] or ''
+
+    payments = [dict(r) for r in conn.execute(
+        'SELECT * FROM partner_payments WHERE blogger_id=? ORDER BY paid_date DESC', (pid,)
+    ).fetchall()]
+
+    total_earned_row = conn.execute(
+        "SELECT COALESCE(SUM(commission),0) s FROM sales WHERE utm=?", (utm,)
+    ).fetchone()
+    total_earned = int(total_earned_row['s'])
+    paid_out = blogger.get('paid_out') or 0
+    balance = max(0, total_earned - paid_out)
+    conn.close()
+
+    from datetime import date
+    today = date.today()
+    if today.day <= 15:
+        next_payment = today.replace(day=15).isoformat()
+    else:
+        if today.month == 12:
+            next_payment = today.replace(year=today.year+1, month=1, day=15).isoformat()
+        else:
+            next_payment = today.replace(month=today.month+1, day=15).isoformat()
+
+    return render_template('partner_payments.html',
+        blogger=blogger,
+        payments=payments,
+        total_earned=total_earned,
+        paid_out=paid_out,
+        balance=balance,
+        next_payment=next_payment,
+    )
+
+
+@main.route('/admin/bloggers/<int:bid>/add-payment', methods=['POST'])
+def admin_add_payment(bid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    amount = request.form.get('amount', '').strip()
+    paid_date = request.form.get('paid_date', '').strip()
+    method = request.form.get('method', '').strip()[:100]
+    note = request.form.get('note', '').strip()[:500]
+    if not amount or not paid_date:
+        return 'Сумма и дата обязательны', 400
+    try:
+        amount = int(float(amount))
+    except ValueError:
+        return 'Некорректная сумма', 400
+    from .db import get_db
+    conn = get_db()
+    conn.execute(
+        'INSERT INTO partner_payments (blogger_id, amount, paid_date, method, note) VALUES (?,?,?,?,?)',
+        (bid, amount, paid_date, method, note)
+    )
+    # update paid_out total on blogger
+    conn.execute('UPDATE bloggers SET paid_out = paid_out + ? WHERE id=?', (amount, bid))
+    conn.commit()
+    conn.close()
+    return '', 200
+
+
 def _magic_link_email(link):
     return f'''<!DOCTYPE html>
 <html lang="ru">

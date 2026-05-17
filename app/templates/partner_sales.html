@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}История продаж — verevery{% endblock %}
+{% block head %}
+<style>
+  body { background: var(--cream); }
+  .p-header { background: var(--dark); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .p-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); }
+  .p-logo span { color: var(--light-accent); }
+  .p-logout { font-size: 12px; color: var(--sand); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 50px; }
+  .p-body { max-width: 600px; margin: 0 auto; padding: 24px 16px 90px; }
+  .page-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; color: var(--dark); margin-bottom: 20px; }
+  .filter-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; align-items: flex-end; }
+  .filter-form input { padding: 10px 12px; border: 1px solid var(--beige); border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--dark); background: white; }
+  .filter-form button { padding: 10px 18px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 12px; cursor: pointer; }
+  .filter-form a { font-size: 12px; color: var(--muted); text-decoration: none; padding: 10px 0; }
+  .summary-box { background: var(--dark); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .summary-box .lbl { font-size: 12px; color: rgba(255,255,255,0.5); }
+  .summary-box .val { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: white; }
+  .sales-table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; border-radius: 14px; overflow: hidden; border: 1px solid var(--beige); }
+  .sales-table th { text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--beige); color: var(--sand); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sales-table td { padding: 12px 14px; border-bottom: 1px solid var(--beige); color: var(--dark); }
+  .sales-table tr:last-child td { border-bottom: none; }
+  .empty { text-align: center; padding: 40px 0; color: var(--muted); font-size: 13px; }
+  .p-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--beige); display: flex; z-index: 100; }
+  .p-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0; text-decoration: none; color: var(--muted); font-size: 10px; gap: 3px; }
+  .p-nav a.active { color: var(--dark); border-bottom: 2px solid var(--dark); }
+  .p-nav a span { font-size: 18px; }
+</style>
+{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<div class="p-header">
+  <div class="p-logo">vere<span>very</span></div>
+  <a href="/partner/logout" class="p-logout">Выйти</a>
+</div>
+<div class="p-body">
+  <div class="page-title">История продаж</div>
+
+  <form class="filter-form" method="GET">
+    <div>
+      <div style="font-size:11px;color:var(--sand);margin-bottom:4px;">С даты</div>
+      <input type="date" name="from" value="{{ date_from }}">
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--sand);margin-bottom:4px;">По дату</div>
+      <input type="date" name="to" value="{{ date_to }}">
+    </div>
+    <button type="submit">Фильтр</button>
+    {% if date_from or date_to %}<a href="/partner/sales">Сбросить</a>{% endif %}
+  </form>
+
+  {% if sales %}
+  <div class="summary-box">
+    <div><div class="lbl">Продаж найдено</div><div class="val">{{ sales|length }}</div></div>
+    <div style="text-align:right"><div class="lbl">Твой доход</div><div class="val">{{ total_comm }} ₽</div></div>
+  </div>
+  <table class="sales-table">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Сумма</th>
+        <th>Твой доход</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sales %}
+      <tr>
+        <td style="color:var(--muted);white-space:nowrap">{{ s.date[:10] if s.date else '—' }}</td>
+        <td>{{ s.amount|int }} ₽</td>
+        <td style="color:#2e7d32;font-weight:600">+{{ s.commission|int }} ₽</td>
+        <td><span style="background:#e8f5e9;color:#2e7d32;padding:2px 10px;border-radius:50px;font-size:11px;">Подтверждена</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    {% if date_from or date_to %}За выбранный период продаж нет{% else %}Продаж пока нет — поделись своей ссылкой! 🚀{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<nav class="p-nav">
+  <a href="/partner/dashboard"><span>🏠</span>Главная</a>
+  <a href="/partner/sales" class="active"><span>📋</span>Продажи</a>
+  <a href="/partner/payments"><span>💰</span>Выплаты</a>
+</nav>
+{% endblock %}

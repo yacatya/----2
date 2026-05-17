@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Выплаты — verevery{% endblock %}
+{% block head %}
+<style>
+  body { background: var(--cream); }
+  .p-header { background: var(--dark); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .p-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); }
+  .p-logo span { color: var(--light-accent); }
+  .p-logout { font-size: 12px; color: var(--sand); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 50px; }
+  .p-body { max-width: 600px; margin: 0 auto; padding: 24px 16px 90px; }
+  .page-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; color: var(--dark); margin-bottom: 20px; }
+  .balance-card { background: var(--dark); border-radius: 16px; padding: 24px 20px; margin-bottom: 16px; }
+  .balance-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+  .balance-value { font-family: 'Cormorant Garamond', serif; font-size: 40px; color: white; line-height: 1; }
+  .balance-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .info-card { background: white; border: 1px solid var(--beige); border-radius: 14px; padding: 16px; }
+  .info-label { font-size: 11px; color: var(--sand); margin-bottom: 4px; }
+  .info-value { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); }
+  .section-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--sand); margin: 0 0 12px; }
+  .pay-table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; border-radius: 14px; overflow: hidden; border: 1px solid var(--beige); }
+  .pay-table th { text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--beige); color: var(--sand); font-size: 11px; font-weight: 500; text-transform: uppercase; }
+  .pay-table td { padding: 12px 14px; border-bottom: 1px solid var(--beige); color: var(--dark); }
+  .pay-table tr:last-child td { border-bottom: none; }
+  .empty { text-align: center; padding: 32px 0; color: var(--muted); font-size: 13px; background: white; border: 1px solid var(--beige); border-radius: 14px; }
+  .conditions-box { background: white; border: 1px solid var(--beige); border-radius: 14px; padding: 18px; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .conditions-box strong { color: var(--dark); }
+  .p-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--beige); display: flex; z-index: 100; }
+  .p-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0; text-decoration: none; color: var(--muted); font-size: 10px; gap: 3px; }
+  .p-nav a.active { color: var(--dark); border-bottom: 2px solid var(--dark); }
+  .p-nav a span { font-size: 18px; }
+</style>
+{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<div class="p-header">
+  <div class="p-logo">vere<span>very</span></div>
+  <a href="/partner/logout" class="p-logout">Выйти</a>
+</div>
+<div class="p-body">
+  <div class="page-title">Выплаты</div>
+
+  <div class="balance-card">
+    <div class="balance-label">К выплате сейчас</div>
+    <div class="balance-value">{{ balance }} ₽</div>
+    <div class="balance-sub">Следующая выплата — до {{ next_payment }}</div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-label">Заработано всего</div>
+      <div class="info-value">{{ total_earned }} ₽</div>
+    </div>
+    <div class="info-card">
+      <div class="info-label">Выплачено всего</div>
+      <div class="info-value">{{ paid_out }} ₽</div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-bottom:12px">История выплат</div>
+  {% if payments %}
+  <table class="pay-table" style="margin-bottom:24px">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Сумма</th>
+        <th>Способ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.paid_date[:10] }}</td>
+        <td style="font-weight:600;color:#2e7d32">{{ p.amount }} ₽</td>
+        <td style="color:var(--muted)">{{ p.method or '—' }}{% if p.note %}<br><span style="font-size:11px">{{ p.note }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty" style="margin-bottom:24px">Выплат пока не было</div>
+  {% endif %}
+
+  <div class="section-title" style="margin-bottom:12px">Условия выплат</div>
+  <div class="conditions-box">
+    <strong>💛 Минимальная сумма:</strong> 1 000 ₽<br>
+    <strong>📅 Дата выплат:</strong> до 15-го числа каждого месяца<br>
+    <strong>💳 Способы:</strong> СБП, карта РФ<br>
+    <strong>📩 Вопросы:</strong> <a href="mailto:team.verevery@gmail.com" style="color:var(--accent)">team.verevery@gmail.com</a>
+  </div>
+</div>
+
+<nav class="p-nav">
+  <a href="/partner/dashboard"><span>🏠</span>Главная</a>
+  <a href="/partner/sales"><span>📋</span>Продажи</a>
+  <a href="/partner/payments" class="active"><span>💰</span>Выплаты</a>
+</nav>
+{% endblock %}
