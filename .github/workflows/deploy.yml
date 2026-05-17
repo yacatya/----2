@@ -58,6 +58,8 @@ jobs:
             app/templates/admin_bloggers.html \
             app/templates/admin_bloggers_analytics.html \
             app/templates/admin_bloggers_templates.html \
+            app/templates/partner_login.html \
+            app/templates/partner_dashboard.html \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/templates/
 
           scp -i ~/.ssh/id_rsa \
