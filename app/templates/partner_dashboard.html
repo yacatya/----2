@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Кабинет партнёра — verevery{% endblock %}
+{% block head %}
+<style>
+  body { background: var(--cream); padding-top: 0; }
+  .p-header { background: var(--dark); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .p-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); }
+  .p-logo span { color: var(--light-accent); }
+  .p-logout { font-size: 12px; color: var(--sand); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 50px; }
+  .p-body { max-width: 600px; margin: 0 auto; padding: 24px 16px 60px; }
+  .p-welcome { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--dark); margin-bottom: 4px; }
+  .p-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .utm-box { background: white; border: 1px solid var(--beige); border-radius: 14px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+  .utm-link { font-size: 13px; color: var(--dark); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
+  .btn-copy { padding: 8px 16px; background: var(--dark); color: white; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .section-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--sand); margin: 0 0 12px; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .stat-card { background: white; border: 1px solid var(--beige); border-radius: 14px; padding: 16px; }
+  .stat-card.accent { background: var(--dark); border-color: var(--dark); }
+  .stat-label { font-size: 11px; color: var(--sand); margin-bottom: 6px; letter-spacing: 0.5px; }
+  .stat-card.accent .stat-label { color: rgba(255,255,255,0.5); }
+  .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: var(--dark); line-height: 1; }
+  .stat-card.accent .stat-value { color: white; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .stat-card.accent .stat-sub { color: rgba(255,255,255,0.45); }
+  .sales-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .sales-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--beige); color: var(--sand); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sales-table td { padding: 10px; border-bottom: 1px solid var(--beige); color: var(--dark); }
+  .empty-sales { text-align: center; padding: 32px 0; color: var(--muted); font-size: 13px; }
+  .section-box { background: white; border: 1px solid var(--beige); border-radius: 14px; padding: 16px; margin-bottom: 24px; }
+</style>
+{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<div class="p-header">
+  <div class="p-logo">vere<span>very</span></div>
+  <a href="/partner/logout" class="p-logout">Выйти</a>
+</div>
+<div class="p-body">
+  <div class="p-welcome">Привет, {{ blogger.name }}! 👋</div>
+  <div class="p-sub">Твой партнёрский кабинет</div>
+
+  <div class="utm-box">
+    <span class="utm-link" id="utm-text">{{ utm_link }}</span>
+    <button class="btn-copy" onclick="copyUtm()">Скопировать</button>
+  </div>
+
+  <div class="section-title">Переходы по ссылке</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Всего</div>
+      <div class="stat-value">{{ c_all }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">В этом месяце</div>
+      <div class="stat-value">{{ c_month }}</div>
+      <div class="stat-sub">сегодня: {{ c_today }}</div>
+    </div>
+  </div>
+
+  <div class="section-title">Продажи</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Всего продаж</div>
+      <div class="stat-value">{{ s_all.cnt }}</div>
+      <div class="stat-sub">конверсия {{ conversion }}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">В этом месяце</div>
+      <div class="stat-value">{{ s_month.cnt }}</div>
+      <div class="stat-sub">сегодня: {{ s_today.cnt }}</div>
+    </div>
+  </div>
+
+  <div class="section-title">Заработок</div>
+  <div class="stats-grid">
+    <div class="stat-card accent">
+      <div class="stat-label">К выплате ₽</div>
+      <div class="stat-value">{{ balance }}</div>
+      <div class="stat-sub">заработано всего: {{ total_earned }} ₽</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Выплачено ₽</div>
+      <div class="stat-value">{{ paid_out }}</div>
+      <div class="stat-sub">выплаты до 15-го числа</div>
+    </div>
+  </div>
+
+  <div class="section-title">Последние продажи</div>
+  <div class="section-box">
+    {% if recent %}
+    <table class="sales-table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Сумма</th>
+          <th>Твой доход</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in recent %}
+        <tr>
+          <td style="color:var(--muted)">{{ s.date[:10] if s.date else '—' }}</td>
+          <td>{{ s.amount|int }} ₽</td>
+          <td style="color:#2e7d32;font-weight:600">+{{ s.commission|int }} ₽</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-sales">Продаж пока нет — поделись своей ссылкой! 🚀</div>
+    {% endif %}
+  </div>
+
+  <div style="background:var(--beige);border-radius:14px;padding:16px;font-size:13px;color:var(--muted);line-height:1.7;">
+    💛 Выплаты производятся до 15-го числа каждого месяца при балансе от 1 000 ₽. Есть вопросы? Напиши нам: <a href="mailto:team.verevery@gmail.com" style="color:var(--accent)">team.verevery@gmail.com</a>
+  </div>
+</div>
+
+<script>
+function copyUtm() {
+  var text = document.getElementById('utm-text').textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.querySelector('.btn-copy');
+    btn.textContent = '✓ Скопировано';
+    setTimeout(function() { btn.textContent = 'Скопировать'; }, 2000);
+  });
+}
+</script>
+{% endblock %}

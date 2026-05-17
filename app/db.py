@@ -67,6 +67,44 @@ def init_db():
             subject TEXT NOT NULL,
             body_text TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS link_clicks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            utm_slug TEXT NOT NULL,
+            visited_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS partner_tokens (
+            token TEXT PRIMARY KEY,
+            blogger_id INTEGER NOT NULL,
+            expires_at TEXT NOT NULL,
+            used INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS partner_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            blogger_id INTEGER NOT NULL,
+            amount INTEGER NOT NULL,
+            paid_date TEXT NOT NULL,
+            method TEXT DEFAULT '',
+            note TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS partner_materials (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            type TEXT DEFAULT 'link',
+            url TEXT DEFAULT '',
+            content TEXT DEFAULT '',
+            description TEXT DEFAULT '',
+            active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS partner_faq (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            order_num INTEGER DEFAULT 0,
+            active INTEGER DEFAULT 1
+        );
     ''')
     default_templates = [
         (
