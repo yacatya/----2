@@ -158,6 +158,9 @@
       <td style="text-align:center;{% if debt > 0 %}color:#a67c00;font-weight:600{% else %}color:var(--sand){% endif %}">{{ debt }} ₽</td>
       <td style="white-space:nowrap;">
         <button class="btn-sm" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
+        {% if b.email and b.status not in ('new',) %}
+        <button class="btn-sm" onclick="sendInvite({{ b.id }}, this)" title="Пригласить в кабинет партнёра">📩</button>
+        {% endif %}
         {% set can_send = (b.channel == 'email' and b.email) or (b.channel == 'instagram' and b.ig_user_id) or (b.channel == 'telegram' and b.tg_user_id) %}
         {% if can_send and b.status in ('new',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
@@ -506,5 +509,13 @@ function linkifyNotes() {
   });
 }
 document.addEventListener('DOMContentLoaded', linkifyNotes);
+function sendInvite(id, btn) {
+  btn.textContent='…'; btn.disabled=true;
+  fetch('/admin/bloggers/'+id+'/send-partner-invite',{method:'POST'}).then(function(r){
+    btn.disabled=false;
+    if(r.ok){btn.textContent='✓';btn.classList.add('ok');setTimeout(function(){btn.textContent='📩';btn.classList.remove('ok');},3000);}
+    else r.text().then(function(t){btn.textContent='✗';btn.classList.add('err');btn.title=t;setTimeout(function(){btn.textContent='📩';btn.classList.remove('err');},3000);});
+  });
+}
 </script>
 {% endblock %}
