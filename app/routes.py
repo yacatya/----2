@@ -101,6 +101,16 @@ def index():
 
 @main.route('/free')
 def free():
+    utm = request.args.get('utm', '').strip()
+    if utm and utm not in ('direct', ''):
+        try:
+            from .db import get_db as _gdb
+            _c = _gdb()
+            _c.execute('INSERT INTO link_clicks (utm_slug) VALUES (?)', (utm,))
+            _c.commit()
+            _c.close()
+        except Exception:
+            pass
     all_cards = {b: load_block(b) for b in BLOCK_INFO}
     id_map = {}
     for block, cards in all_cards.items():
@@ -473,7 +483,7 @@ def admin_resolve_report():
     report_id = request.form.get('id', '')
     try:
         from .db import get_db
-        conn = get_db()        
+        conn = get_db()
         conn.execute('UPDATE reports SET resolved=1 WHERE id=?', (report_id,))
         conn.commit()
         conn.close()
@@ -1268,6 +1278,197 @@ def admin_bloggers_templates_save():
     conn.commit()
     conn.close()
     return '', 200
+
+
+# ─── Partner Cabinet ────────────────────────────────────────────
+
+PARTNER_TOKEN_HOURS = 72
+
+def _partner_magic_link_email(name, link):
+    return f'''<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#FAF7F2;font-family:Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+  <div style="font-family:Georgia,serif;font-size:22px;color:#2A2118;margin-bottom:32px;">vere<span style="color:#A67C52;">very</span></div>
+  <div style="background:#fff;border:1px solid #EDE6DA;border-radius:20px;padding:32px 28px;">
+    <h2 style="font-family:Georgia,serif;font-size:20px;color:#2A2118;margin:0 0 16px">Привет, {name}! 👋</h2>
+    <p style="color:#5C4A36;line-height:1.7;margin:0 0 24px">Катя приглашает тебя в личный кабинет партнёра verevery.ru — там ты найдёшь свою статистику, историю продаж и материалы для постов.</p>
+    <a href="{link}" style="display:inline-block;background:#2A2118;color:#FAF7F2;text-decoration:none;padding:14px 28px;border-radius:50px;font-size:14px;font-weight:500;">Войти в кабинет →</a>
+    <p style="color:#A0927E;font-size:12px;margin:24px 0 0">Ссылка действует 72 часа. Если ты не ожидала это письмо — просто проигнорируй его.</p>
+  </div>
+</div>
+</body></html>'''
+
+def _send_partner_invite(blogger, base_url):
+    import secrets, resend
+    from datetime import timedelta
+    from .db import get_db
+    resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    token = secrets.token_urlsafe(32)
+    expires = (datetime.utcnow() + timedelta(hours=PARTNER_TOKEN_HOURS)).isoformat()
+    conn = get_db()
+    conn.execute('DELETE FROM partner_tokens WHERE blogger_id=? AND used=0', (blogger['id'],))
+    conn.execute('INSERT INTO partner_tokens (token, blogger_id, expires_at) VALUES (?,?,?)',
+                 (token, blogger['id'], expires))
+    conn.commit()
+    conn.close()
+    link = f"{base_url}/partner/auth?token={token}"
+    html = _partner_magic_link_email(blogger['name'], link)
+    try:
+        resend.Emails.send({
+            'from': 'Vera <team@verevery.ru>',
+            'to': [blogger['email']],
+            'subject': 'Твой личный кабинет партнёра verevery.ru',
+            'html': html,
+            'reply_to': os.environ.get('REPLY_TO_EMAIL', 'team.verevery@gmail.com'),
+        })
+        return True, None
+    except Exception as e:
+        return False, str(e)[:300]
+
+
+@main.route('/admin/bloggers/<int:bid>/send-partner-invite', methods=['POST'])
+def admin_send_partner_invite(bid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
+    conn.close()
+    if not blogger:
+        return 'Блогер не найден', 404
+    blogger = dict(blogger)
+    if not blogger.get('email'):
+        return 'У блогера нет email', 400
+    base_url = os.environ.get('BASE_URL', 'https://verevery.ru')
+    ok, err = _send_partner_invite(blogger, base_url)
+    return ('', 200) if ok else (f'Ошибка: {err}', 500)
+
+
+@main.route('/partner')
+def partner_index():
+    if not session.get('partner_id'):
+        return redirect(url_for('main.partner_login'))
+    return redirect(url_for('main.partner_dashboard'))
+
+
+@main.route('/partner/login', methods=['GET', 'POST'])
+def partner_login():
+    if session.get('partner_id'):
+        return redirect(url_for('main.partner_dashboard'))
+    error = ''
+    sent = False
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        if not email or '@' not in email:
+            error = 'Введите корректный email'
+        else:
+            from .db import get_db
+            conn = get_db()
+            blogger = conn.execute(
+                "SELECT * FROM bloggers WHERE LOWER(email)=? AND status NOT IN ('new')",
+                (email,)
+            ).fetchone()
+            conn.close()
+            if blogger:
+                base_url = os.environ.get('BASE_URL', 'https://verevery.ru')
+                _send_partner_invite(dict(blogger), base_url)
+            sent = True  # always show "check email" to avoid enumeration
+    return render_template('partner_login.html', error=error, sent=sent)
+
+
+@main.route('/partner/auth')
+def partner_auth():
+    token = request.args.get('token', '').strip()
+    if not token:
+        return redirect(url_for('main.partner_login'))
+    from .db import get_db
+    conn = get_db()
+    row = conn.execute(
+        'SELECT * FROM partner_tokens WHERE token=? AND used=0', (token,)
+    ).fetchone()
+    if not row:
+        conn.close()
+        return render_template('partner_login.html', error='Ссылка недействительна или уже использована', sent=False)
+    if datetime.fromisoformat(row['expires_at']) < datetime.utcnow():
+        conn.close()
+        return render_template('partner_login.html', error='Ссылка истекла — запросите новую', sent=False)
+    conn.execute('UPDATE partner_tokens SET used=1 WHERE token=?', (token,))
+    conn.commit()
+    conn.close()
+    session['partner_id'] = row['blogger_id']
+    session.permanent = True
+    return redirect(url_for('main.partner_dashboard'))
+
+
+@main.route('/partner/logout')
+def partner_logout():
+    session.pop('partner_id', None)
+    return redirect(url_for('main.partner_login'))
+
+
+@main.route('/partner/dashboard')
+def partner_dashboard():
+    pid = session.get('partner_id')
+    if not pid:
+        return redirect(url_for('main.partner_login'))
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (pid,)).fetchone()
+    if not blogger:
+        session.pop('partner_id', None)
+        conn.close()
+        return redirect(url_for('main.partner_login'))
+    blogger = dict(blogger)
+    utm = blogger['utm_slug'] or ''
+
+    now = datetime.utcnow()
+    month_start = now.strftime('%Y-%m-01')
+    today = now.strftime('%Y-%m-%d')
+
+    # Sales stats
+    def q(sql, *args):
+        row = conn.execute(sql, args).fetchone()
+        return dict(row) if row else {}
+
+    s_all = q("SELECT COUNT(*) cnt, COALESCE(SUM(commission),0) comm FROM sales WHERE utm=?", utm)
+    s_month = q("SELECT COUNT(*) cnt, COALESCE(SUM(commission),0) comm FROM sales WHERE utm=? AND date>=?", utm, month_start)
+    s_today = q("SELECT COUNT(*) cnt, COALESCE(SUM(commission),0) comm FROM sales WHERE utm=? AND date LIKE ?", utm, today+'%')
+
+    # Click stats
+    c_all = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=?", (utm,)).fetchone()['cnt']
+    c_month = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=? AND visited_at>=?", (utm, month_start)).fetchone()['cnt']
+    c_today = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=? AND date(visited_at)=?", (utm, today)).fetchone()['cnt']
+
+    # Payments
+    total_earned = int(s_all.get('comm', 0))
+    paid_out = blogger.get('paid_out') or 0
+    balance = max(0, total_earned - paid_out)
+
+    # Recent sales
+    recent = conn.execute(
+        "SELECT date, amount, commission FROM sales WHERE utm=? ORDER BY id DESC LIMIT 10", (utm,)
+    ).fetchall()
+    recent = [dict(r) for r in recent]
+
+    # Conversion
+    conversion = round(s_all['cnt'] / c_all * 100, 1) if c_all else 0
+
+    conn.close()
+    base_url = os.environ.get('BASE_URL', 'https://verevery.ru')
+    utm_link = blogger.get('utm_link') or f"{base_url}/free?utm={utm}"
+
+    return render_template('partner_dashboard.html',
+        blogger=blogger,
+        utm_link=utm_link,
+        s_all=s_all, s_month=s_month, s_today=s_today,
+        c_all=c_all, c_month=c_month, c_today=c_today,
+        total_earned=total_earned,
+        paid_out=paid_out,
+        balance=balance,
+        recent=recent,
+        conversion=conversion,
+    )
 
 
 def _magic_link_email(link):
