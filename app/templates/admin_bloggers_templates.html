@@ -50,8 +50,11 @@
     <code>{utm_link}</code> — персональная UTM-ссылка. Абзацы разделяйте пустой строкой.
   </div>
 
-  {% for t, label in [(t1, 'Письмо 1 — первое обращение'), (t2, 'Письмо 2 — подробности (после согласия)')] %}
-  {% set key = t.key if t else ('blogger_first' if loop.index == 1 else 'blogger_second') %}
+  {% for t, label, key, hint in [
+      (t1, 'Письмо 1 — первое обращение', 'blogger_first', 'Подстановки: {name} — имя блогера'),
+      (t2, 'Письмо 2 — подробности (после согласия)', 'blogger_second', 'Подстановки: {name} — имя блогера, {utm_link} — UTM-ссылка'),
+      (t3, 'Письмо 3 — рекомендации по контенту (после договорённости)', 'blogger_third', 'Подстановки: {name} — имя блогера, {utm_link} — UTM-ссылка. Тема: используй {name} для персонализации')
+  ] %}
   <div class="tpl-card">
     <div class="tpl-label">Шаблон {{ loop.index }}</div>
     <div class="tpl-name">{{ label }}</div>
@@ -63,8 +66,8 @@
       </div>
       <div class="f-group">
         <label class="f-label">Текст письма</label>
-        <textarea class="f-textarea" name="body_text" required>{{ t.body_text if t else '' }}</textarea>
-        <div class="f-hint">Подстановки: {name} — имя блогера, {utm_link} — UTM-ссылка (только в письме 2)</div>
+        <textarea class="f-textarea" name="body_text" style="min-height:{% if loop.index == 3 %}420px{% else %}220px{% endif %}" required>{{ t.body_text if t else '' }}</textarea>
+        <div class="f-hint">{{ hint }}</div>
       </div>
       <div class="tpl-footer">
         <button type="submit" class="btn-save">Сохранить</button>
