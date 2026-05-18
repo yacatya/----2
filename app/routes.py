@@ -75,7 +75,6 @@ def _send_magic_link(email, conn):
 
 
 def _upsert_user(conn, email):
-    """Insert user if not exists (compatible with password_hash NOT NULL schema), then grant access."""
     conn.execute(
         'INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)', (email, '')
     )
@@ -581,7 +580,6 @@ def _make_utm_slug(name):
 
 
 def _blogger_warning(blogger, now):
-    """Return True if status is sent/replied, 3+ days passed, no reply yet."""
     if blogger['status'] not in ('sent', 'replied'):
         return False
     if not blogger['first_email_sent_at']:
@@ -711,7 +709,6 @@ def _send_via_make(blogger, email_type, conn):
 
 
 def _send_blogger_email(blogger, email_type, conn):
-    """Send first or second outreach email. Returns (ok, error_msg)."""
     import resend
     resend.api_key = os.environ.get('RESEND_API_KEY', '')
     template_key = {'first': 'blogger_first', 'second': 'blogger_second', 'third': 'blogger_third'}.get(email_type, 'blogger_first')

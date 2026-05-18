@@ -1,6 +1,7 @@
-from flask import Flask
 import os
 from datetime import timedelta
+
+from flask import Flask
 
 def create_app():
     app = Flask(__name__)
