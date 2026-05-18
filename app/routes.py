@@ -7,7 +7,7 @@ import re as _re
 import secrets
 import threading
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, render_template, redirect, url_for, session, request
 
@@ -1413,6 +1413,22 @@ def api_check_blogger():
         return {'found': False}, 200
 
 
+def _parse_timestamp(ts):
+    """Convert Unix timestamp (seconds or milliseconds) to UTC ISO string.
+
+    Instagram Messaging API sends ms, Telegram sends seconds.
+    Heuristic: if value > 1e12, treat as milliseconds.
+    """
+    try:
+        ts_float = float(ts)
+        if ts_float > 1e12:
+            ts_float /= 1000.0
+        return datetime.fromtimestamp(ts_float, tz=timezone.utc).replace(tzinfo=None).isoformat()
+    except Exception:
+        logger.warning(f'_parse_timestamp: cannot parse {ts!r}, falling back to utcnow')
+        return datetime.utcnow().isoformat()
+
+
 # ── Instagram & Telegram webhooks ────────────────────────────────────────────
 
 @main.route('/webhook/instagram/health')
@@ -1461,16 +1477,19 @@ def webhook_instagram():
             for msg_event in entry.get('messaging', []):
                 try:
                     sender = msg_event.get('sender') or {}
+                    recipient = msg_event.get('recipient') or {}
                     message = msg_event.get('message') or {}
                     if message.get('is_echo'):
                         continue
                     sender_id = sender.get('id', '')
+                    recipient_id = recipient.get('id', '')
                     text = (message.get('text') or '').strip()
                     message_id = message.get('mid')
                     timestamp = msg_event.get('timestamp')
-                    received_at = (
-                        datetime.utcfromtimestamp(timestamp).isoformat()
-                        if timestamp else datetime.utcnow().isoformat()
+                    received_at = _parse_timestamp(timestamp) if timestamp is not None else datetime.utcnow().isoformat()
+                    logger.info(
+                        f'instagram DM: sender={sender_id} recipient={recipient_id} '
+                        f'mid={message_id} ts_raw={timestamp} text_len={len(text)}'
                     )
                     if not sender_id or not text:
                         continue
@@ -1514,10 +1533,7 @@ def webhook_telegram():
         raw_msg_id = message.get('message_id')
         message_id = str(raw_msg_id) if raw_msg_id is not None else None
         date = message.get('date')
-        received_at = (
-            datetime.utcfromtimestamp(date).isoformat()
-            if date else datetime.utcnow().isoformat()
-        )
+        received_at = _parse_timestamp(date) if date is not None else datetime.utcnow().isoformat()
         if not chat_id or not text:
             return '', 200
         external_id = user_id or chat_id
