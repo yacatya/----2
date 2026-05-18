@@ -87,9 +87,15 @@ jobs:
             sed -i '/^GOOGLE_SCRIPT_URL=/d' /opt/verevery/.env && echo "GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/AKfycbxg7aQgYy4DgwdpExdl4y7P-a1wQDU3s9gv_0Z81NvkdzaPAN9jjwVZcZTtCHimqh40/exec" >> /opt/verevery/.env
             grep -q "ANTHROPIC_API_KEY"   /opt/verevery/.env || echo "ANTHROPIC_API_KEY=" >> /opt/verevery/.env
             sed -i '/^WEBHOOK_SECRET=/d' /opt/verevery/.env && echo "WEBHOOK_SECRET=muzqxscBUUVIKPA_SshMQDWhXjuL1ESf" >> /opt/verevery/.env
-            grep -q "MAKE_OUTBOUND_WEBHOOK" /opt/verevery/.env || echo "MAKE_OUTBOUND_WEBHOOK=" >> /opt/verevery/.env
+            grep -q "MAKE_OUTBOUND_WEBHOOK"    /opt/verevery/.env || echo "MAKE_OUTBOUND_WEBHOOK=" >> /opt/verevery/.env
             sed -i '/^ADMIN_NOTIFY_EMAIL=/d' /opt/verevery/.env && echo "ADMIN_NOTIFY_EMAIL=team.verevery@gmail.com" >> /opt/verevery/.env
             sed -i '/^REPLY_TO_EMAIL=/d' /opt/verevery/.env && echo "REPLY_TO_EMAIL=team.verevery@gmail.com" >> /opt/verevery/.env
+            grep -q "META_VERIFY_TOKEN"       /opt/verevery/.env || echo "META_VERIFY_TOKEN=" >> /opt/verevery/.env
+            grep -q "META_APP_SECRET"         /opt/verevery/.env || echo "META_APP_SECRET=" >> /opt/verevery/.env
+            grep -q "INSTAGRAM_ACCESS_TOKEN"  /opt/verevery/.env || echo "INSTAGRAM_ACCESS_TOKEN=" >> /opt/verevery/.env
+            grep -q "INSTAGRAM_USER_ID"       /opt/verevery/.env || echo "INSTAGRAM_USER_ID=" >> /opt/verevery/.env
+            grep -q "TELEGRAM_BOT_TOKEN"      /opt/verevery/.env || echo "TELEGRAM_BOT_TOKEN=" >> /opt/verevery/.env
+            grep -q "TELEGRAM_WEBHOOK_SECRET" /opt/verevery/.env || echo "TELEGRAM_WEBHOOK_SECRET=" >> /opt/verevery/.env
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true

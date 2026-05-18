@@ -105,6 +105,19 @@ def init_db():
             order_num INTEGER DEFAULT 0,
             active INTEGER DEFAULT 1
         );
+        CREATE TABLE IF NOT EXISTS incoming_messages (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel      TEXT NOT NULL,
+            message_id   TEXT,
+            external_id  TEXT NOT NULL,
+            blogger_id   INTEGER,
+            text         TEXT NOT NULL,
+            received_at  TEXT NOT NULL,
+            processed_at TEXT,
+            raw_payload  TEXT,
+            created_at   TEXT DEFAULT (datetime('now')),
+            UNIQUE(channel, message_id)
+        );
     ''')
     default_templates = [
         (

@@ -172,7 +172,7 @@
         {% elif can_send and b.status in ('agreed', 'posted') %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'third', this)">Рек. 3</button>
         {% elif not can_send and b.status in ('new', 'interested') %}
-        <span class="btn-sm" title="{% if b.channel == 'instagram' %}Ждём первого ответа — нет ID{% elif b.channel == 'telegram' %}Блогер должен сначала написать боту{% endif %}" style="opacity:0.4;cursor:default">⏳</span>
+        <span class="btn-sm" title="{% if b.channel == 'instagram' %}Ждём первого ответа — нет ID{% elif b.channel == 'telegram' %}Блогер должен написать боту{% endif %}" style="opacity:0.4;cursor:default">⏳</span>
         {% endif %}
         <button class="btn-sm" onclick="deleteBlogger({{ b.id }}, this)" style="color:#c0392b;border-color:#c0392b20">🗑</button>
       </td>
@@ -374,6 +374,7 @@ function autoSlugFromUrl(){
   var urlVal=document.getElementById('m-profile_url').value.trim();
   if(!urlVal) return;
   var seg='';
+  // handle @username or username directly
   var atMatch=urlVal.match(/^@?([A-Za-z0-9_.]{3,})$/);
   if(atMatch){
     seg=atMatch[1];

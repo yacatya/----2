@@ -1,13 +1,18 @@
+import hashlib
+import hmac
 import json
+import logging
 import os
 import re as _re
 import secrets
+import threading
 import uuid
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, redirect, url_for, session, request
 
 main = Blueprint('main', __name__)
+logger = logging.getLogger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 BASE_URL = os.environ.get('BASE_URL', 'https://verevery.ru')
@@ -656,6 +661,7 @@ def _render_email_html(body_text, name, utm_link=''):
 
 
 def _send_via_make(blogger, email_type, conn):
+    """Send message via Make.com webhook for instagram/telegram channels. Returns (ok, error_msg)."""
     import requests as _req
     webhook_url = os.environ.get('MAKE_OUTBOUND_WEBHOOK', '')
     if not webhook_url:
@@ -664,6 +670,7 @@ def _send_via_make(blogger, email_type, conn):
     subject, body_text = _get_template(conn, template_key)
     text = body_text.replace('{name}', blogger['name']).replace('{utm_link}', blogger['utm_link'] or '')
     channel = blogger.get('channel', 'email')
+    # psid: numeric ID for Instagram and Telegram (unified field Make expects)
     if channel == 'instagram':
         psid = blogger.get('ig_user_id', '')
     elif channel == 'telegram':
@@ -787,6 +794,282 @@ def _notify_admin(subject, body):
         })
     except Exception:
         pass
+
+
+# ── Direct outbound: Instagram & Telegram ────────────────────────────────────
+
+def send_instagram_dm(psid, text):
+    """POST to Instagram Graph API (IG Login, IGAA token). Returns {'ok': bool, ...}."""
+    import requests as _req
+    import time as _time
+    token = os.environ.get('INSTAGRAM_ACCESS_TOKEN')
+    user_id = os.environ.get('INSTAGRAM_USER_ID')
+    if not token or not user_id:
+        return {'ok': False, 'error': 'INSTAGRAM_ACCESS_TOKEN или INSTAGRAM_USER_ID не настроены'}
+    url = f'https://graph.instagram.com/v23.0/{user_id}/messages'
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    body = {'recipient': {'id': psid}, 'message': {'text': text}}
+    for attempt in range(3):
+        try:
+            resp = _req.post(url, json=body, headers=headers, timeout=10)
+            if resp.status_code < 400:
+                return {'ok': True, 'message_id': resp.json().get('message_id')}
+            if resp.status_code >= 500 and attempt < 2:
+                _time.sleep(2 ** attempt)
+                continue
+            logger.error(f'send_instagram_dm HTTP {resp.status_code}: {resp.text[:300]}')
+            return {'ok': False, 'error': f'HTTP {resp.status_code}: {resp.text[:300]}'}
+        except Exception as e:
+            if attempt < 2:
+                _time.sleep(2 ** attempt)
+                continue
+            logger.error(f'send_instagram_dm exception: {e}')
+            return {'ok': False, 'error': str(e)[:300]}
+    return {'ok': False, 'error': 'все попытки исчерпаны'}
+
+
+def send_telegram_message(chat_id, text):
+    """POST to Telegram Bot API sendMessage. Returns {'ok': bool, ...}."""
+    import requests as _req
+    import time as _time
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not token:
+        return {'ok': False, 'error': 'TELEGRAM_BOT_TOKEN не настроен'}
+    url = f'https://api.telegram.org/bot{token}/sendMessage'
+    body = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
+    for attempt in range(3):
+        try:
+            resp = _req.post(url, json=body, timeout=10)
+            if resp.status_code < 400:
+                result = resp.json().get('result') or {}
+                return {'ok': True, 'message_id': str(result.get('message_id', ''))}
+            if resp.status_code >= 500 and attempt < 2:
+                _time.sleep(2 ** attempt)
+                continue
+            logger.error(f'send_telegram_message HTTP {resp.status_code}: {resp.text[:300]}')
+            return {'ok': False, 'error': f'HTTP {resp.status_code}: {resp.text[:300]}'}
+        except Exception as e:
+            if attempt < 2:
+                _time.sleep(2 ** attempt)
+                continue
+            logger.error(f'send_telegram_message exception: {e}')
+            return {'ok': False, 'error': str(e)[:300]}
+    return {'ok': False, 'error': 'все попытки исчерпаны'}
+
+
+def _dispatch_outbound(blogger, email_type, conn):
+    """Route outbound message: IG/TG → direct API, email → Resend. Returns (ok, error_msg)."""
+    channel = (blogger.get('channel') or 'email').strip()
+    if channel == 'email':
+        return _send_blogger_email(blogger, email_type, conn)
+    template_key = {'first': 'blogger_first', 'second': 'blogger_second', 'third': 'blogger_third'}.get(
+        email_type, 'blogger_first'
+    )
+    subject, body_text = _get_template(conn, template_key)
+    text = body_text.replace('{name}', blogger.get('name', '')).replace(
+        '{utm_link}', blogger.get('utm_link') or ''
+    )
+    now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+    bid = blogger['id']
+    if channel == 'instagram':
+        result = send_instagram_dm(blogger.get('ig_user_id', ''), text)
+    elif channel == 'telegram':
+        result = send_telegram_message(blogger.get('tg_user_id', ''), text)
+    else:
+        result = {'ok': False, 'error': f'неизвестный канал: {channel}'}
+    ok = result.get('ok', False)
+    err = result.get('error', '')
+    if ok:
+        conn.execute(
+            'INSERT INTO email_log (blogger_id, type, sent_at, status) VALUES (?,?,?,?)',
+            (bid, email_type, now_fmt, 'ok')
+        )
+    else:
+        conn.execute(
+            'INSERT INTO email_log (blogger_id, type, sent_at, status, error) VALUES (?,?,?,?,?)',
+            (bid, email_type, now_fmt, 'error', str(err)[:500])
+        )
+    return ok, err if not ok else None
+
+
+# ── Incoming message pipeline ─────────────────────────────────────────────────
+
+def find_blogger_by_external_id(channel, external_id, extra, conn):
+    """Find blogger by channel ID. Auto-saves ig_user_id if found by username."""
+    blogger = None
+    if channel == 'instagram':
+        ig_username = (extra.get('ig_username') or '').strip().lstrip('@').lower()
+        blogger = conn.execute(
+            'SELECT * FROM bloggers WHERE ig_user_id=?', (external_id,)
+        ).fetchone()
+        if not blogger and ig_username:
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(ig_username)=?', (ig_username,)
+            ).fetchone()
+            if blogger and not blogger['ig_user_id']:
+                conn.execute('UPDATE bloggers SET ig_user_id=? WHERE id=?', (external_id, blogger['id']))
+                conn.commit()
+    elif channel == 'telegram':
+        tg_username = (extra.get('tg_username') or '').strip().lstrip('@').lower()
+        blogger = conn.execute(
+            'SELECT * FROM bloggers WHERE tg_user_id=?', (external_id,)
+        ).fetchone()
+        if not blogger and tg_username:
+            blogger = conn.execute(
+                'SELECT * FROM bloggers WHERE LOWER(tg_username)=?', (tg_username,)
+            ).fetchone()
+    return dict(blogger) if blogger else None
+
+
+def store_incoming_message(channel, external_id, text, raw_payload, received_at,
+                           message_id=None, extra=None):
+    """Store incoming message with deduplication on (channel, message_id). Returns message_db_id."""
+    from .db import get_db
+    extra = extra or {}
+    raw_json = json.dumps(raw_payload, ensure_ascii=False)[:8192]
+    conn = get_db()
+    try:
+        blogger = find_blogger_by_external_id(channel, external_id, extra, conn)
+        blogger_id = blogger['id'] if blogger else None
+
+        if message_id is not None:
+            cursor = conn.execute(
+                '''INSERT OR IGNORE INTO incoming_messages
+                   (channel, message_id, external_id, blogger_id, text, received_at, raw_payload)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                (channel, message_id, external_id, blogger_id, text[:4096], received_at, raw_json)
+            )
+            conn.commit()
+            if cursor.rowcount == 0:
+                existing = conn.execute(
+                    'SELECT id FROM incoming_messages WHERE channel=? AND message_id=?',
+                    (channel, message_id)
+                ).fetchone()
+                msg_id = existing['id'] if existing else None
+                logger.info(f'duplicate {channel} message_id={message_id}, skipping processing')
+                conn.close()
+                return msg_id
+            msg_id = cursor.lastrowid
+        else:
+            # no message_id (edge case) — insert unconditionally, no dedup
+            cursor = conn.execute(
+                '''INSERT INTO incoming_messages
+                   (channel, message_id, external_id, blogger_id, text, received_at, raw_payload)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                (channel, None, external_id, blogger_id, text[:4096], received_at, raw_json)
+            )
+            conn.commit()
+            msg_id = cursor.lastrowid
+
+        known = f'blogger_id={blogger_id}' if blogger_id else 'неизвестен'
+        logger.info(f'incoming {channel} from {external_id} ({known}): {text[:80]}')
+        conn.close()
+        threading.Thread(target=process_incoming_message_async, args=(msg_id,), daemon=True).start()
+        return msg_id
+    except Exception:
+        logger.exception('store_incoming_message error')
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return None
+
+
+def process_incoming_message_async(message_db_id):
+    """Background: classify sentiment, update blogger status, maybe auto-reply."""
+    from .db import get_db
+    conn = get_db()
+    try:
+        msg = conn.execute(
+            'SELECT * FROM incoming_messages WHERE id=?', (message_db_id,)
+        ).fetchone()
+        if not msg:
+            logger.warning(f'process_incoming_message_async: message {message_db_id} not found')
+            return
+        msg = dict(msg)
+        channel = msg['channel']
+        text = msg['text']
+        blogger_id = msg['blogger_id']
+
+        if not blogger_id:
+            logger.info(f'message {message_db_id}: blogger not identified, skipping')
+            conn.execute(
+                'UPDATE incoming_messages SET processed_at=datetime("now") WHERE id=?', (message_db_id,)
+            )
+            conn.commit()
+            return
+
+        blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (blogger_id,)).fetchone()
+        if not blogger:
+            logger.warning(f'message {message_db_id}: blogger {blogger_id} missing from DB')
+            return
+        blogger = dict(blogger)
+        bid = blogger['id']
+
+        # debounce: skip if last reply was within 60 seconds (handles burst messages)
+        last_reply = blogger.get('last_reply_at') or ''
+        if last_reply:
+            try:
+                last_dt = datetime.fromisoformat(last_reply)
+                if (datetime.utcnow() - last_dt).total_seconds() < 60:
+                    logger.info(f'debounce: skipping {channel} from blogger {bid}')
+                    conn.execute(
+                        'UPDATE incoming_messages SET processed_at=datetime("now") WHERE id=?',
+                        (message_db_id,)
+                    )
+                    conn.commit()
+                    return
+            except Exception:
+                pass
+
+        now_iso = datetime.utcnow().isoformat()
+        now_fmt = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+
+        logger.info(f'classifying {channel} message {message_db_id} from blogger {bid}')
+        sentiment = _classify_reply_with_claude(text)
+
+        conn.execute(
+            'UPDATE bloggers SET last_reply_at=?, reply_sentiment=?, last_message=? WHERE id=?',
+            (now_iso, sentiment, text[:2000], bid)
+        )
+
+        if sentiment == 'positive':
+            conn.execute("UPDATE bloggers SET status='interested' WHERE id=?", (bid,))
+            conn.commit()
+            logger.info(f'blogger {bid} positive → sending second via {channel}')
+            _dispatch_outbound(blogger, 'second', conn)
+            conn.commit()
+        elif sentiment == 'negative':
+            conn.execute("UPDATE bloggers SET status='declined' WHERE id=?", (bid,))
+            conn.commit()
+            logger.warning(f'blogger {bid} declined via {channel}')
+            _notify_admin(
+                f'Блогер {blogger["name"]} отказал',
+                f'Канал: {channel}\nОтвет:\n{text}'
+            )
+        else:
+            conn.execute("UPDATE bloggers SET status='replied' WHERE id=?", (bid,))
+            conn.commit()
+            draft = _draft_reply_with_claude(blogger['name'], text)
+            logger.info(f'blogger {bid} has question, notifying admin')
+            _notify_admin(
+                f'Блогер {blogger["name"]} задал вопрос',
+                f'Канал: {channel}\nОтвет блогера:\n{text}\n\n---\nЧерновик ответа:\n{draft}'
+            )
+
+        conn.execute(
+            'INSERT INTO email_log (blogger_id, type, sent_at, status) VALUES (?,?,?,?)',
+            (bid, f'inbound_{channel}', now_fmt, sentiment)
+        )
+        conn.execute(
+            'UPDATE incoming_messages SET processed_at=datetime("now") WHERE id=?', (message_db_id,)
+        )
+        conn.commit()
+        logger.info(f'processed message {message_db_id}: blogger {bid}, sentiment={sentiment}')
+    except Exception:
+        logger.exception(f'process_incoming_message_async error for message {message_db_id}')
+    finally:
+        conn.close()
 
 
 @main.route('/admin/bloggers')
@@ -941,15 +1224,15 @@ def admin_bloggers_send_email(bid):
         if not ig_id:
             conn.close()
             return 'Instagram User ID не получен — дождитесь первого входящего сообщения от блогера', 400
-        ok, err = _send_via_make(b, email_type, conn)
+        ok, err = _dispatch_outbound(b, email_type, conn)
     elif channel == 'telegram':
         tg_id = (b.get('tg_user_id') or '').strip()
         if not tg_id:
             conn.close()
             return 'Telegram ID не получен — блогер должен сначала написать боту', 400
-        ok, err = _send_via_make(b, email_type, conn)
+        ok, err = _dispatch_outbound(b, email_type, conn)
     else:
-        ok, err = _send_via_make(b, email_type, conn)
+        ok, err = _dispatch_outbound(b, email_type, conn)
     if ok and email_type == 'first':
         conn.execute(
             "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
@@ -1130,6 +1413,129 @@ def api_check_blogger():
         return {'found': False}, 200
 
 
+# ── Instagram & Telegram webhooks ────────────────────────────────────────────
+
+@main.route('/webhook/instagram/health')
+def webhook_instagram_health():
+    return {'status': 'ok', 'channel': 'instagram'}, 200
+
+
+@main.route('/webhook/telegram/health')
+def webhook_telegram_health():
+    return {'status': 'ok', 'channel': 'telegram'}, 200
+
+
+@main.route('/webhook/instagram', methods=['GET', 'POST'])
+def webhook_instagram():
+    if request.method == 'GET':
+        mode = request.args.get('hub.mode', '')
+        verify_token = request.args.get('hub.verify_token', '')
+        challenge = request.args.get('hub.challenge', '')
+        expected = os.environ.get('META_VERIFY_TOKEN', '')
+        if mode == 'subscribe' and expected and verify_token == expected:
+            return challenge, 200, {'Content-Type': 'text/plain'}
+        logger.warning(f'instagram verify failed: mode={mode} token_match={verify_token == expected}')
+        return 'Forbidden', 403
+
+    # POST — validate HMAC SHA256
+    app_secret = os.environ.get('META_APP_SECRET', '')
+    if app_secret:
+        raw_body = request.get_data()
+        sig_header = request.headers.get('X-Hub-Signature-256', '')
+        if not sig_header.startswith('sha256='):
+            logger.warning('instagram webhook: missing X-Hub-Signature-256')
+            return 'Forbidden', 403
+        expected_sig = 'sha256=' + hmac.new(
+            app_secret.encode(), raw_body, hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(sig_header, expected_sig):
+            logger.warning('instagram webhook: HMAC mismatch')
+            return 'Forbidden', 403
+    else:
+        logger.warning('instagram webhook: META_APP_SECRET not set, skipping HMAC check')
+
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        for entry in payload.get('entry', []):
+            # DM messages — full processing pipeline
+            for msg_event in entry.get('messaging', []):
+                try:
+                    sender = msg_event.get('sender') or {}
+                    message = msg_event.get('message') or {}
+                    if message.get('is_echo'):
+                        continue
+                    sender_id = sender.get('id', '')
+                    text = (message.get('text') or '').strip()
+                    message_id = message.get('mid')
+                    timestamp = msg_event.get('timestamp')
+                    received_at = (
+                        datetime.utcfromtimestamp(timestamp).isoformat()
+                        if timestamp else datetime.utcnow().isoformat()
+                    )
+                    if not sender_id or not text:
+                        continue
+                    store_incoming_message(
+                        channel='instagram',
+                        external_id=sender_id,
+                        text=text,
+                        raw_payload=msg_event,
+                        received_at=received_at,
+                        message_id=message_id,
+                        extra={'ig_username': sender.get('username', '')},
+                    )
+                except Exception:
+                    logger.exception('error processing instagram DM event')
+            # Comments — log only, not processed in this iteration
+            for change in entry.get('changes', []):
+                if change.get('field') == 'comments':
+                    logger.debug(f'instagram comment event (not processed): {json.dumps(change)[:300]}')
+    except Exception:
+        logger.exception('instagram webhook error')
+
+    return '', 200
+
+
+@main.route('/webhook/telegram', methods=['POST'])
+def webhook_telegram():
+    secret = os.environ.get('TELEGRAM_WEBHOOK_SECRET', '')
+    if secret and request.headers.get('X-Telegram-Bot-Api-Secret-Token') != secret:
+        logger.warning('telegram webhook: secret token mismatch')
+        return 'Forbidden', 403
+
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        message = payload.get('message') or payload.get('edited_message') or {}
+        chat = message.get('chat') or {}
+        from_user = message.get('from') or {}
+        chat_id = str(chat.get('id', ''))
+        user_id = str(from_user.get('id', ''))
+        tg_username = (from_user.get('username') or '').strip().lstrip('@').lower()
+        text = (message.get('text') or '').strip()
+        raw_msg_id = message.get('message_id')
+        message_id = str(raw_msg_id) if raw_msg_id is not None else None
+        date = message.get('date')
+        received_at = (
+            datetime.utcfromtimestamp(date).isoformat()
+            if date else datetime.utcnow().isoformat()
+        )
+        if not chat_id or not text:
+            return '', 200
+        external_id = user_id or chat_id
+        store_incoming_message(
+            channel='telegram',
+            external_id=external_id,
+            text=text,
+            raw_payload=payload,
+            received_at=received_at,
+            message_id=message_id,
+            extra={'tg_username': tg_username},
+        )
+    except Exception:
+        logger.exception('telegram webhook error')
+
+    return '', 200
+
+
 @main.route('/webhook/reply', methods=['POST'])
 def webhook_reply():
     token = os.environ.get('WEBHOOK_SECRET', '')
@@ -1166,10 +1572,12 @@ def webhook_reply():
             return '', 200
         blogger = dict(blogger)
         bid = blogger['id']
+        # auto-save tg_user_id on first reply
         if channel == 'telegram' and tg_user_id_incoming and not blogger.get('tg_user_id'):
             conn.execute('UPDATE bloggers SET tg_user_id=? WHERE id=?', (tg_user_id_incoming, bid))
             conn.commit()
             blogger['tg_user_id'] = tg_user_id_incoming
+        # debounce: skip if last reply was within 60 seconds (handles Telegram multi-message bursts)
         last_reply = blogger.get('last_reply_at') or ''
         if last_reply:
             try:
@@ -1191,7 +1599,7 @@ def webhook_reply():
         if sentiment == 'positive':
             conn.execute("UPDATE bloggers SET status='interested' WHERE id=?", (bid,))
             conn.commit()
-            _send_via_make(blogger, 'second', conn)
+            _dispatch_outbound(blogger, 'second', conn)
         elif sentiment == 'negative':
             conn.execute("UPDATE bloggers SET status='declined' WHERE id=?", (bid,))
             conn.commit()
@@ -1375,7 +1783,7 @@ def partner_login():
             if blogger:
                 base_url = os.environ.get('BASE_URL', 'https://verevery.ru')
                 _send_partner_invite(dict(blogger), base_url)
-            sent = True
+            sent = True  # always show "check email" to avoid enumeration
     return render_template('partner_login.html', error=error, sent=sent)
 
 
@@ -1428,6 +1836,7 @@ def partner_dashboard():
     month_start = now.strftime('%Y-%m-01')
     today = now.strftime('%Y-%m-%d')
 
+    # Sales stats
     def q(sql, *args):
         row = conn.execute(sql, args).fetchone()
         return dict(row) if row else {}
@@ -1436,19 +1845,23 @@ def partner_dashboard():
     s_month = q("SELECT COUNT(*) cnt, COALESCE(SUM(commission),0) comm FROM sales WHERE utm=? AND date>=?", utm, month_start)
     s_today = q("SELECT COUNT(*) cnt, COALESCE(SUM(commission),0) comm FROM sales WHERE utm=? AND date LIKE ?", utm, today+'%')
 
+    # Click stats
     c_all = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=?", (utm,)).fetchone()['cnt']
     c_month = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=? AND visited_at>=?", (utm, month_start)).fetchone()['cnt']
     c_today = conn.execute("SELECT COUNT(*) cnt FROM link_clicks WHERE utm_slug=? AND date(visited_at)=?", (utm, today)).fetchone()['cnt']
 
+    # Payments
     total_earned = int(s_all.get('comm', 0))
     paid_out = blogger.get('paid_out') or 0
     balance = max(0, total_earned - paid_out)
 
+    # Recent sales
     recent = conn.execute(
         "SELECT date, amount, commission FROM sales WHERE utm=? ORDER BY id DESC LIMIT 10", (utm,)
     ).fetchall()
     recent = [dict(r) for r in recent]
 
+    # Conversion
     conversion = round(s_all['cnt'] / c_all * 100, 1) if c_all else 0
 
     conn.close()
@@ -1573,6 +1986,7 @@ def admin_add_payment(bid):
         'INSERT INTO partner_payments (blogger_id, amount, paid_date, method, note) VALUES (?,?,?,?,?)',
         (bid, amount, paid_date, method, note)
     )
+    # update paid_out total on blogger
     conn.execute('UPDATE bloggers SET paid_out = paid_out + ? WHERE id=?', (amount, bid))
     conn.commit()
     conn.close()
