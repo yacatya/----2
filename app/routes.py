@@ -1766,6 +1766,34 @@ def partner_logout():
     return redirect(url_for('main.partner_login'))
 
 
+@main.route('/partner/open-cards')
+def partner_open_cards():
+    """Give blogger full access to the card deck and redirect them there."""
+    pid = session.get('partner_id')
+    if not pid:
+        return redirect(url_for('main.partner_login'))
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (pid,)).fetchone()
+    if not blogger or not blogger['email']:
+        conn.close()
+        return redirect(url_for('main.partner_dashboard'))
+    blogger = dict(blogger)
+    email = blogger['email'].strip().lower()
+    _upsert_user(conn, email)
+    conn.close()
+    conn2 = get_db()
+    try:
+        _send_magic_link(email, conn2)
+    finally:
+        conn2.close()
+    return render_template('partner_login.html',
+        sent=True,
+        cards_hint=True,
+        error=None
+    )
+
+
 @main.route('/partner/dashboard')
 def partner_dashboard():
     pid = session.get('partner_id')
