@@ -1768,7 +1768,7 @@ def partner_logout():
 
 @main.route('/partner/open-cards')
 def partner_open_cards():
-    """Give blogger full access to the card deck and redirect them there."""
+    """Give blogger full access to the card deck and redirect them directly."""
     pid = session.get('partner_id')
     if not pid:
         return redirect(url_for('main.partner_login'))
@@ -1778,20 +1778,15 @@ def partner_open_cards():
     if not blogger or not blogger['email']:
         conn.close()
         return redirect(url_for('main.partner_dashboard'))
-    blogger = dict(blogger)
     email = blogger['email'].strip().lower()
     _upsert_user(conn, email)
+    user = conn.execute('SELECT id FROM users WHERE LOWER(email)=?', (email,)).fetchone()
     conn.close()
-    conn2 = get_db()
-    try:
-        _send_magic_link(email, conn2)
-    finally:
-        conn2.close()
-    return render_template('partner_login.html',
-        sent=True,
-        cards_hint=True,
-        error=None
-    )
+    if user:
+        session['user_id'] = user['id']
+        session.permanent = True
+        return redirect(url_for('main.cards'))
+    return redirect(url_for('main.partner_dashboard'))
 
 
 @main.route('/partner/dashboard')
