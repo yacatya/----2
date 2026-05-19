@@ -894,7 +894,7 @@ def _dispatch_outbound(blogger, email_type, conn):
 
 # ── Incoming message pipeline ─────────────────────────────────────────────────
 
-def _resolve_ig_psid_to_username(psid):
+def _resolve_ig_psid_to_username(psid, timeout=15):
     """Call Instagram Graph API to get username for a PSID. Returns lowercase username or None."""
     import requests as _req
     token = os.environ.get('INSTAGRAM_ACCESS_TOKEN')
@@ -904,7 +904,7 @@ def _resolve_ig_psid_to_username(psid):
         resp = _req.get(
             f'https://graph.instagram.com/v23.0/{psid}',
             params={'fields': 'username,name', 'access_token': token},
-            timeout=5,
+            timeout=timeout,
         )
         if resp.status_code == 200:
             username = resp.json().get('username', '').strip().lower()
@@ -929,9 +929,8 @@ def find_blogger_by_external_id(channel, external_id, extra, conn):
         if not blogger:
             # 2. Username from webhook payload (new IG API rarely includes it)
             ig_username = (extra.get('ig_username') or '').strip().lstrip('@').lower()
-            if not ig_username:
-                # 3. Resolve PSID → username via Graph API
-                ig_username = _resolve_ig_psid_to_username(external_id) or ''
+            # Note: Graph API PSID→username lookup moved to background thread to avoid
+            # blocking the webhook response. See process_incoming_message_async.
             if ig_username:
                 blogger = conn.execute(
                     'SELECT * FROM bloggers WHERE LOWER(ig_username)=?', (ig_username,)
@@ -1025,12 +1024,42 @@ def process_incoming_message_async(message_db_id):
         blogger_id = msg['blogger_id']
 
         if not blogger_id:
-            logger.warning(f'message {message_db_id}: blogger not identified (external_id={msg["external_id"]}), skipping')
-            conn.execute(
-                'UPDATE incoming_messages SET processed_at=datetime("now") WHERE id=?', (message_db_id,)
-            )
-            conn.commit()
-            return
+            # Try to resolve PSID→username in background (longer timeout OK here)
+            if channel == 'instagram':
+                external_id = msg['external_id']
+                ig_username = _resolve_ig_psid_to_username(external_id, timeout=20)
+                if ig_username:
+                    row = conn.execute(
+                        'SELECT * FROM bloggers WHERE LOWER(ig_username)=?', (ig_username,)
+                    ).fetchone()
+                    if row:
+                        blogger_id = row['id']
+                        conn.execute('UPDATE bloggers SET ig_user_id=? WHERE id=?', (external_id, blogger_id))
+                        conn.execute(
+                            'UPDATE incoming_messages SET blogger_id=? WHERE id=?', (blogger_id, message_db_id)
+                        )
+                        conn.commit()
+                        logger.warning(
+                            f'background: resolved PSID {external_id} → @{ig_username} → blogger {blogger_id}'
+                        )
+
+            if not blogger_id:
+                external_id = msg['external_id']
+                logger.warning(f'message {message_db_id}: blogger not identified (external_id={external_id})')
+                _notify_admin(
+                    f'Неизвестный {channel}: новое сообщение',
+                    f'Получено сообщение от неизвестного пользователя.\n\n'
+                    f'Канал: {channel}\n'
+                    f'PSID / external_id: {external_id}\n\n'
+                    f'Сообщение:\n{msg["text"]}\n\n'
+                    f'Добавьте этот ID в поле ig_user_id блогера в админке, '
+                    f'чтобы следующие сообщения определялись автоматически.'
+                )
+                conn.execute(
+                    'UPDATE incoming_messages SET processed_at=datetime("now") WHERE id=?', (message_db_id,)
+                )
+                conn.commit()
+                return
 
         blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (blogger_id,)).fetchone()
         if not blogger:
