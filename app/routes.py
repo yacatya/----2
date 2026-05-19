@@ -894,21 +894,54 @@ def _dispatch_outbound(blogger, email_type, conn):
 
 # ── Incoming message pipeline ─────────────────────────────────────────────────
 
+def _resolve_ig_psid_to_username(psid):
+    """Call Instagram Graph API to get username for a PSID. Returns lowercase username or None."""
+    import requests as _req
+    token = os.environ.get('INSTAGRAM_ACCESS_TOKEN')
+    if not token:
+        return None
+    try:
+        resp = _req.get(
+            f'https://graph.instagram.com/v23.0/{psid}',
+            params={'fields': 'username,name', 'access_token': token},
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            username = resp.json().get('username', '').strip().lower()
+            if username:
+                logger.warning(f'resolved PSID {psid} → @{username}')
+                return username
+        else:
+            logger.warning(f'_resolve_ig_psid_to_username({psid}): API {resp.status_code} {resp.text[:200]}')
+    except Exception as e:
+        logger.warning(f'_resolve_ig_psid_to_username({psid}): {e}')
+    return None
+
+
 def find_blogger_by_external_id(channel, external_id, extra, conn):
-    """Find blogger by channel ID. Auto-saves ig_user_id if found by username."""
+    """Locate blogger by channel-specific ID; auto-saves ig_user_id when found by username."""
     blogger = None
     if channel == 'instagram':
-        ig_username = (extra.get('ig_username') or '').strip().lstrip('@').lower()
+        # 1. Exact match by saved PSID
         blogger = conn.execute(
             'SELECT * FROM bloggers WHERE ig_user_id=?', (external_id,)
         ).fetchone()
-        if not blogger and ig_username:
-            blogger = conn.execute(
-                'SELECT * FROM bloggers WHERE LOWER(ig_username)=?', (ig_username,)
-            ).fetchone()
-            if blogger and not blogger['ig_user_id']:
-                conn.execute('UPDATE bloggers SET ig_user_id=? WHERE id=?', (external_id, blogger['id']))
-                conn.commit()
+        if not blogger:
+            # 2. Username from webhook payload (new IG API rarely includes it)
+            ig_username = (extra.get('ig_username') or '').strip().lstrip('@').lower()
+            if not ig_username:
+                # 3. Resolve PSID → username via Graph API
+                ig_username = _resolve_ig_psid_to_username(external_id) or ''
+            if ig_username:
+                blogger = conn.execute(
+                    'SELECT * FROM bloggers WHERE LOWER(ig_username)=?', (ig_username,)
+                ).fetchone()
+        if blogger and not blogger['ig_user_id']:
+            conn.execute('UPDATE bloggers SET ig_user_id=? WHERE id=?', (external_id, blogger['id']))
+            conn.commit()
+            logger.warning(
+                f'auto-saved ig_user_id={external_id} for blogger {blogger["id"]} (@{blogger["ig_username"]})'
+            )
     elif channel == 'telegram':
         tg_username = (extra.get('tg_username') or '').strip().lstrip('@').lower()
         blogger = conn.execute(
