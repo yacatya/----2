@@ -961,8 +961,8 @@ def store_incoming_message(channel, external_id, text, raw_payload, received_at,
             conn.commit()
             msg_id = cursor.lastrowid
 
-        known = f'blogger_id={blogger_id}' if blogger_id else 'неизвестен'
-        logger.info(f'incoming {channel} from {external_id} ({known}): {text[:80]}')
+        known = f'blogger_id={blogger_id}' if blogger_id else 'НЕИЗВЕСТЕН'
+        logger.warning(f'incoming {channel} from {external_id} ({known}): {text[:80]}')
         conn.close()
         threading.Thread(target=process_incoming_message_async, args=(msg_id,), daemon=True).start()
         return msg_id
@@ -992,7 +992,7 @@ def process_incoming_message_async(message_db_id):
         blogger_id = msg['blogger_id']
 
         if not blogger_id:
-            logger.info(f'message {message_db_id}: blogger not identified, skipping')
+            logger.warning(f'message {message_db_id}: blogger not identified (external_id={msg["external_id"]}), skipping')
             conn.execute(
                 'UPDATE incoming_messages SET processed_at=datetime("now") WHERE id=?', (message_db_id,)
             )
@@ -1065,7 +1065,7 @@ def process_incoming_message_async(message_db_id):
             'UPDATE incoming_messages SET processed_at=datetime("now") WHERE id=?', (message_db_id,)
         )
         conn.commit()
-        logger.info(f'processed message {message_db_id}: blogger {bid}, sentiment={sentiment}')
+        logger.warning(f'processed message {message_db_id}: blogger {bid}, sentiment={sentiment}')
     except Exception:
         logger.exception(f'process_incoming_message_async error for message {message_db_id}')
     finally:
@@ -1454,6 +1454,7 @@ def webhook_instagram():
         return 'Forbidden', 403
 
     # POST — validate HMAC SHA256
+    logger.warning(f'instagram webhook POST received: ua={request.headers.get("User-Agent","")[:60]}')
     app_secret = os.environ.get('META_APP_SECRET', '')
     if app_secret:
         raw_body = request.get_data()
