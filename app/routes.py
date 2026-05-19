@@ -761,19 +761,19 @@ def send_instagram_dm(psid, text):
     url = f'https://graph.instagram.com/v23.0/{user_id}/messages'
     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
     body = {'recipient': {'id': psid}, 'message': {'text': text}}
-    for attempt in range(3):
+    for attempt in range(2):
         try:
-            resp = _req.post(url, json=body, headers=headers, timeout=10)
+            resp = _req.post(url, json=body, headers=headers, timeout=7)
             if resp.status_code < 400:
                 return {'ok': True, 'message_id': resp.json().get('message_id')}
-            if resp.status_code >= 500 and attempt < 2:
-                _time.sleep(2 ** attempt)
+            if resp.status_code >= 500 and attempt < 1:
+                _time.sleep(2)
                 continue
             logger.error(f'send_instagram_dm HTTP {resp.status_code}: {resp.text[:300]}')
             return {'ok': False, 'error': f'HTTP {resp.status_code}: {resp.text[:300]}'}
         except Exception as e:
-            if attempt < 2:
-                _time.sleep(2 ** attempt)
+            if attempt < 1:
+                _time.sleep(2)
                 continue
             logger.error(f'send_instagram_dm exception: {e}')
             return {'ok': False, 'error': str(e)[:300]}
@@ -1222,39 +1222,47 @@ def admin_bloggers_send_email(bid):
     email_type = request.form.get('type', 'first')
     from .db import get_db
     conn = get_db()
-    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
-    if not blogger:
+    try:
+        blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
+        if not blogger:
+            conn.close()
+            return 'Блогер не найден', 404
+        b = dict(blogger)
+        channel = b.get('channel', 'email') or 'email'
+        if channel == 'email':
+            if not b.get('email'):
+                conn.close()
+                return 'Email не указан', 400
+            ok, err = _send_blogger_email(b, email_type, conn)
+        elif channel == 'instagram':
+            ig_id = (b.get('ig_user_id') or '').strip()
+            if not ig_id:
+                conn.close()
+                return 'Instagram User ID не получен — дождитесь первого входящего сообщения от блогера', 400
+            ok, err = _dispatch_outbound(b, email_type, conn)
+        elif channel == 'telegram':
+            tg_id = (b.get('tg_user_id') or '').strip()
+            if not tg_id:
+                conn.close()
+                return 'Telegram ID не получен — блогер должен сначала написать боту', 400
+            ok, err = _dispatch_outbound(b, email_type, conn)
+        else:
+            ok, err = _dispatch_outbound(b, email_type, conn)
+        if ok and email_type == 'first':
+            conn.execute(
+                "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
+                (datetime.utcnow().isoformat(), bid)
+            )
+        conn.commit()
         conn.close()
-        return 'Блогер не найден', 404
-    b = dict(blogger)
-    channel = b.get('channel', 'email') or 'email'
-    if channel == 'email':
-        if not b.get('email'):
+        return ('', 200) if ok else (f'Ошибка: {err}', 400)
+    except Exception as e:
+        logger.exception(f'admin_bloggers_send_email bid={bid}')
+        try:
             conn.close()
-            return 'Email не указан', 400
-        ok, err = _send_blogger_email(b, email_type, conn)
-    elif channel == 'instagram':
-        ig_id = (b.get('ig_user_id') or '').strip()
-        if not ig_id:
-            conn.close()
-            return 'Instagram User ID не получен — дождитесь первого входящего сообщения от блогера', 400
-        ok, err = _dispatch_outbound(b, email_type, conn)
-    elif channel == 'telegram':
-        tg_id = (b.get('tg_user_id') or '').strip()
-        if not tg_id:
-            conn.close()
-            return 'Telegram ID не получен — блогер должен сначала написать боту', 400
-        ok, err = _dispatch_outbound(b, email_type, conn)
-    else:
-        ok, err = _dispatch_outbound(b, email_type, conn)
-    if ok and email_type == 'first':
-        conn.execute(
-            "UPDATE bloggers SET status='sent', first_email_sent_at=? WHERE id=?",
-            (datetime.utcnow().isoformat(), bid)
-        )
-    conn.commit()
-    conn.close()
-    return ('', 200) if ok else (f'Ошибка: {err}', 500)
+        except Exception:
+            pass
+        return f'Ошибка: {str(e)[:300]}', 400
 
 
 @main.route('/admin/bloggers/send-bulk', methods=['POST'])
