@@ -62,15 +62,12 @@ jobs:
             app/templates/partner_dashboard.html \
             app/templates/partner_sales.html \
             app/templates/partner_payments.html \
+            app/templates/partner_guide.html \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/templates/
 
           scp -i ~/.ssh/id_rsa \
             cards_action.json cards_question.json cards_care.json \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/data/
-
-          scp -i ~/.ssh/id_rsa \
-            verevery_partner_guide.pdf \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/static/
 
       - name: Install deps, update service, restart
         run: |
