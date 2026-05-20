@@ -153,12 +153,13 @@ def init_db():
         except Exception:
             pass
     for col, definition in [
-        ('channel',      "TEXT DEFAULT 'email'"),
-        ('ig_username',  "TEXT DEFAULT ''"),
-        ('ig_user_id',   "TEXT DEFAULT ''"),
-        ('tg_username',  "TEXT DEFAULT ''"),
-        ('tg_user_id',   "TEXT DEFAULT ''"),
-        ('last_message', "TEXT DEFAULT ''"),
+        ('channel',        "TEXT DEFAULT 'email'"),
+        ('ig_username',    "TEXT DEFAULT ''"),
+        ('ig_user_id',     "TEXT DEFAULT ''"),
+        ('tg_username',    "TEXT DEFAULT ''"),
+        ('tg_user_id',     "TEXT DEFAULT ''"),
+        ('last_message',   "TEXT DEFAULT ''"),
+        ('partner_token',  "TEXT DEFAULT ''"),
     ]:
         try:
             conn.execute(f'ALTER TABLE bloggers ADD COLUMN {col} {definition}')
