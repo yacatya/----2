@@ -27,7 +27,7 @@ jobs:
       - name: Prepare server directories
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "mkdir -p /opt/verevery/app/templates /opt/verevery/app/data"
+            "mkdir -p /opt/verevery/app/templates /opt/verevery/app/data /opt/verevery/app/static"
 
       - name: Stop service
         run: |
@@ -67,6 +67,10 @@ jobs:
           scp -i ~/.ssh/id_rsa \
             cards_action.json cards_question.json cards_care.json \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/data/
+
+          scp -i ~/.ssh/id_rsa \
+            verevery_partner_guide.pdf \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/verevery/app/static/
 
       - name: Install deps, update service, restart
         run: |
