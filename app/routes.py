@@ -1641,8 +1641,6 @@ def admin_bloggers_templates_save():
 
 # ─── Partner Cabinet ────────────────────────────────────────────
 
-PARTNER_TOKEN_HOURS = 72
-
 def _partner_magic_link_email(name, link):
     return f'''<!DOCTYPE html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -1653,23 +1651,30 @@ def _partner_magic_link_email(name, link):
     <h2 style="font-family:Georgia,serif;font-size:20px;color:#2A2118;margin:0 0 16px">Привет, {name}! 👋</h2>
     <p style="color:#5C4A36;line-height:1.7;margin:0 0 24px">Катя приглашает тебя в личный кабинет партнёра verevery.ru — там ты найдёшь свою статистику, историю продаж и материалы для постов.</p>
     <a href="{link}" style="display:inline-block;background:#2A2118;color:#FAF7F2;text-decoration:none;padding:14px 28px;border-radius:50px;font-size:14px;font-weight:500;">Войти в кабинет →</a>
-    <p style="color:#A0927E;font-size:12px;margin:24px 0 0">Ссылка действует 72 часа. Если ты не ожидала это письмо — просто проигнорируй его.</p>
+    <p style="color:#A0927E;font-size:12px;margin:24px 0 0">Эта ссылка постоянная — можешь сохранить её в закладки. Если ты не ожидала это письмо — просто проигнорируй его.</p>
   </div>
 </div>
 </body></html>'''
 
+
+def _get_or_create_partner_token(blogger_id, conn):
+    """Return permanent partner token for blogger, creating it if needed."""
+    import secrets as _secrets
+    row = conn.execute('SELECT partner_token FROM bloggers WHERE id=?', (blogger_id,)).fetchone()
+    token = (row['partner_token'] or '').strip() if row else ''
+    if not token:
+        token = _secrets.token_urlsafe(32)
+        conn.execute('UPDATE bloggers SET partner_token=? WHERE id=?', (token, blogger_id))
+        conn.commit()
+    return token
+
+
 def _send_partner_invite(blogger, base_url):
-    import secrets, resend
-    from datetime import timedelta
+    import resend
     from .db import get_db
     resend.api_key = os.environ.get('RESEND_API_KEY', '')
-    token = secrets.token_urlsafe(32)
-    expires = (datetime.utcnow() + timedelta(hours=PARTNER_TOKEN_HOURS)).isoformat()
     conn = get_db()
-    conn.execute('DELETE FROM partner_tokens WHERE blogger_id=? AND used=0', (blogger['id'],))
-    conn.execute('INSERT INTO partner_tokens (token, blogger_id, expires_at) VALUES (?,?,?)',
-                 (token, blogger['id'], expires))
-    conn.commit()
+    token = _get_or_create_partner_token(blogger['id'], conn)
     conn.close()
     link = f"{base_url}/partner/auth?token={token}"
     html = _partner_magic_link_email(blogger['name'], link)
@@ -1743,17 +1748,14 @@ def partner_auth():
         return redirect(url_for('main.partner_login'))
     from .db import get_db
     conn = get_db()
-    row = conn.execute(
-        'SELECT * FROM partner_tokens WHERE token=?', (token,)
+    # Check permanent blogger token
+    blogger = conn.execute(
+        'SELECT * FROM bloggers WHERE partner_token=?', (token,)
     ).fetchone()
-    if not row:
+    if not blogger:
         conn.close()
-        return render_template('partner_login.html', error='Ссылка недействительна — запросите новую', sent=False)
-    if datetime.fromisoformat(row['expires_at']) < datetime.utcnow():
-        conn.close()
-        return render_template('partner_login.html', error='Ссылка истекла — запросите новую', sent=False)
-    # Token stays valid for the full 72h so server errors don't lock the blogger out
-    session['partner_id'] = row['blogger_id']
+        return render_template('partner_login.html', error='Ссылка недействительна — обратитесь к команде verevery', sent=False)
+    session['partner_id'] = blogger['id']
     session.permanent = True
     conn.close()
     return redirect(url_for('main.partner_dashboard'))
