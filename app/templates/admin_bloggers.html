@@ -159,7 +159,11 @@
       <td style="white-space:nowrap;">
         <button class="btn-sm" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
         {% if b.email and b.status not in ('new',) %}
-        <button class="btn-sm" onclick="sendInvite({{ b.id }}, this)" title="Пригласить в кабинет партнёра">📩</button>
+        <button class="btn-sm{% if b.partner_token %} ok{% endif %}"
+                onclick="sendInvite({{ b.id }}, this)"
+                title="{% if b.partner_token %}Приглашение уже отправлено — отправить снова{% else %}Пригласить в кабинет партнёра{% endif %}">
+          {% if b.partner_token %}✅{% else %}📩{% endif %}
+        </button>
         {% endif %}
         {% if b.status in ('partner', 'interested') %}
         <button class="btn-sm" onclick="openPaymentModal({{ b.id }})" title="Добавить выплату">💳</button>
