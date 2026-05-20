@@ -1790,6 +1790,13 @@ def partner_open_cards():
     return redirect(url_for('main.partner_dashboard'))
 
 
+@main.route('/partner/guide')
+def partner_guide():
+    if not session.get('partner_id'):
+        return redirect(url_for('main.partner_login'))
+    return render_template('partner_guide.html')
+
+
 @main.route('/partner/dashboard')
 def partner_dashboard():
     pid = session.get('partner_id')

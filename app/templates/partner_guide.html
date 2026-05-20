@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>verevery — Рекомендации по контенту для партнёров</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Exo+2:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+    --cream: #FAF7F2;
+    --white: #FFFFFF;
+    --beige: #EDE6DA;
+    --sand: #D4C8B5;
+    --dark: #2A2118;
+    --muted: #8C7E72;
+    --accent: #A67C52;
+    --light-accent: #C9A97A;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 300;
+    color: var(--dark);
+    background: var(--cream);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* === НАВИГАЦИЯ === */
+.nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(250, 247, 242, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 100;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(237, 230, 218, 0.5);
+}
+
+.nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+}
+.logo span:first-child { color: var(--dark); }
+.logo span:last-child { color: var(--accent); }
+
+.nav-label {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* === ОБЩИЕ СТИЛИ ТЕКСТА === */
+.label {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--sand);
+    font-weight: 400;
+}
+
+h1, h2, h3, h4 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    color: var(--dark);
+}
+
+h1 em, h2 em, h3 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+}
+
+p {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.75;
+    color: var(--muted);
+}
+
+p strong {
+    color: var(--dark);
+    font-weight: 400;
+}
+
+/* === СЕКЦИИ === */
+.section {
+    padding: 80px 24px;
+}
+
+.section-inner {
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.section-beige {
+    background: var(--beige);
+}
+
+.section-cream {
+    background: var(--cream);
+}
+
+.section-dark {
+    background: var(--dark);
+    color: var(--white);
+}
+
+.section-dark h2, .section-dark h3, .section-dark h4 {
+    color: var(--white);
+}
+
+.section-dark p {
+    color: var(--sand);
+}
+
+.section-dark .label {
+    color: var(--light-accent);
+}
+
+.section-head {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.section-head .label {
+    display: block;
+    margin-bottom: 16px;
+}
+
+.section-head h2 {
+    font-size: 42px;
+    line-height: 1.15;
+    margin-bottom: 16px;
+}
+
+.section-head .intro {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+/* === HERO === */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 24px 60px;
+    text-align: center;
+    background: var(--cream);
+    position: relative;
+}
+
+.hero .label {
+    margin-bottom: 24px;
+}
+
+.hero-ornament {
+    width: 60px;
+    height: 1px;
+    background: var(--accent);
+    margin: 24px auto;
+}
+
+.hero h1 {
+    font-size: 72px;
+    line-height: 1.05;
+    margin-bottom: 20px;
+    max-width: 800px;
+}
+
+.hero .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--accent);
+    font-weight: 400;
+    margin-bottom: 40px;
+}
+
+.hero-footnote {
+    position: absolute;
+    bottom: 32px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+}
+
+/* === О ПРОДУКТЕ === */
+.product-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 48px;
+    align-items: start;
+}
+
+.product-features {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.feature {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.feature-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 32px;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.feature-content h4 {
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.feature-content p {
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.product-preview {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+}
+
+.product-preview .label {
+    margin-bottom: 24px;
+}
+
+.preview-card {
+    border-top: 1px solid var(--beige);
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+.preview-card:first-of-type {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.preview-card .cat {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.preview-card .text {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--dark);
+}
+
+/* === ТРИ БЛОКА === */
+.three-blocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+}
+
+.block-card {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    border-radius: 20px;
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+    transition: transform 0.3s ease;
+}
+
+.block-card:hover {
+    transform: translateY(-4px);
+}
+
+.block-tag {
+    display: inline-block;
+    align-self: flex-start;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 6px 14px;
+    border: 1px solid var(--sand);
+    border-radius: 50px;
+    margin-bottom: 20px;
+}
+
+.block-card h3 {
+    font-size: 26px;
+    margin-bottom: 14px;
+}
+
+.block-card .desc {
+    font-size: 14px;
+    line-height: 1.65;
+    flex-grow: 1;
+    margin-bottom: 20px;
+}
+
+.block-card .example {
+    padding-top: 18px;
+    border-top: 1px solid var(--beige);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--dark);
+}
+
+/* === КАРУСЕЛЬ === */
+.carousel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.carousel-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 24px;
+    align-items: center;
+    background: var(--white);
+    border: 1px solid var(--beige);
+    border-radius: 16px;
+    padding: 20px 28px;
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+    transition: transform 0.2s ease;
+}
+
+.carousel-item:hover {
+    transform: translateX(4px);
+}
+
+.slide-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 38px;
+    color: var(--light-accent);
+    text-align: center;
+    line-height: 1;
+}
+
+.slide-info h4 {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.slide-info p {
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+/* === РИЛС СЦЕНАРИИ === */
+.scenarios {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.scenario {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    border-radius: 16px;
+    padding: 28px 26px;
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+}
+
+.scenario-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 36px;
+    color: var(--light-accent);
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.scenario h4 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    line-height: 1.25;
+}
+
+.scenario p {
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+/* === STORIES === */
+.stories-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.story-card {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    border-radius: 16px;
+    padding: 28px 26px;
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+}
+
+.story-card .label {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--accent);
+}
+
+.story-card h4 {
+    font-size: 22px;
+    margin-bottom: 14px;
+}
+
+.story-card p {
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+/* === ЗАМЕТКА === */
+.note {
+    background: var(--beige);
+    border-radius: 16px;
+    padding: 24px 28px;
+}
+
+.section-cream .note,
+.section-beige .note {
+    background: var(--beige);
+}
+
+.section-beige .note {
+    background: var(--white);
+    border: 1px solid var(--sand);
+}
+
+.note .label {
+    color: var(--accent);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.note p {
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--dark);
+}
+
+/* === ДА / НЕТ === */
+.do-dont {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.do-list, .dont-list {
+    padding: 32px;
+    border-radius: 20px;
+}
+
+.do-list {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+}
+
+.dont-list {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+}
+
+.list-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.icon-yes {
+    background: var(--accent);
+    color: var(--white);
+}
+
+.icon-no {
+    background: var(--sand);
+    color: var(--dark);
+}
+
+.list-header h3 {
+    font-size: 22px;
+    margin: 0;
+}
+
+.do-list ul, .dont-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.do-list li, .dont-list li {
+    padding: 10px 0 10px 20px;
+    border-bottom: 1px solid var(--beige);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--dark);
+    position: relative;
+    font-weight: 300;
+}
+
+.do-list li:last-child, .dont-list li:last-child {
+    border-bottom: none;
+}
+
+.do-list li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+.dont-list li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--sand);
+}
+
+/* === ТАЙМИНГ === */
+.timing-block {
+    background: var(--dark);
+    border-radius: 24px;
+    padding: 40px 44px;
+    color: var(--white);
+    margin-bottom: 32px;
+}
+
+.timing-block .label {
+    color: var(--light-accent);
+    display: block;
+    margin-bottom: 12px;
+}
+
+.timing-block h3 {
+    color: var(--white);
+    margin-bottom: 24px;
+    font-size: 26px;
+}
+
+.timing-rows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+}
+
+.timing-row {
+    border-left: 2px solid var(--accent);
+    padding-left: 20px;
+}
+
+.timing-row .day {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--light-accent);
+    margin-bottom: 6px;
+}
+
+.timing-row .time {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 26px;
+    color: var(--white);
+}
+
+/* === УСЛОВИЯ === */
+.terms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.term-card {
+    background: var(--white);
+    border: 1px solid var(--beige);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 2px 20px rgba(42, 33, 24, 0.06);
+}
+
+.term-card .label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.term-card h3 {
+    font-size: 22px;
+    margin-bottom: 16px;
+}
+
+.term-card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.term-card li {
+    padding: 7px 0 7px 16px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--dark);
+    position: relative;
+    font-weight: 300;
+    font-family: 'Exo 2', sans-serif;
+}
+
+.term-card li::before {
+    content: "·";
+    position: absolute;
+    left: 4px;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* === ФИНАЛ === */
+.outro {
+    text-align: center;
+    padding: 100px 24px;
+    background: var(--cream);
+}
+
+.outro-ornament {
+    width: 60px;
+    height: 1px;
+    background: var(--accent);
+    margin: 24px auto;
+}
+
+.outro .label {
+    margin-bottom: 16px;
+}
+
+.outro h2 {
+    font-size: 52px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+}
+
+.outro .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--muted);
+    margin-bottom: 32px;
+}
+
+.outro .website {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 32px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+.outro .footnote {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+}
+
+/* === MOBILE === */
+@media (max-width: 768px) {
+    .section {
+        padding: 56px 20px;
+    }
+
+    .hero {
+        padding: 90px 20px 60px;
+        min-height: 90vh;
+    }
+
+    .hero h1 {
+        font-size: 48px;
+    }
+
+    .hero .subtitle {
+        font-size: 18px;
+    }
+
+    .section-head h2 {
+        font-size: 32px;
+    }
+
+    .section-head .intro {
+        font-size: 16px;
+    }
+
+    .product-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .three-blocks {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .scenarios {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .stories-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .do-dont {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .terms-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .timing-rows {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .carousel-item {
+        grid-template-columns: 60px 1fr;
+        padding: 16px 20px;
+        gap: 16px;
+    }
+
+    .slide-num {
+        font-size: 32px;
+    }
+
+    .timing-block {
+        padding: 32px 28px;
+    }
+
+    .outro h2 {
+        font-size: 38px;
+    }
+
+    .outro .website {
+        font-size: 24px;
+    }
+}
+
+</style>
+</head>
+<body>
+
+<!-- НАВИГАЦИЯ -->
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="#" class="logo"><span>vere</span><span>very</span></a>
+        <div class="nav-label">Гайд для партнёров</div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="label">Гайд для партнёров</div>
+    <div class="hero-ornament"></div>
+    <h1>Рекомендации<br>по <em>контенту</em></h1>
+    <div class="subtitle">как органично рассказать о карточках</div>
+    <div class="hero-footnote">verevery × партнёрская программа · 2025</div>
+</section>
+
+<!-- О ПРОДУКТЕ -->
+<section class="section section-cream">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">О продукте</span>
+            <h2>Что такое <em>«Ближе»</em></h2>
+            <p class="intro">Цифровая колода для пар. Открывается в браузере на телефоне — без приложений и установки.</p>
+        </div>
+
+        <div class="product-grid">
+            <div class="product-features">
+                <div class="feature">
+                    <div class="feature-num">01</div>
+                    <div class="feature-content">
+                        <h4>60 карточек</h4>
+                        <p>Разделены на три тематических блока: Вопрос, Действие, Забота.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-num">02</div>
+                    <div class="feature-content">
+                        <h4>Три уровня сложности</h4>
+                        <p>Лёгкий → Средний → Сложный. Можно начинать с простого и углубляться.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-num">03</div>
+                    <div class="feature-content">
+                        <h4>Доказательная база</h4>
+                        <p>Метод Готтмана, КПТ, EFT, теория привязанности. К каждой карточке — объяснение зачем это работает с точки зрения нейробиологии.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-num">04</div>
+                    <div class="feature-content">
+                        <h4>Доступ навсегда</h4>
+                        <p>Купил один раз — пользуешься в любое время. Без подписок.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-preview">
+                <span class="label">Примеры карточек</span>
+                <div class="preview-card">
+                    <div class="cat">Вопрос · Лёгкий</div>
+                    <div class="text">«Какой момент, проведённый с тобой, я вспоминаю чаще всего — и почему именно он?»</div>
+                </div>
+                <div class="preview-card">
+                    <div class="cat">Действие · Средний</div>
+                    <div class="text">«20 минут прогулки без телефона. Маршрут не важен. Можно молчать.»</div>
+                </div>
+                <div class="preview-card">
+                    <div class="cat">Забота · Лёгкий</div>
+                    <div class="text">«Я смотрю на тебя — и мне хорошо.»</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ТРИ БЛОКА -->
+<section class="section section-beige">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">Структура колоды</span>
+            <h2>Три <em>блока</em> по 20 карточек</h2>
+            <p class="intro">Это не «список вопросов» — это инструмент с продуманной архитектурой. В контенте важно подсветить структуру: она отличает «Ближе» от десятков примитивных карточек на маркетплейсах.</p>
+        </div>
+
+        <div class="three-blocks">
+            <div class="block-card">
+                <span class="block-tag">Вопрос</span>
+                <h3>Что спросить</h3>
+                <p class="desc">Глубокие вопросы для разговора с партнёром. От лёгких к открывающим — те, которые сами бы не пришли в голову.</p>
+                <div class="example">«Что в нашей жизни вместе тебе сейчас нравится больше всего?»</div>
+            </div>
+
+            <div class="block-card">
+                <span class="block-tag">Действие</span>
+                <h3>Что сделать</h3>
+                <p class="desc">Конкретные совместные практики — короткие, выполнимые, без сложной подготовки.</p>
+                <div class="example">«Записка партнёру от руки. Положите туда, где он найдёт её в течение дня.»</div>
+            </div>
+
+            <div class="block-card">
+                <span class="block-tag">Забота</span>
+                <h3>Что сказать</h3>
+                <p class="desc">Готовые фразы поддержки и принятия. Самый необычный блок — фразы, которые многим сложно сказать самим.</p>
+                <div class="example">«Мне нравится, как ты смеёшься. Мне становится тепло на душе.»</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- КАРУСЕЛЬ -->
+<section class="section section-cream">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">Формат 01 · Карусель</span>
+            <h2>«Три карточки которые <em>зацепили</em>»</h2>
+            <p class="intro">Самый рабочий формат для цифровых карточек. Скриншоты + личная подача = сильнее любого описания.</p>
+        </div>
+
+        <div class="carousel-list">
+            <div class="carousel-item">
+                <div class="slide-num">1</div>
+                <div class="slide-info">
+                    <h4>Хук со скриншотом одной карточки</h4>
+                    <p>Самая сильная карточка крупным планом + подпись поверх. Например: «Этот вопрос я бы никогда не задала сама. А зря.»</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="slide-num">2–4</div>
+                <div class="slide-info">
+                    <h4>Личное размышление в вашем стиле</h4>
+                    <p>Реакция на карточки, личный опыт, размышление про близость. Это продолжение вашего обычного контента — не реклама.</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="slide-num">5</div>
+                <div class="slide-info">
+                    <h4>Скриншоты карточек из разных блоков</h4>
+                    <p>По одной из категорий: Вопрос, Действие, Забота. С подписью: «60 карточек, три блока, три уровня сложности».</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="slide-num">6</div>
+                <div class="slide-info">
+                    <h4>Научная база</h4>
+                    <p>Кратко: «Каждая карточка построена на исследованиях — Готтман, КПТ, теория привязанности. К каждой есть объяснение почему это работает в мозге».</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="slide-num">7</div>
+                <div class="slide-info">
+                    <h4>Призыв</h4>
+                    <p>«5 карточек бесплатно — посмотреть как это устроено. Полная колода — по моей ссылке».</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- РИЛС -->
+<section class="section section-beige">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">Формат 02 · Рилс</span>
+            <h2>Четыре <em>сценария</em> по 15–45 сек</h2>
+            <p class="intro">Цифровой формат позволяет screen recording — это даёт визуальную динамику без сложных съёмок.</p>
+        </div>
+
+        <div class="scenarios">
+            <div class="scenario">
+                <div class="scenario-num">A</div>
+                <h4>Три вопроса, которые поменяли разговор</h4>
+                <p>Запись экрана: листаете карточки, останавливаетесь на трёх сильных вопросах. Голос за кадром: «Купила недавно. Задала мужу — говорили два часа без перерыва».</p>
+            </div>
+            <div class="scenario">
+                <div class="scenario-num">B</div>
+                <h4>Screen recording по блокам</h4>
+                <p>Быстрая смена скриншотов: Вопрос → Действие → Забота. Голос или текст: «В отношениях обычно не хватает не любви. Не хватает поводов поговорить».</p>
+            </div>
+            <div class="scenario">
+                <div class="scenario-num">C</div>
+                <h4>Реакция на одну карточку</h4>
+                <p>Камера на вас, в кадре телефон с карточкой. Читаете вслух, реагируете честно: «Боже. Я бы сама этот вопрос не задала никогда».</p>
+            </div>
+            <div class="scenario">
+                <div class="scenario-num">D</div>
+                <h4>«Забота — это отдельная история»</h4>
+                <p>Фокус только на блоке Забота. Скриншоты 2–3 фраз + реакция: «Это не вопросы. Это просто фразы. Но попробуй их сказать вслух — поймёшь, почему сложно».</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- STORIES -->
+<section class="section section-cream">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">Формат 03 · Stories</span>
+            <h2>Три точки <em>касания</em></h2>
+            <p class="intro">Stories работают как мягкое сопровождение основного поста. Не давление — продолжение темы.</p>
+        </div>
+
+        <div class="stories-grid">
+            <div class="story-card">
+                <span class="label">— 1 день до</span>
+                <h4>Тизер</h4>
+                <p>Скриншот мощной карточки + комментарий. «Завтра расскажу про штуку, которая заставила меня сказать это мужу впервые за год».</p>
+            </div>
+
+            <div class="story-card">
+                <span class="label">В день поста</span>
+                <h4>Анонс</h4>
+                <p>Скриншот поста + ссылка-стикер. Можно добавить ещё одну карточку, которой не было в посте — как бонус.</p>
+            </div>
+
+            <div class="story-card">
+                <span class="label">+ 1–2 дня</span>
+                <h4>Реакция</h4>
+                <p>Скриншот карточки действия + комментарий: «Сходили вчера на прогулку без телефона. Реально работает».</p>
+            </div>
+        </div>
+
+        <div class="note">
+            <span class="label">Важно</span>
+            <p>Финальный формат публикации всегда за вами — вы лучше знаете свою аудиторию. Это рекомендации, не требования.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ДА / НЕТ -->
+<section class="section section-beige">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">Тон и подача</span>
+            <h2>Что <em>работает</em> и что нет</h2>
+        </div>
+
+        <div class="do-dont">
+            <div class="do-list">
+                <div class="list-header">
+                    <div class="icon-circle icon-yes">+</div>
+                    <h3>Работает</h3>
+                </div>
+                <ul>
+                    <li>Скриншоты конкретных вопросов из колоды — продают сильнее любого описания</li>
+                    <li>Подсветка структуры: три блока, три уровня — это система, а не список</li>
+                    <li>Упоминание научной базы — Готтман, КПТ — повышает доверие</li>
+                    <li>Личная реакция: «вот эта карточка меня зацепила»</li>
+                    <li>Объяснение что у каждой карточки есть «зачем» — для аудитории, ценящей обоснованность</li>
+                </ul>
+            </div>
+
+            <div class="dont-list">
+                <div class="list-header">
+                    <div class="icon-circle icon-no">—</div>
+                    <h3>Не работает</h3>
+                </div>
+                <ul>
+                    <li>«Карточки помогут улучшить отношения» — пустая фраза без конкретики</li>
+                    <li>Скрывать что продукт цифровой — потом будут возвраты</li>
+                    <li>Не упоминать структуру — продукт выглядит проще, чем есть</li>
+                    <li>Слова «уникальный», «революционный», «единственный»</li>
+                    <li>Прямая реклама без личной обёртки</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ТАЙМИНГ И ТРЕБОВАНИЯ -->
+<section class="section section-cream">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">Тайминг и требования</span>
+            <h2>Когда и <em>как</em> публиковать</h2>
+        </div>
+
+        <div class="timing-block">
+            <span class="label">Лучшее время для ниши отношений</span>
+            <h3>Когда аудитория настроена на разговор</h3>
+            <div class="timing-rows">
+                <div class="timing-row">
+                    <div class="day">Будни</div>
+                    <div class="time">19:00 — 21:30</div>
+                </div>
+                <div class="timing-row">
+                    <div class="day">Выходные</div>
+                    <div class="time">11:00 — 14:00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="terms-grid">
+            <div class="term-card">
+                <span class="label">Обязательно</span>
+                <h3>Маркировка рекламы</h3>
+                <ul>
+                    <li>Пометка «реклама» в посте</li>
+                    <li>ИНН рекламодателя</li>
+                    <li>ERID — пришлю после регистрации креатива в ОРД</li>
+                </ul>
+            </div>
+
+            <div class="term-card">
+                <span class="label">Обязательно</span>
+                <h3>Прозрачность формата</h3>
+                <ul>
+                    <li>Указать что продукт цифровой</li>
+                    <li>«Открывается в браузере на телефоне»</li>
+                    <li>Партнёрская ссылка в шапке или stories-стикере</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- УСЛОВИЯ ПАРТНЁРСТВА -->
+<section class="section section-beige">
+    <div class="section-inner">
+        <div class="section-head">
+            <span class="label">Условия партнёрства</span>
+            <h2>Как <em>устроена</em> работа</h2>
+            <p class="intro">Краткое напоминание основных условий — всё уже обсудили в письме, здесь — для удобства.</p>
+        </div>
+
+        <div class="terms-grid">
+            <div class="term-card">
+                <span class="label">Финансы</span>
+                <h3>30% с продажи</h3>
+                <ul>
+                    <li>Цена набора 690 ₽ · ваш доход 207 ₽ с продажи</li>
+                    <li>Выплаты раз в месяц, до 15 числа следующего</li>
+                    <li>Минимальная сумма к выплате — 1000 ₽</li>
+                    <li>Перевод как самозанятая на карту / счёт самозанятого / ИП</li>
+                </ul>
+            </div>
+
+            <div class="term-card">
+                <span class="label">Техника</span>
+                <h3>Уникальная ссылка</h3>
+                <ul>
+                    <li>UTM-метка с вашим ником: verevery.ru/?ref=name</li>
+                    <li>Личный кабинет с аналитикой в реальном времени</li>
+                    <li>Переходы, продажи, конверсия, сумма к выплате</li>
+                    <li>Никаких ручных подсчётов — всё прозрачно</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px;" class="note">
+            <span class="label">Помощь с контентом</span>
+            <p>Если для конкретного поста понадобятся материалы — скриншоты в высоком разрешении, mockup-изображения, screen recording — напишите, подготовлю точечно. Если вы лучше знаете свою аудиторию — действуйте по-своему.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ФИНАЛ -->
+<section class="outro">
+    <div class="label">На связи</div>
+    <div class="outro-ornament"></div>
+    <h2>Спасибо, что <em>с нами</em></h2>
+    <div class="subtitle">пишите по любым вопросам — отвечаю в течение дня</div>
+    <div><a href="https://verevery.ru" class="website">verevery.ru</a></div>
+    <div class="footnote">Катя · основательница проекта verevery</div>
+</section>
+
+</body>
+</html>
