@@ -56,7 +56,8 @@ project/
 │       ├── partner_login.html               # Личный кабинет блогера
 │       ├── partner_dashboard.html
 │       ├── partner_sales.html
-│       └── partner_payments.html
+│       ├── partner_payments.html
+│       └── partner_guide.html               # Рекомендации по контенту (HTML-страница)
 ├── scripts/
 │   └── setup_webhooks.py    # Регистрация Telegram webhook
 ├── run.py                   # Точка входа
@@ -537,26 +538,49 @@ curl "https://api.telegram.org/bot{TOKEN}/setWebhook" \
 | URL | Описание |
 |-----|----------|
 | `/partner/login` | Ввод email → получение ссылки на почту |
+| `/partner/auth` | Авторизация по постоянному токену из ссылки |
 | `/partner/dashboard` | Сводка: продажи, комиссия, персональная ссылка |
 | `/partner/sales` | Таблица всех продаж по UTM блогера |
 | `/partner/payments` | История выплат комиссии |
+| `/partner/open-cards` | Прямой доступ к колоде карточек (без покупки) |
+| `/partner/guide` | Рекомендации по контенту (HTML-страница) |
 
 ### Как отправить приглашение блогеру
 
-В карточке блогера в CRM → кнопка **«Отправить приглашение в ЛК»** → блогер получает письмо со ссылкой входа (токен действует 72 часа).
+В карточке блогера в CRM → кнопка **«Отправить приглашение в ЛК»** → блогер получает письмо с постоянной ссылкой входа.
+
+### Постоянный токен (не истекает)
+
+Токен хранится в колонке `bloggers.partner_token` и не имеет срока действия — блогер всегда может зайти по одной и той же ссылке. При первой отправке приглашения токен генерируется и сохраняется навсегда.
+
+```python
+def _get_or_create_partner_token(blogger_id, conn):
+    row = conn.execute('SELECT partner_token FROM bloggers WHERE id=?', (blogger_id,)).fetchone()
+    if row and row['partner_token']:
+        return row['partner_token']
+    token = secrets.token_urlsafe(32)
+    conn.execute('UPDATE bloggers SET partner_token=? WHERE id=?', (token, blogger_id))
+    conn.commit()
+    return token
+```
 
 ### Что видит блогер в дашборде
 
-- Количество продаж по его ссылке
+- Кнопка **«Посмотреть колоду»** — открывает полный доступ к карточкам (через `/partner/open-cards`)
+- Кнопка **«Рекомендации по контенту»** — открывает HTML-страницу с идеями для публикаций
+- Количество переходов и продаж по его ссылке
 - Сумма заработанной комиссии (30% = 207 ₽ с продажи)
-- Персональная UTM-ссылка
-- История выплат
+- Персональная UTM-ссылка с кнопкой «Скопировать»
+- История последних продаж и выплат
+
+### Прямой доступ к колоде для блогера
+
+`/partner/open-cards` создаёт пользователя по email блогера (если не существует), устанавливает `has_access=1` и перенаправляет сразу на `/cards`. Блогер видит всю колоду без покупки.
 
 ### Константы
 
 ```python
 COMMISSION_PER_SALE = 207   # 30% от 690 ₽
-PARTNER_TOKEN_HOURS = 72    # время жизни ссылки входа
 ```
 
 ---
@@ -731,11 +755,7 @@ CNAME resend               (обычно не нужен, см. в панели)
 
 | Задача | Описание |
 |--------|----------|
-| Заполнить `INSTAGRAM_ACCESS_TOKEN` | Нужен действующий IGAA-токен. Получить в Meta Developer Console → Instagram → Generate Token |
-| Заполнить `META_APP_SECRET` | Нужен для проверки HMAC подписи входящих вебхуков. Meta Developer Console → App Settings → Basic |
-| Заполнить `META_VERIFY_TOKEN` | Любая строка. Ввести в Meta Console → Webhooks → Edit |
-| Заполнить `TELEGRAM_BOT_TOKEN` | Получить у @BotFather |
-| Запустить `setup_webhooks.py` | Регистрирует Telegram webhook: `python scripts/setup_webhooks.py` |
+| Telegram: сообщения не доходят | Webhook зарегистрирован (`getWebhookInfo` ok:true), но входящие POST не видны в логах. Возможная причина: валидация `X-Telegram-Bot-Api-Secret-Token` в Flask. Проверить логи gunicorn при отправке тестового сообщения боту |
 
 ### 🟢 Улучшения (по желанию)
 
