@@ -1744,19 +1744,18 @@ def partner_auth():
     from .db import get_db
     conn = get_db()
     row = conn.execute(
-        'SELECT * FROM partner_tokens WHERE token=? AND used=0', (token,)
+        'SELECT * FROM partner_tokens WHERE token=?', (token,)
     ).fetchone()
     if not row:
         conn.close()
-        return render_template('partner_login.html', error='Ссылка недействительна или уже использована', sent=False)
+        return render_template('partner_login.html', error='Ссылка недействительна — запросите новую', sent=False)
     if datetime.fromisoformat(row['expires_at']) < datetime.utcnow():
         conn.close()
         return render_template('partner_login.html', error='Ссылка истекла — запросите новую', sent=False)
-    conn.execute('UPDATE partner_tokens SET used=1 WHERE token=?', (token,))
-    conn.commit()
-    conn.close()
+    # Token stays valid for the full 72h so server errors don't lock the blogger out
     session['partner_id'] = row['blogger_id']
     session.permanent = True
+    conn.close()
     return redirect(url_for('main.partner_dashboard'))
 
 
