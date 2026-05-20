@@ -173,8 +173,6 @@
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'first', this)">Отправить</button>
         {% elif can_send and b.status in ('interested',) %}
         <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'second', this)">Письмо 2</button>
-        {% elif can_send and b.status in ('agreed', 'posted') %}
-        <button class="btn-sm" id="send-{{ b.id }}" onclick="sendEmail({{ b.id }}, 'third', this)">Рек. 3</button>
         {% elif not can_send and b.status in ('new', 'interested') %}
         <span class="btn-sm" title="{% if b.channel == 'instagram' %}Ждём первого ответа — нет ID{% elif b.channel == 'telegram' %}Блогер должен написать боту{% endif %}" style="opacity:0.4;cursor:default">⏳</span>
         {% endif %}
