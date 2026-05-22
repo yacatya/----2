@@ -15,11 +15,11 @@
   .page-sub { font-size: 13px; color: var(--sand); margin-bottom: 28px; }
   .card { background: white; border: 1px solid var(--beige); border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
   .card-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--dark); margin-bottom: 14px; }
-  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 50px; font-size: 12px; }
   .badge-ok { background: #e8f5e9; color: #2e7d32; }
   .badge-err { background: #fce4ec; color: #c0392b; }
   .badge-warn { background: #fff8e1; color: #a67c00; }
+  .badge-loading { background: #e3f2fd; color: #1565c0; }
   .url-box { background: var(--cream); border: 1px solid var(--beige); border-radius: 8px; padding: 10px 14px; font-family: monospace; font-size: 12px; color: var(--dark); word-break: break-all; margin-bottom: 12px; }
   .btn { padding: 10px 22px; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
   .btn-primary { background: var(--dark); color: white; }
@@ -28,11 +28,15 @@
   .btn-danger:hover { background: #a93226; }
   .btn-secondary { background: var(--cream); color: var(--dark); border: 1px solid var(--beige); }
   .btn-secondary:hover { border-color: var(--accent); }
-  .json-box { background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin-top: 10px; max-height: 200px; overflow-y: auto; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .json-box { background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin-top: 10px; max-height: 180px; overflow-y: auto; display: none; }
   .hint { font-size: 12px; color: var(--sand); margin-top: 6px; line-height: 1.6; }
+  .info-row { font-size: 13px; color: var(--dark); margin-top: 8px; line-height: 1.7; }
   .step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
   .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--dark); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
   .step-body { flex: 1; font-size: 13px; color: var(--dark); line-height: 1.6; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  #status-area { margin-bottom: 12px; min-height: 24px; }
 </style>
 {% endblock %}
 
@@ -55,111 +59,131 @@
   {% if not has_token %}
   <div class="card">
     <div class="card-title">⚠️ Токен не настроен</div>
-    <div class="hint">
-      Добавьте <code>TELEGRAM_BOT_TOKEN=ваш_токен</code> в файл <code>/opt/verevery/.env</code> на сервере и перезапустите сервис:<br>
-      <code>systemctl restart verevery</code>
-    </div>
+    <div class="hint">Добавьте <code>TELEGRAM_BOT_TOKEN=ваш_токен</code> в файл <code>/opt/verevery/.env</code> на сервере и перезапустите сервис.</div>
   </div>
   {% else %}
 
-  <!-- Статус бота -->
   <div class="card">
-    <div class="card-title">🤖 Бот</div>
-    {% if result.me_error %}
-      <div class="row">
-        <span class="badge badge-err">Ошибка подключения</span>
-      </div>
-      <div class="json-box">{{ result.me_error }}</div>
-      <div class="hint">Прокси не работает или токен неверный. Убедитесь что деплой прошёл и <code>PROXY_URL</code> установлен.</div>
-    {% elif result.me %}
-      {% set me = result.me %}
-      {% if me.ok %}
-        <div class="row">
-          <span class="badge badge-ok">✓ Подключён через прокси</span>
-        </div>
-        <div class="hint">
-          Имя бота: <b>{{ me.result.first_name }}</b><br>
-          Username: <b>@{{ me.result.username }}</b><br>
-          ID: <code>{{ me.result.id }}</code>
-        </div>
-      {% else %}
-        <div class="row"><span class="badge badge-err">Ошибка API</span></div>
-        <div class="json-box">{{ me | tojson(indent=2) }}</div>
-      {% endif %}
-    {% endif %}
+    <div class="card-title">🤖 Статус бота</div>
+    <div id="status-area"><span class="badge badge-loading">Нажмите «Проверить» для проверки</span></div>
+    <div id="bot-info" class="info-row" style="display:none;"></div>
+    <div id="bot-error" class="json-box"></div>
   </div>
 
-  <!-- Вебхук -->
   <div class="card">
     <div class="card-title">🔗 Вебхук</div>
     <div class="url-box">{{ webhook_url }}</div>
-
-    {% if result.webhook_info %}
-      {% set wi = result.webhook_info %}
-      {% if wi.ok %}
-        {% set current = wi.result.url %}
-        {% if current == webhook_url %}
-          <div class="row"><span class="badge badge-ok">✓ Зарегистрирован на этот URL</span></div>
-        {% elif current %}
-          <div class="row"><span class="badge badge-warn">⚠ Зарегистрирован на другой URL</span></div>
-          <div class="hint">Текущий: <code>{{ current }}</code></div>
-        {% else %}
-          <div class="row"><span class="badge badge-err">Не зарегистрирован</span></div>
-        {% endif %}
-        {% if wi.result.last_error_message %}
-          <div class="hint" style="color:#c0392b;margin-top:8px;">
-            Последняя ошибка: {{ wi.result.last_error_message }}<br>
-            Дата: {{ wi.result.last_error_date }}
-          </div>
-        {% endif %}
-        {% if wi.result.pending_update_count %}
-          <div class="hint">Ожидает обработки: {{ wi.result.pending_update_count }} сообщений</div>
-        {% endif %}
-      {% endif %}
-    {% endif %}
-
-    {% if result.register %}
-      {% if result.register.ok %}
-        <div class="row" style="margin-top:12px;"><span class="badge badge-ok">✓ Вебхук успешно зарегистрирован!</span></div>
-      {% else %}
-        <div class="row" style="margin-top:12px;"><span class="badge badge-err">Ошибка регистрации</span></div>
-        <div class="json-box">{{ result.register | tojson(indent=2) }}</div>
-      {% endif %}
-    {% endif %}
-
-    {% if result.delete %}
-      <div class="row" style="margin-top:12px;"><span class="badge badge-warn">Вебхук удалён</span></div>
-    {% endif %}
-
-    <div class="row" style="margin-top:16px;gap:10px;">
-      <a href="/admin/telegram/setup?action=register" class="btn btn-primary">Зарегистрировать вебхук</a>
-      <a href="/admin/telegram/setup" class="btn btn-secondary">Обновить статус</a>
-      <a href="/admin/telegram/setup?action=delete" class="btn btn-danger" onclick="return confirm('Удалить вебхук?')">Удалить</a>
+    <div id="webhook-status"><span class="badge badge-loading" style="opacity:.4;">—</span></div>
+    <div id="webhook-error" class="hint" style="color:#c0392b;display:none;margin-top:8px;"></div>
+    <div id="register-result" style="margin-top:10px;display:none;"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="doCheck()" id="btn-check">🔄 Проверить</button>
+      <button class="btn btn-primary" onclick="doAction('register')" id="btn-reg">Зарегистрировать вебхук</button>
+      <button class="btn btn-danger" onclick="doAction('delete')" id="btn-del">Удалить</button>
     </div>
-    <div class="hint">{% if has_secret %}Secret-token настроен ✓{% else %}⚠ TELEGRAM_WEBHOOK_SECRET не задан — вебхук будет без защиты{% endif %}</div>
+    <div class="hint" style="margin-top:10px;">{% if has_secret %}Secret-token настроен ✓{% else %}⚠ TELEGRAM_WEBHOOK_SECRET не задан{% endif %}</div>
   </div>
 
-  <!-- Как проверить -->
   <div class="card">
-    <div class="card-title">📋 Как проверить что всё работает</div>
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-body">Нажмите <b>«Зарегистрировать вебхук»</b> выше — должно появиться зелёное «Зарегистрирован»</div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-body">Откройте Telegram, найдите бота <b>@{{ (result.me.result.username if result.me and result.me.ok) or 'ваш_бот' }}</b> и отправьте любое сообщение</div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-body">Зайдите в CRM → откройте блогера с каналом Telegram → убедитесь что его сообщение появилось во входящих</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-body">Попробуйте отправить письмо блогеру с каналом TG прямо из CRM</div>
-    </div>
+    <div class="card-title">📋 Как проверить</div>
+    <div class="step"><div class="step-num">1</div><div class="step-body">Нажмите <b>«Проверить»</b> — бот должен быть зелёным</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body">Нажмите <b>«Зарегистрировать вебхук»</b></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body">Откройте Telegram и напишите боту <b id="bot-username">@Verevery_crm_bot</b> любое сообщение</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body">Нажмите <b>«Проверить»</b> снова — ошибок быть не должно</div></div>
   </div>
 
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setLoading(on) {
+  ['btn-check','btn-reg','btn-del'].forEach(function(id){
+    var b = document.getElementById(id);
+    if(b) b.disabled = on;
+  });
+  if(on) document.getElementById('status-area').innerHTML = '<span class="badge badge-loading">Подключаемся… (до 10 сек)</span>';
+}
+
+function doCheck() { callApi('status'); }
+function doAction(action) {
+  if(action === 'delete' && !confirm('Удалить вебхук?')) return;
+  callApi(action);
+}
+
+function callApi(action) {
+  setLoading(true);
+  fetch('/admin/telegram/api', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: action})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){ renderResult(data, action); setLoading(false); })
+  .catch(function(e){
+    document.getElementById('status-area').innerHTML = '<span class="badge badge-err">Ошибка сети</span>';
+    setLoading(false);
+  });
+}
+
+function renderResult(data, action) {
+  // Bot status
+  var statusArea = document.getElementById('status-area');
+  var botInfo = document.getElementById('bot-info');
+  var botError = document.getElementById('bot-error');
+  if(data.error) {
+    statusArea.innerHTML = '<span class="badge badge-err">⚠ ' + data.error + '</span>';
+  } else if(data.me_error) {
+    statusArea.innerHTML = '<span class="badge badge-err">Ошибка подключения</span>';
+    botError.textContent = data.me_error;
+    botError.style.display = 'block';
+  } else if(data.me && data.me.ok) {
+    statusArea.innerHTML = '<span class="badge badge-ok">✓ Подключён через прокси</span>';
+    var m = data.me.result;
+    botInfo.innerHTML = 'Имя: <b>' + m.first_name + '</b> · Username: <b>@' + m.username + '</b> · ID: <code>' + m.id + '</code>';
+    botInfo.style.display = 'block';
+    document.getElementById('bot-username').textContent = '@' + m.username;
+    botError.style.display = 'none';
+  }
+
+  // Webhook status
+  var whStatus = document.getElementById('webhook-status');
+  var whError = document.getElementById('webhook-error');
+  if(data.webhook_info && data.webhook_info.ok) {
+    var wi = data.webhook_info.result;
+    var currentUrl = wi.url || '';
+    var expectedUrl = '{{ webhook_url }}';
+    if(currentUrl === expectedUrl) {
+      whStatus.innerHTML = '<span class="badge badge-ok">✓ Зарегистрирован</span>';
+    } else if(currentUrl) {
+      whStatus.innerHTML = '<span class="badge badge-warn">⚠ Другой URL: ' + currentUrl + '</span>';
+    } else {
+      whStatus.innerHTML = '<span class="badge badge-err">Не зарегистрирован</span>';
+    }
+    if(wi.last_error_message) {
+      whError.textContent = 'Последняя ошибка: ' + wi.last_error_message;
+      whError.style.display = 'block';
+    } else {
+      whError.style.display = 'none';
+    }
+  } else if(data.webhook_info_error) {
+    whStatus.innerHTML = '<span class="badge badge-err">Ошибка получения статуса</span>';
+  }
+
+  // Register/delete result
+  var regResult = document.getElementById('register-result');
+  if(action === 'register' && data.register) {
+    if(data.register.ok) {
+      regResult.innerHTML = '<span class="badge badge-ok">✓ Вебхук успешно зарегистрирован!</span>';
+    } else {
+      regResult.innerHTML = '<span class="badge badge-err">Ошибка: ' + JSON.stringify(data.register) + '</span>';
+    }
+    regResult.style.display = 'block';
+  } else if(action === 'delete' && data.delete) {
+    regResult.innerHTML = '<span class="badge badge-warn">Вебхук удалён</span>';
+    regResult.style.display = 'block';
+  }
+}
+</script>
 {% endblock %}

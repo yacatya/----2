@@ -1582,45 +1582,55 @@ def admin_server_ip():
 def admin_telegram_setup():
     if not session.get('admin_logged_in'):
         return redirect('/admin/login')
-    import requests as _req
     token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
     secret = os.environ.get('TELEGRAM_WEBHOOK_SECRET', '')
     base_url_env = os.environ.get('BASE_URL', BASE_URL).rstrip('/')
     webhook_url = f'{base_url_env}/webhook/telegram'
-    result = {}
-    action = request.args.get('action', '')
-    if not token:
-        result['error'] = 'TELEGRAM_BOT_TOKEN не задан на сервере'
-    else:
-        tg_api = f'https://api.telegram.org/bot{token}'
-        try:
-            me = _req.get(f'{tg_api}/getMe', timeout=10, proxies=_PROXIES).json()
-            result['me'] = me
-        except Exception as e:
-            result['me_error'] = str(e)
-        try:
-            info = _req.get(f'{tg_api}/getWebhookInfo', timeout=10, proxies=_PROXIES).json()
-            result['webhook_info'] = info
-        except Exception as e:
-            result['webhook_info_error'] = str(e)
-        if action == 'register':
-            try:
-                params = {'url': webhook_url}
-                if secret:
-                    params['secret_token'] = secret
-                reg = _req.post(f'{tg_api}/setWebhook', json=params, timeout=10, proxies=_PROXIES).json()
-                result['register'] = reg
-            except Exception as e:
-                result['register_error'] = str(e)
-        if action == 'delete':
-            try:
-                reg = _req.post(f'{tg_api}/deleteWebhook', timeout=10, proxies=_PROXIES).json()
-                result['delete'] = reg
-            except Exception as e:
-                result['delete_error'] = str(e)
     return render_template('admin_telegram_setup.html',
-                           result=result, webhook_url=webhook_url,
+                           webhook_url=webhook_url,
                            has_token=bool(token), has_secret=bool(secret))
+
+
+@main.route('/admin/telegram/api', methods=['POST'])
+def admin_telegram_api():
+    if not session.get('admin_logged_in'):
+        return {'error': 'Forbidden'}, 403
+    import requests as _req
+    action = request.json.get('action', 'status')
+    token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    secret = os.environ.get('TELEGRAM_WEBHOOK_SECRET', '')
+    base_url_env = os.environ.get('BASE_URL', BASE_URL).rstrip('/')
+    webhook_url = f'{base_url_env}/webhook/telegram'
+    if not token:
+        return {'error': 'TELEGRAM_BOT_TOKEN не задан на сервере'}, 200
+    tg_api = f'https://api.telegram.org/bot{token}'
+    result = {}
+    try:
+        me = _req.get(f'{tg_api}/getMe', timeout=8, proxies=_PROXIES).json()
+        result['me'] = me
+    except Exception as e:
+        result['me_error'] = str(e)
+    try:
+        info = _req.get(f'{tg_api}/getWebhookInfo', timeout=8, proxies=_PROXIES).json()
+        result['webhook_info'] = info
+    except Exception as e:
+        result['webhook_info_error'] = str(e)
+    if action == 'register':
+        try:
+            params = {'url': webhook_url}
+            if secret:
+                params['secret_token'] = secret
+            reg = _req.post(f'{tg_api}/setWebhook', json=params, timeout=8, proxies=_PROXIES).json()
+            result['register'] = reg
+        except Exception as e:
+            result['register_error'] = str(e)
+    if action == 'delete':
+        try:
+            reg = _req.post(f'{tg_api}/deleteWebhook', timeout=8, proxies=_PROXIES).json()
+            result['delete'] = reg
+        except Exception as e:
+            result['delete_error'] = str(e)
+    return result
 
 
 @main.route('/webhook/instagram', methods=['GET', 'POST'])
