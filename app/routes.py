@@ -1355,19 +1355,39 @@ def admin_bloggers_analytics():
         return redirect(url_for('main.admin_login'))
     from .db import get_db
     conn = get_db()
-    total = conn.execute('SELECT COUNT(*) FROM bloggers').fetchone()[0]
+
+    channel_filter = request.args.get('channel', '').strip()
+    date_from = request.args.get('date_from', '').strip()
+    date_to   = request.args.get('date_to', '').strip()
+
+    where_parts = []
+    params = []
+    if channel_filter:
+        where_parts.append('b.channel = ?')
+        params.append(channel_filter)
+    if date_from:
+        where_parts.append("date(b.created_at) >= date(?)")
+        params.append(date_from)
+    if date_to:
+        where_parts.append("date(b.created_at) <= date(?)")
+        params.append(date_to)
+    where_sql = ('WHERE ' + ' AND '.join(where_parts)) if where_parts else ''
+
+    total = conn.execute(f'SELECT COUNT(*) FROM bloggers b {where_sql}', params).fetchone()[0]
     by_status = {r['status']: r['cnt'] for r in
-                 conn.execute('SELECT status, COUNT(*) as cnt FROM bloggers GROUP BY status')}
-    rows = conn.execute('''
-        SELECT b.id, b.name, b.platform, b.profile_url, b.utm_slug, b.status, b.paid_out,
+                 conn.execute(f'SELECT b.status, COUNT(*) as cnt FROM bloggers b {where_sql} GROUP BY b.status', params)}
+
+    rows = conn.execute(f'''
+        SELECT b.id, b.name, b.platform, b.channel, b.profile_url, b.utm_slug, b.status, b.paid_out,
             COALESCE(s.cnt, 0) as real_sales
         FROM bloggers b
         LEFT JOIN (
             SELECT blogger, COUNT(*) as cnt
             FROM sales GROUP BY blogger
         ) s ON s.blogger = b.utm_slug
+        {where_sql}
         ORDER BY real_sales DESC, b.name
-    ''').fetchall()
+    ''', params).fetchall()
     conn.close()
     total_sales = sum(r['real_sales'] for r in rows)
     total_commission = total_sales * COMMISSION_PER_SALE
@@ -1382,7 +1402,10 @@ def admin_bloggers_analytics():
                            total_paid=total_paid,
                            total_debt=total_commission - total_paid,
                            statuses=BLOGGER_STATUSES,
-                           cps=COMMISSION_PER_SALE)
+                           cps=COMMISSION_PER_SALE,
+                           channel_filter=channel_filter,
+                           date_from=date_from,
+                           date_to=date_to)
 
 
 @main.route('/webhook/email-reply', methods=['POST'])

@@ -93,6 +93,35 @@ a.btn-back:hover { opacity: .85; }
   font-family: 'Exo 2', sans-serif; text-decoration: none;
 }
 .btn-export:hover { background: #1b5e20; }
+.filter-bar {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 18px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+}
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-group label { font-size: 11px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
+.filter-group select, .filter-group input[type=date] {
+  border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px;
+  font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--text);
+  background: var(--bg); outline: none;
+}
+.filter-group select:focus, .filter-group input[type=date]:focus { border-color: var(--accent); }
+.quick-periods { display: flex; gap: 6px; flex-wrap: wrap; }
+.qp-btn {
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 50px;
+  font-size: 12px; background: var(--bg); color: var(--muted); cursor: pointer;
+  font-family: 'Exo 2', sans-serif; text-decoration: none; white-space: nowrap;
+}
+.qp-btn:hover, .qp-btn.active { background: var(--header-bg); color: #fff; border-color: var(--header-bg); }
+.btn-apply {
+  padding: 8px 18px; background: var(--header-bg); color: #fff; border: none;
+  border-radius: 7px; font-size: 13px; cursor: pointer; font-family: 'Exo 2', sans-serif;
+}
+.btn-apply:hover { opacity: .85; }
+.filter-active-badge {
+  display: inline-block; background: #fff3e0; color: #e65100;
+  border: 1px solid #ffcc80; border-radius: 50px; font-size: 11px;
+  padding: 3px 10px; margin-left: 8px;
+}
 </style>
 </head>
 <body>
@@ -109,7 +138,36 @@ a.btn-back:hover { opacity: .85; }
 <main>
   <a href="/admin/bloggers" class="btn-back">← Назад к блогерам</a>
 
-  <h2>Аналитика блогеров</h2>
+  <h2>Аналитика блогеров{% if channel_filter or date_from or date_to %}<span class="filter-active-badge">фильтр активен</span>{% endif %}</h2>
+
+  <form class="filter-bar" method="get" action="/admin/bloggers/analytics" id="filter-form">
+    <div class="filter-group">
+      <label>Канал</label>
+      <select name="channel" onchange="this.form.submit()">
+        <option value="" {% if not channel_filter %}selected{% endif %}>Все каналы</option>
+        <option value="email"     {% if channel_filter=='email' %}selected{% endif %}>✉️ Email</option>
+        <option value="instagram" {% if channel_filter=='instagram' %}selected{% endif %}>📸 Instagram</option>
+        <option value="telegram"  {% if channel_filter=='telegram' %}selected{% endif %}>✈️ Telegram</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Добавлен с</label>
+      <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()">
+    </div>
+    <div class="filter-group">
+      <label>Добавлен по</label>
+      <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
+    </div>
+    <div class="filter-group">
+      <label>Быстрый период</label>
+      <div class="quick-periods">
+        <a class="qp-btn" href="#" onclick="setQuickPeriod(7);return false;">7 дней</a>
+        <a class="qp-btn" href="#" onclick="setQuickPeriod(30);return false;">30 дней</a>
+        <a class="qp-btn" href="#" onclick="setQuickPeriod(90);return false;">3 месяца</a>
+        <a class="qp-btn" href="/admin/bloggers/analytics{% if channel_filter %}?channel={{ channel_filter }}{% endif %}">Всё время</a>
+      </div>
+    </div>
+  </form>
 
   <div class="kpi-grid">
     <div class="kpi">
@@ -167,6 +225,7 @@ a.btn-back:hover { opacity: .85; }
           <th>#</th>
           <th>Блогер</th>
           <th>Платформа</th>
+          <th>Канал</th>
           <th>Статус</th>
           <th>Продажи</th>
           <th>Выручка, ₽</th>
@@ -189,6 +248,7 @@ a.btn-back:hover { opacity: .85; }
             {% endif %}
           </td>
           <td>{{ b.platform or '—' }}</td>
+          <td>{% if b.channel == 'instagram' %}📸{% elif b.channel == 'telegram' %}✈️{% else %}✉️{% endif %} {{ b.channel or 'email' }}</td>
           <td>
             {% for st_id, st_label, st_color, st_bg in statuses %}
               {% if st_id == b.status %}
@@ -205,7 +265,7 @@ a.btn-back:hover { opacity: .85; }
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted);">Нет данных</td></tr>
+        <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">Нет данных</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -213,6 +273,17 @@ a.btn-back:hover { opacity: .85; }
 </main>
 
 <script>
+function setQuickPeriod(days) {
+  var today = new Date();
+  var from = new Date(today);
+  from.setDate(today.getDate() - days + 1);
+  function fmt(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  document.querySelector('[name=date_from]').value = fmt(from);
+  document.querySelector('[name=date_to]').value = fmt(today);
+  document.getElementById('filter-form').submit();
+}
 function exportCsv() {
   const table = document.getElementById('bloggers-table');
   const rows = table.querySelectorAll('tr');
