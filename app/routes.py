@@ -1514,7 +1514,7 @@ def webhook_telegram_health():
 
 @main.route('/admin/telegram/setup')
 def admin_telegram_setup():
-    if not session.get('admin'):
+    if not session.get('admin_logged_in'):
         return redirect('/admin/login')
     import requests as _req
     token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
