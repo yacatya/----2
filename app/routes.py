@@ -1127,12 +1127,19 @@ def admin_bloggers():
     query = '''
         SELECT b.*,
             COALESCE(s.cnt, 0) as real_sales,
-            COALESCE(s.revenue, 0.0) as total_revenue
+            COALESCE(s.revenue, 0.0) as total_revenue,
+            lp.cost as last_placement_cost,
+            lp.format as last_placement_format
         FROM bloggers b
         LEFT JOIN (
             SELECT blogger, COUNT(*) as cnt, SUM(amount) as revenue
             FROM sales GROUP BY blogger
         ) s ON s.blogger = b.utm_slug
+        LEFT JOIN (
+            SELECT blogger_id, cost, format FROM placements
+            WHERE deleted_at IS NULL
+            GROUP BY blogger_id HAVING id = MAX(id)
+        ) lp ON lp.blogger_id = b.id
     '''
     conditions, params = [], []
     if status_filter:
@@ -1243,6 +1250,30 @@ def admin_bloggers_update(bid):
     conn = get_db()
     set_clause = ', '.join(f'{k}=?' for k in updates)
     conn.execute(f'UPDATE bloggers SET {set_clause} WHERE id=?', list(updates.values()) + [bid])
+
+    fix_cost_rub = request.form.get('fix_cost_rubles', '').strip()
+    fix_format   = request.form.get('fix_format', '').strip()
+    model        = updates.get('cooperation_model') or request.form.get('cooperation_model', '')
+    if model == 'fix' and fix_cost_rub:
+        try:
+            cost_kopecks = int(float(fix_cost_rub) * 100)
+        except (ValueError, TypeError):
+            cost_kopecks = 0
+        existing = conn.execute(
+            'SELECT id FROM placements WHERE blogger_id=? AND deleted_at IS NULL ORDER BY id DESC LIMIT 1',
+            (bid,)
+        ).fetchone()
+        if existing:
+            conn.execute(
+                'UPDATE placements SET cost=?, format=?, updated_at=datetime("now") WHERE id=?',
+                (cost_kopecks, fix_format or None, existing['id'])
+            )
+        else:
+            conn.execute(
+                'INSERT INTO placements (blogger_id, cost, format, model_at_placement) VALUES (?,?,?,?)',
+                (bid, cost_kopecks, fix_format or None, 'fix')
+            )
+
     conn.commit()
     row = conn.execute('SELECT utm_link FROM bloggers WHERE id=?', (bid,)).fetchone()
     conn.close()

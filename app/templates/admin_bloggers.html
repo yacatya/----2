@@ -409,6 +409,10 @@ function openEditModal(id,b) {
   document.getElementById('paid-group').style.display='block';
   document.getElementById('model-group').style.display='block';
   setModalModel(b.cooperation_model||'partnership');
+  var costEl=document.getElementById('m-fix_cost_rubles');
+  var fmtEl=document.getElementById('m-fix_format');
+  if(costEl) costEl.value = b.last_placement_cost ? Math.round(b.last_placement_cost/100) : '';
+  if(fmtEl) fmtEl.value = b.last_placement_format||'';
   updateUtmPreview();
   updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
@@ -550,14 +554,13 @@ function submitModal(){
   data.append('channel',document.getElementById('m-channel').value);
   var model=document.getElementById('m-cooperation_model').value;
   data.append('cooperation_model', model);
+  if(model==='fix') {
+    data.append('fix_cost_rubles', document.getElementById('m-fix_cost_rubles').value||'0');
+    data.append('fix_format', document.getElementById('m-fix_format').value||'');
+  }
   if(editingId){
     data.append('status',document.getElementById('m-status').value);
     data.append('paid_out',document.getElementById('m-paid_out').value);
-  } else {
-    if(model==='fix') {
-      data.append('fix_cost_rubles', document.getElementById('m-fix_cost_rubles').value||'0');
-      data.append('fix_format', document.getElementById('m-fix_format').value||'');
-    }
   }
   var url=editingId?'/admin/bloggers/'+editingId+'/update':'/admin/bloggers/add';
   fetch(url,{method:'POST',body:data}).then(function(r){
