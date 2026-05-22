@@ -103,9 +103,10 @@ a.btn-back:hover { opacity: .85; }
 .filter-group { display: flex; flex-direction: column; gap: 5px; }
 .filter-group label { font-size: 11px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
 .filter-group select, .filter-group input[type=date] {
-  border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px;
+  border: 1px solid var(--border); border-radius: 7px; padding: 0 10px;
   font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--text);
-  background: var(--bg); outline: none; width: 100%; box-sizing: border-box; height: 38px;
+  background: var(--bg); outline: none; width: 100%; box-sizing: border-box;
+  height: 38px; line-height: 38px; -webkit-appearance: none; appearance: none;
 }
 .filter-group select:focus, .filter-group input[type=date]:focus { border-color: var(--accent); }
 .quick-periods { display: flex; gap: 6px; flex-wrap: wrap; }
