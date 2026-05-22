@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% block title %}{{ blogger.name }} — verevery{% endblock %}
+{% block head %}
+<style>
+  body { padding-top: 58px; }
+  .adm-header { position:fixed;top:0;left:0;right:0;z-index:200;background:var(--dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px; }
+  .adm-logo { font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--cream);white-space:nowrap; }
+  .adm-logo span { color:var(--light-accent); }
+  .adm-nav { display:flex;gap:10px;align-items:center; }
+  .adm-link { font-size:12px;color:var(--sand);text-decoration:none;padding:6px 14px;border:1px solid rgba(255,255,255,0.15);border-radius:50px;white-space:nowrap; }
+  .adm-link:hover { color:white;border-color:rgba(255,255,255,0.4); }
+  .body { max-width:900px;margin:0 auto;padding:24px 20px 80px; }
+  .page-title { font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--dark);margin-bottom:4px; }
+  .page-sub { font-size:13px;color:var(--sand);margin-bottom:24px; }
+  .card { background:white;border:1px solid var(--beige);border-radius:16px;padding:20px;margin-bottom:20px; }
+  .card-title { font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--sand);margin-bottom:16px; }
+  .f-group { margin-bottom:12px; }
+  .f-label { font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--sand);margin-bottom:4px;display:block; }
+  .f-input,.f-select,.f-textarea { width:100%;padding:9px 12px;border:1px solid var(--beige);border-radius:10px;font-family:'Exo 2',sans-serif;font-size:13px;color:var(--dark);background:var(--cream);outline:none;box-sizing:border-box; }
+  .f-input:focus,.f-select:focus,.f-textarea:focus { border-color:var(--accent); }
+  .f-row { display:flex;gap:12px; }
+  .f-row > * { flex:1; }
+  .btn-primary { padding:10px 18px;background:var(--dark);color:white;border:none;border-radius:50px;font-family:'Exo 2',sans-serif;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap; }
+  .btn-primary:hover { background:var(--accent); }
+  .btn-green { background:#2e7d32; } .btn-green:hover { background:#1b5e20; }
+  .btn-sm { padding:4px 12px;background:transparent;border:1px solid var(--beige);border-radius:50px;font-family:'Exo 2',sans-serif;font-size:11px;cursor:pointer;color:var(--muted);white-space:nowrap; }
+  .btn-sm:hover { border-color:var(--accent);color:var(--accent); }
+  .s-badge { padding:3px 12px;border-radius:50px;font-size:11px;font-weight:500;white-space:nowrap; }
+  .stats-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:10px; }
+  @media(max-width:600px) { .stats-grid { grid-template-columns:1fr 1fr; } .f-row { flex-direction:column; } }
+  .stat-card { background:var(--cream);border:1px solid var(--beige);border-radius:12px;padding:14px; }
+  .stat-card.accent { background:var(--dark);border-color:var(--dark); }
+  .stat-label { font-size:10px;letter-spacing:0.5px;color:var(--sand);margin-bottom:6px;text-transform:uppercase; }
+  .stat-card.accent .stat-label { color:rgba(255,255,255,0.5); }
+  .stat-value { font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--dark);line-height:1; }
+  .stat-card.accent .stat-value { color:white; }
+  .stat-sub { font-size:11px;color:var(--muted);margin-top:3px; }
+  .placement-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .placement-table th { text-align:left;padding:8px 10px;border-bottom:2px solid var(--beige);color:var(--sand);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap; }
+  .placement-table td { padding:8px 10px;border-bottom:1px solid var(--beige);color:var(--dark);vertical-align:middle; }
+  .placement-table tr:hover td { background:#faf8f5; }
+  .roi-pos { color:#2e7d32;font-weight:600; }
+  .roi-neg { color:#c0392b;font-weight:600; }
+  .cac-ok { color:#2e7d32; } .cac-warn { color:#a67c00; } .cac-bad { color:#c0392b; }
+  .empty { text-align:center;padding:32px;color:var(--sand);font-size:13px; }
+  .model-switch { display:flex;gap:8px;flex-wrap:wrap; }
+  .model-btn { padding:7px 16px;border-radius:50px;border:1px solid var(--beige);font-size:12px;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s; }
+  .model-btn.active { background:var(--dark);color:white;border-color:var(--dark); }
+  .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;justify-content:center;align-items:flex-start;padding:40px 16px;overflow-y:auto; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:white;border-radius:20px;padding:24px;width:100%;max-width:520px;position:relative; }
+  .modal-title { font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--dark);margin-bottom:20px; }
+  .modal-close { position:absolute;top:14px;right:18px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--sand); }
+  .modal-status { font-size:12px;margin-top:8px;min-height:18px; }
+  .modal-status.ok { color:#2e7d32; } .modal-status.err { color:#c0392b; }
+  .convert-banner { background:#f3e5f5;border:1px solid #ce93d8;border-radius:14px;padding:16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px; }
+</style>
+{% endblock %}
+{% block nav %}
+<div class="adm-header">
+  <div class="adm-logo">vere<span>very</span> · <a href="/admin/bloggers" class="adm-link" style="font-size:14px;color:var(--sand)">CRM</a></div>
+  <div class="adm-nav">
+    <a href="/admin/placements" class="adm-link">📋 Размещения</a>
+    <a href="/admin/budget" class="adm-link">💰 Бюджет</a>
+    <a href="/admin" class="adm-link">← Главная</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="body">
+
+  <div class="page-title">{{ blogger.name }}</div>
+  <div class="page-sub">
+    {% if blogger.platform %}{{ blogger.platform }}{% endif %}
+    {% if blogger.profile_url %} · <a href="{{ blogger.profile_url }}" target="_blank" style="color:var(--accent)">профиль →</a>{% endif %}
+    &nbsp;
+    {% for slug,label,color,bg in statuses %}{% if slug==blogger.status %}
+    <span class="s-badge" style="color:{{ color }};background:{{ bg }}">{{ label }}</span>
+    {% endif %}{% endfor %}
+  </div>
+
+  {% if last_posted %}
+  <div class="convert-banner">
+    <div>
+      <div style="font-size:13px;color:#6a1b9a;font-weight:600;margin-bottom:2px;">🔄 Есть продажи по фикс-размещению</div>
+      <div style="font-size:12px;color:var(--muted)">{{ last_posted.sales }} продаж с размещения {{ last_posted.placement_date or '' }} — предложи перейти на партнёрку</div>
+    </div>
+    <button class="btn-primary" style="background:#6a1b9a;flex-shrink:0" onclick="openConvertModal()">Предложить →</button>
+  </div>
+  {% endif %}
+
+  <!-- Сводка -->
+  {% if summary.count > 0 %}
+  <div class="stats-grid" style="margin-bottom:20px;">
+    <div class="stat-card">
+      <div class="stat-label">Размещений</div>
+      <div class="stat-value">{{ summary.count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Потрачено</div>
+      <div class="stat-value">{{ (summary.total_cost // 100)|int }} ₽</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Продаж</div>
+      <div class="stat-value">{{ summary.total_sales }}</div>
+    </div>
+    <div class="stat-card {% if summary.roi and summary.roi > 0 %}accent{% endif %}">
+      <div class="stat-label">ROI</div>
+      <div class="stat-value">{% if summary.roi is not none %}{{ summary.roi }}%{% else %}—{% endif %}</div>
+      <div class="stat-sub">прибыль {{ (summary.total_profit // 100)|int }} ₽</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Модель сотрудничества -->
+  <div class="card">
+    <div class="card-title">Модель сотрудничества</div>
+    <div class="model-switch" id="model-switch">
+      <button class="model-btn {% if blogger.cooperation_model == 'partnership' %}active{% endif %}"
+              onclick="setModel('partnership')">🤝 Партнёрка</button>
+      <button class="model-btn {% if blogger.cooperation_model == 'fix' %}active{% endif %}"
+              onclick="setModel('fix')">💳 Фикс-закуп</button>
+      <button class="model-btn {% if blogger.cooperation_model == 'converted' %}active{% endif %}"
+              onclick="setModel('converted')">🔄 Переведён в партнёры</button>
+    </div>
+    <div id="model-status" style="font-size:12px;color:var(--sand);margin-top:8px;"></div>
+
+    <div style="height:1px;background:var(--beige);margin:16px 0;"></div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Тематика</label>
+        <select class="f-select" id="field-topic" onchange="saveField('topic', this.value)">
+          {% for val, label in topics %}
+          <option value="{{ val }}" {% if blogger.topic == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Размер аудитории</label>
+        <input class="f-input" type="number" id="field-audience" value="{{ blogger.audience_size or '' }}"
+               placeholder="50000" onblur="saveField('audience_size', this.value)">
+      </div>
+      <div class="f-group">
+        <label class="f-label">ER %</label>
+        <input class="f-input" type="number" step="0.1" id="field-er" value="{{ blogger.er_percent or '' }}"
+               placeholder="3.5" onblur="saveField('er_percent', this.value)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Контакт и заметки -->
+  <div class="card">
+    <div class="card-title">Информация</div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Email</label>
+        <input class="f-input" id="field-email" value="{{ blogger.email or '' }}"
+               onblur="saveField('email', this.value)">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Статус</label>
+        <select class="f-select" id="field-status" onchange="saveField('status', this.value)">
+          {% for slug, label, color, bg in statuses %}
+          {% if blogger.cooperation_model == 'fix' or slug not in fix_statuses %}
+          <option value="{{ slug }}" {% if blogger.status == slug %}selected{% endif %}>{{ label }}</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Заметки</label>
+      <textarea class="f-textarea" id="field-notes" rows="3"
+                onblur="saveField('notes', this.value)">{{ blogger.notes or '' }}</textarea>
+    </div>
+    <div id="info-status" style="font-size:12px;color:#2e7d32;min-height:16px;margin-top:4px;"></div>
+  </div>
+
+  <!-- Размещения -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="card-title" style="margin:0">Размещения</div>
+      <button class="btn-primary btn-green" onclick="openAddPlacement()">+ Добавить</button>
+    </div>
+
+    {% if placements %}
+    <div style="overflow-x:auto;">
+    <table class="placement-table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Формат</th>
+          <th>Крет.</th>
+          <th>Модель</th>
+          <th>Цена</th>
+          <th>Оплата</th>
+          <th>👁 Просм.</th>
+          <th>🖱 Клики</th>
+          <th>🛒 Прод.</th>
+          <th>CAC</th>
+          <th>ROI</th>
+          <th>Прибыль</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in placements %}
+      <tr id="prow-{{ p.id }}">
+        <td style="white-space:nowrap">{{ p.placement_date or '—' }}</td>
+        <td>
+          {% for fk,fl in formats %}{% if fk==p.format %}{{ fl }}{% endif %}{% endfor %}
+        </td>
+        <td>{{ p.creative_variant or '—' }}</td>
+        <td>
+          {% if p.model_at_placement == 'fix' %}
+          <span style="color:#e65100;font-size:11px;">💳 Фикс</span>
+          {% else %}
+          <span style="color:#2e7d32;font-size:11px;">🤝 Партн.</span>
+          {% endif %}
+        </td>
+        <td>{% if p.cost %}{{ (p.cost // 100)|int }} ₽{% else %}—{% endif %}</td>
+        <td>
+          {% if p.payment_status == 'paid' %}
+          <span style="color:#2e7d32;font-size:11px;">✅ Оплачено</span>
+          {% elif p.payment_status == 'pending' %}
+          <span style="color:#e65100;font-size:11px;">⏳ Ожидает</span>
+          {% else %}
+          <span style="color:var(--sand);font-size:11px;">—</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right">{{ p.views or '—' }}</td>
+        <td style="text-align:right">{{ p.clicks or '—' }}</td>
+        <td style="text-align:right;font-weight:600">{{ p.sales or '—' }}</td>
+        <td style="text-align:right">
+          {% if p.cac_rubles is not none %}
+          <span class="{% if p.cac_rubles < 300 %}cac-ok{% elif p.cac_rubles < 400 %}cac-warn{% else %}cac-bad{% endif %}">{{ p.cac_rubles|int }} ₽</span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align:right">
+          {% if p.roi is not none %}
+          <span class="{% if p.roi >= 0 %}roi-pos{% else %}roi-neg{% endif %}">{{ p.roi }}%</span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align:right">
+          {% if p.profit_kopecks is not none and p.cost %}
+          <span style="color:{% if p.profit_kopecks >= 0 %}#2e7d32{% else %}#c0392b{% endif %}">
+            {{ (p.profit_kopecks // 100)|int }} ₽
+          </span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="white-space:nowrap">
+          <button class="btn-sm" onclick='openEditPlacement({{ p|tojson }})'>✏️</button>
+          <button class="btn-sm" onclick="deletePlacement({{ p.id }})" style="color:#c0392b;border-color:#c0392b20">🗑</button>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty">Размещений пока нет — добавьте первое</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Modal: add/edit placement -->
+<div class="modal-overlay" id="placement-overlay" onclick="closePlacementModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('placement-overlay').classList.remove('open')">✕</button>
+    <div class="modal-title" id="pm-title">Добавить размещение</div>
+    <input type="hidden" id="pm-id">
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Дата публикации</label>
+        <input class="f-input" type="date" id="pm-date">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Формат</label>
+        <select class="f-select" id="pm-format">
+          {% for fk, fl in formats %}
+          <option value="{{ fk }}">{{ fl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Модель</label>
+        <select class="f-select" id="pm-model" onchange="updatePaymentFields()">
+          <option value="fix">💳 Фикс-закуп</option>
+          <option value="partnership">🤝 Партнёрка</option>
+        </select>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Вариант креатива (A/B/C)</label>
+        <input class="f-input" id="pm-creative" placeholder="A">
+      </div>
+    </div>
+    <div id="pm-cost-block">
+      <div class="f-row">
+        <div class="f-group">
+          <label class="f-label">Стоимость размещения, ₽</label>
+          <input class="f-input" type="number" id="pm-cost" placeholder="5000">
+        </div>
+        <div class="f-group">
+          <label class="f-label">Статус оплаты</label>
+          <select class="f-select" id="pm-payment-status">
+            <option value="pending">⏳ Ожидает</option>
+            <option value="paid">✅ Оплачено</option>
+          </select>
+        </div>
+      </div>
+      <div class="f-group" id="pm-payment-date-block" style="display:none">
+        <label class="f-label">Дата оплаты</label>
+        <input class="f-input" type="date" id="pm-payment-date">
+      </div>
+    </div>
+    <div style="height:1px;background:var(--beige);margin:12px 0;"></div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Просмотры</label>
+        <input class="f-input" type="number" id="pm-views" placeholder="—">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Переходы (клики)</label>
+        <input class="f-input" type="number" id="pm-clicks" placeholder="—">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Продажи</label>
+        <input class="f-input" type="number" id="pm-sales" placeholder="—">
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Заметки</label>
+      <textarea class="f-textarea" id="pm-notes" rows="2"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-primary btn-green" onclick="submitPlacement()">Сохранить</button>
+      <button class="btn-primary" style="background:var(--sand)" onclick="document.getElementById('placement-overlay').classList.remove('open')">Отмена</button>
+    </div>
+    <div class="modal-status" id="pm-status"></div>
+  </div>
+</div>
+
+<!-- Modal: convert to partnership -->
+<div class="modal-overlay" id="convert-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('convert-overlay').classList.remove('open')">✕</button>
+    <div class="modal-title">Предложить переход на партнёрку</div>
+    <div class="f-group">
+      <label class="f-label">Тема письма</label>
+      <input class="f-input" id="conv-subject" value="Отчёт по размещению + предложение на постоянку">
+    </div>
+    <div class="f-group">
+      <label class="f-label">Текст письма</label>
+      <textarea class="f-textarea" id="conv-body" rows="12" style="min-height:200px;font-size:12px;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-primary" style="background:#6a1b9a" onclick="sendConvertEmail()">Отправить письмо</button>
+      <button class="btn-primary" style="background:var(--sand)" onclick="document.getElementById('convert-overlay').classList.remove('open')">Отмена</button>
+    </div>
+    <div class="modal-status" id="conv-status"></div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+var BLOGGER_ID = {{ blogger.id }};
+var BLOGGER_NAME = {{ blogger.name|tojson }};
+var BLOGGER_UTM = {{ blogger.utm_link|tojson }};
+var FIX_TEMPLATE = {{ fix_t3|tojson }};
+var LAST_POSTED = {{ last_posted|tojson if last_posted else 'null' }};
+
+function saveField(field, value) {
+  var data = new FormData();
+  data.append(field, value);
+  fetch('/admin/bloggers/' + BLOGGER_ID + '/update', {method:'POST', body:data})
+    .then(function(r) {
+      var el = document.getElementById('info-status');
+      if(r.ok) { el.textContent = '✓ Сохранено'; setTimeout(function(){el.textContent='';}, 2000); }
+      else { el.textContent = '✗ Ошибка'; el.style.color='#c0392b'; }
+    });
+}
+
+function setModel(model) {
+  document.querySelectorAll('.model-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.target.classList.add('active');
+  var el = document.getElementById('model-status');
+  el.textContent = 'Сохраняем…';
+  var data = new FormData(); data.append('cooperation_model', model);
+  fetch('/admin/bloggers/' + BLOGGER_ID + '/update', {method:'POST', body:data})
+    .then(function(r) {
+      el.textContent = r.ok ? '✓ Модель обновлена' : '✗ Ошибка';
+      setTimeout(function(){el.textContent='';}, 2000);
+    });
+}
+
+function openAddPlacement() {
+  document.getElementById('pm-title').textContent = 'Добавить размещение';
+  document.getElementById('pm-id').value = '';
+  ['pm-date','pm-creative','pm-views','pm-clicks','pm-sales','pm-notes','pm-cost'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('pm-format').value = 'post';
+  document.getElementById('pm-model').value = '{{ blogger.cooperation_model if blogger.cooperation_model == "partnership" else "fix" }}';
+  document.getElementById('pm-payment-status').value = 'pending';
+  document.getElementById('pm-payment-date').value = '';
+  updatePaymentFields();
+  document.getElementById('pm-status').textContent = '';
+  document.getElementById('placement-overlay').classList.add('open');
+}
+
+function openEditPlacement(p) {
+  document.getElementById('pm-title').textContent = 'Редактировать размещение';
+  document.getElementById('pm-id').value = p.id;
+  document.getElementById('pm-date').value = p.placement_date || '';
+  document.getElementById('pm-format').value = p.format || 'post';
+  document.getElementById('pm-model').value = p.model_at_placement || 'fix';
+  document.getElementById('pm-creative').value = p.creative_variant || '';
+  document.getElementById('pm-cost').value = p.cost ? Math.round(p.cost / 100) : '';
+  document.getElementById('pm-payment-status').value = p.payment_status || 'pending';
+  document.getElementById('pm-payment-date').value = p.payment_date || '';
+  document.getElementById('pm-views').value = p.views || '';
+  document.getElementById('pm-clicks').value = p.clicks || '';
+  document.getElementById('pm-sales').value = p.sales || '';
+  document.getElementById('pm-notes').value = p.notes || '';
+  updatePaymentFields();
+  document.getElementById('pm-status').textContent = '';
+  document.getElementById('placement-overlay').classList.add('open');
+}
+
+function closePlacementModal(e) {
+  if(e.target === document.getElementById('placement-overlay'))
+    document.getElementById('placement-overlay').classList.remove('open');
+}
+
+function updatePaymentFields() {
+  var model = document.getElementById('pm-model').value;
+  document.getElementById('pm-cost-block').style.display = model === 'fix' ? '' : 'none';
+  var isPaid = document.getElementById('pm-payment-status').value === 'paid';
+  document.getElementById('pm-payment-date-block').style.display = isPaid ? '' : 'none';
+}
+document.getElementById('pm-payment-status').addEventListener('change', updatePaymentFields);
+
+function submitPlacement() {
+  var pid = document.getElementById('pm-id').value;
+  var payload = {
+    blogger_id: BLOGGER_ID,
+    placement_date: document.getElementById('pm-date').value,
+    format: document.getElementById('pm-format').value,
+    model_at_placement: document.getElementById('pm-model').value,
+    creative_variant: document.getElementById('pm-creative').value,
+    cost_rubles: parseInt(document.getElementById('pm-cost').value || '0'),
+    payment_status: document.getElementById('pm-payment-status').value,
+    payment_date: document.getElementById('pm-payment-date').value || null,
+    views: parseInt(document.getElementById('pm-views').value) || null,
+    clicks: parseInt(document.getElementById('pm-clicks').value) || null,
+    sales: parseInt(document.getElementById('pm-sales').value) || null,
+    notes: document.getElementById('pm-notes').value,
+  };
+  if(payload.model_at_placement === 'partnership') { payload.payment_status = 'not_required'; }
+
+  var url = pid ? '/api/placements/' + pid : '/api/placements';
+  var method = pid ? 'PATCH' : 'POST';
+
+  fetch(url, {method:method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+    .then(function(r) { return r.json().then(function(d) { return {ok:r.ok, data:d}; }); })
+    .then(function(res) {
+      if(res.ok) {
+        document.getElementById('placement-overlay').classList.remove('open');
+        location.reload();
+      } else {
+        document.getElementById('pm-status').textContent = '✗ Ошибка';
+        document.getElementById('pm-status').className = 'modal-status err';
+      }
+    });
+}
+
+function deletePlacement(pid) {
+  if(!confirm('Удалить размещение?')) return;
+  fetch('/api/placements/' + pid, {method:'DELETE'})
+    .then(function(r) { if(r.ok) location.reload(); });
+}
+
+function openConvertModal() {
+  var tmpl = FIX_TEMPLATE || '';
+  var lp = LAST_POSTED || {};
+  var clicks = lp.clicks || 0;
+  var sales = lp.sales || 0;
+  var revenue = sales * 690;
+  var pAmount = sales * 207;
+  var date = lp.placement_date || '';
+  tmpl = tmpl.replace(/{name}/g, BLOGGER_NAME)
+             .replace(/{placement_date}/g, date)
+             .replace(/{clicks}/g, clicks)
+             .replace(/{sales}/g, sales)
+             .replace(/{revenue}/g, revenue)
+             .replace(/{partnership_amount}/g, pAmount)
+             .replace(/{utm_link}/g, BLOGGER_UTM);
+  document.getElementById('conv-body').value = tmpl;
+  document.getElementById('conv-status').textContent = '';
+  document.getElementById('convert-overlay').classList.add('open');
+}
+
+function sendConvertEmail() {
+  var subject = document.getElementById('conv-subject').value;
+  var body = document.getElementById('conv-body').value;
+  var data = new FormData();
+  data.append('type', 'fix_convert');
+  data.append('subject_override', subject);
+  data.append('body_override', body);
+  var btn = event.target;
+  btn.textContent = '…'; btn.disabled = true;
+  fetch('/admin/bloggers/' + BLOGGER_ID + '/send-email', {method:'POST', body:data})
+    .then(function(r) {
+      btn.disabled = false;
+      var el = document.getElementById('conv-status');
+      if(r.ok) {
+        el.textContent = '✓ Письмо отправлено'; el.className = 'modal-status ok';
+        setTimeout(function(){ document.getElementById('convert-overlay').classList.remove('open'); }, 1500);
+      } else {
+        r.text().then(function(t){ el.textContent = '✗ ' + t; el.className = 'modal-status err'; });
+        btn.textContent = 'Отправить письмо';
+      }
+    });
+}
+</script>
+{% endblock %}
