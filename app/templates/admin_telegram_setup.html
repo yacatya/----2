@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Настройка Telegram — verevery{% endblock %}
+
+{% block head %}
+<style>
+  body { padding-top: 58px; }
+  .adm-header { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: var(--dark); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .adm-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); white-space: nowrap; }
+  .adm-logo span { color: var(--light-accent); }
+  .adm-nav { display: flex; gap: 10px; align-items: center; }
+  .adm-link { font-size: 12px; color: var(--sand); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 50px; white-space: nowrap; }
+  .adm-link:hover { color: white; border-color: rgba(255,255,255,0.4); }
+  .adm-body { max-width: 700px; margin: 0 auto; padding: 32px 20px 80px; }
+  .page-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: var(--dark); margin-bottom: 8px; }
+  .page-sub { font-size: 13px; color: var(--sand); margin-bottom: 28px; }
+  .card { background: white; border: 1px solid var(--beige); border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
+  .card-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--dark); margin-bottom: 14px; }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; }
+  .badge-ok { background: #e8f5e9; color: #2e7d32; }
+  .badge-err { background: #fce4ec; color: #c0392b; }
+  .badge-warn { background: #fff8e1; color: #a67c00; }
+  .url-box { background: var(--cream); border: 1px solid var(--beige); border-radius: 8px; padding: 10px 14px; font-family: monospace; font-size: 12px; color: var(--dark); word-break: break-all; margin-bottom: 12px; }
+  .btn { padding: 10px 22px; border: none; border-radius: 50px; font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-primary { background: var(--dark); color: white; }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-danger { background: #c0392b; color: white; }
+  .btn-danger:hover { background: #a93226; }
+  .btn-secondary { background: var(--cream); color: var(--dark); border: 1px solid var(--beige); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .json-box { background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin-top: 10px; max-height: 200px; overflow-y: auto; }
+  .hint { font-size: 12px; color: var(--sand); margin-top: 6px; line-height: 1.6; }
+  .step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--dark); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-body { flex: 1; font-size: 13px; color: var(--dark); line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block nav %}
+<div class="adm-header">
+  <div class="adm-logo">vere<span>very</span> · Telegram</div>
+  <div class="adm-nav">
+    <a href="/admin/bloggers" class="adm-link">← CRM</a>
+    <a href="/admin" class="adm-link">Главная</a>
+    <a href="/admin/logout" class="adm-link">Выйти</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="adm-body">
+  <div class="page-title">Настройка Telegram-бота</div>
+  <div class="page-sub">Проверка прокси, регистрация вебхука и тест подключения</div>
+
+  {% if not has_token %}
+  <div class="card">
+    <div class="card-title">⚠️ Токен не настроен</div>
+    <div class="hint">
+      Добавьте <code>TELEGRAM_BOT_TOKEN=ваш_токен</code> в файл <code>/opt/verevery/.env</code> на сервере и перезапустите сервис:<br>
+      <code>systemctl restart verevery</code>
+    </div>
+  </div>
+  {% else %}
+
+  <!-- Статус бота -->
+  <div class="card">
+    <div class="card-title">🤖 Бот</div>
+    {% if result.me_error %}
+      <div class="row">
+        <span class="badge badge-err">Ошибка подключения</span>
+      </div>
+      <div class="json-box">{{ result.me_error }}</div>
+      <div class="hint">Прокси не работает или токен неверный. Убедитесь что деплой прошёл и <code>PROXY_URL</code> установлен.</div>
+    {% elif result.me %}
+      {% set me = result.me %}
+      {% if me.ok %}
+        <div class="row">
+          <span class="badge badge-ok">✓ Подключён через прокси</span>
+        </div>
+        <div class="hint">
+          Имя бота: <b>{{ me.result.first_name }}</b><br>
+          Username: <b>@{{ me.result.username }}</b><br>
+          ID: <code>{{ me.result.id }}</code>
+        </div>
+      {% else %}
+        <div class="row"><span class="badge badge-err">Ошибка API</span></div>
+        <div class="json-box">{{ me | tojson(indent=2) }}</div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Вебхук -->
+  <div class="card">
+    <div class="card-title">🔗 Вебхук</div>
+    <div class="url-box">{{ webhook_url }}</div>
+
+    {% if result.webhook_info %}
+      {% set wi = result.webhook_info %}
+      {% if wi.ok %}
+        {% set current = wi.result.url %}
+        {% if current == webhook_url %}
+          <div class="row"><span class="badge badge-ok">✓ Зарегистрирован на этот URL</span></div>
+        {% elif current %}
+          <div class="row"><span class="badge badge-warn">⚠ Зарегистрирован на другой URL</span></div>
+          <div class="hint">Текущий: <code>{{ current }}</code></div>
+        {% else %}
+          <div class="row"><span class="badge badge-err">Не зарегистрирован</span></div>
+        {% endif %}
+        {% if wi.result.last_error_message %}
+          <div class="hint" style="color:#c0392b;margin-top:8px;">
+            Последняя ошибка: {{ wi.result.last_error_message }}<br>
+            Дата: {{ wi.result.last_error_date }}
+          </div>
+        {% endif %}
+        {% if wi.result.pending_update_count %}
+          <div class="hint">Ожидает обработки: {{ wi.result.pending_update_count }} сообщений</div>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {% if result.register %}
+      {% if result.register.ok %}
+        <div class="row" style="margin-top:12px;"><span class="badge badge-ok">✓ Вебхук успешно зарегистрирован!</span></div>
+      {% else %}
+        <div class="row" style="margin-top:12px;"><span class="badge badge-err">Ошибка регистрации</span></div>
+        <div class="json-box">{{ result.register | tojson(indent=2) }}</div>
+      {% endif %}
+    {% endif %}
+
+    {% if result.delete %}
+      <div class="row" style="margin-top:12px;"><span class="badge badge-warn">Вебхук удалён</span></div>
+    {% endif %}
+
+    <div class="row" style="margin-top:16px;gap:10px;">
+      <a href="/admin/telegram/setup?action=register" class="btn btn-primary">Зарегистрировать вебхук</a>
+      <a href="/admin/telegram/setup" class="btn btn-secondary">Обновить статус</a>
+      <a href="/admin/telegram/setup?action=delete" class="btn btn-danger" onclick="return confirm('Удалить вебхук?')">Удалить</a>
+    </div>
+    <div class="hint">{% if has_secret %}Secret-token настроен ✓{% else %}⚠ TELEGRAM_WEBHOOK_SECRET не задан — вебхук будет без защиты{% endif %}</div>
+  </div>
+
+  <!-- Как проверить -->
+  <div class="card">
+    <div class="card-title">📋 Как проверить что всё работает</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">Нажмите <b>«Зарегистрировать вебхук»</b> выше — должно появиться зелёное «Зарегистрирован»</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">Откройте Telegram, найдите бота <b>@{{ (result.me.result.username if result.me and result.me.ok) or 'ваш_бот' }}</b> и отправьте любое сообщение</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">Зайдите в CRM → откройте блогера с каналом Telegram → убедитесь что его сообщение появилось во входящих</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">Попробуйте отправить письмо блогеру с каналом TG прямо из CRM</div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}
