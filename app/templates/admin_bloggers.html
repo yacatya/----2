@@ -261,19 +261,17 @@
       </select>
     </div>
     <div class="f-group" id="email-field">
-      <label class="f-label">Email <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
+      <label class="f-label" id="email-label">Email <span style="color:#c0392b;font-size:11px;">*</span></label>
       <input class="f-input" type="email" id="m-email" placeholder="blogger@example.com">
     </div>
     <div class="f-group" id="ig-field" style="display:none">
-      <label class="f-label">Instagram username</label>
+      <label class="f-label">Instagram username <span style="color:#c0392b;font-size:11px;">*</span></label>
       <input class="f-input" id="m-ig_username" placeholder="@masha.psy" oninput="autoSlugFromUsername()">
-      <div class="f-hint">Без @ тоже можно, Make сам разберётся</div>
-      <label class="f-label" style="margin-top:8px">Instagram User ID <span style="color:var(--muted);font-size:10px;">(числовой)</span></label>
-      <input class="f-input" id="m-ig_user_id" placeholder="заполнится автоматически при первом ответе" inputmode="numeric">
-      <div class="f-hint">Не вводи вручную — придёт автоматически когда блогер ответит в директе</div>
+      <label class="f-label" style="margin-top:8px">Instagram User ID <span style="color:var(--muted);font-size:10px;">(числовой, заполнится автоматически)</span></label>
+      <input class="f-input" id="m-ig_user_id" placeholder="придёт когда блогер ответит в директе" inputmode="numeric">
     </div>
     <div class="f-group" id="tg-field" style="display:none">
-      <label class="f-label">Telegram username</label>
+      <label class="f-label">Telegram username <span style="color:#c0392b;font-size:11px;">*</span></label>
       <input class="f-input" id="m-tg_username" placeholder="@masha_psy" oninput="autoSlugFromUsername()">
     </div>
     <div class="f-row">
@@ -424,6 +422,10 @@ function updateChannelFields(){
   document.getElementById('email-field').style.display=ch==='email'?'block':'none';
   document.getElementById('ig-field').style.display=ch==='instagram'?'block':'none';
   document.getElementById('tg-field').style.display=ch==='telegram'?'block':'none';
+  // show email as optional in edit mode (blogger may have no email but channel is set)
+  if(editingId) {
+    document.getElementById('email-field').style.display='block';
+  }
 }
 function autoSlug(){
   if(editingId) return;
@@ -530,6 +532,18 @@ function copyMsgTemplate(num){
 function submitModal(){
   var name=document.getElementById('m-name').value.trim();
   if(!name){showModalStatus('Введите имя',false);return;}
+  if(!editingId){
+    var ch=document.getElementById('m-channel').value;
+    if(ch==='email' && !document.getElementById('m-email').value.trim()){
+      showModalStatus('Введите email',false); return;
+    }
+    if(ch==='instagram' && !document.getElementById('m-ig_username').value.trim()){
+      showModalStatus('Введите Instagram username',false); return;
+    }
+    if(ch==='telegram' && !document.getElementById('m-tg_username').value.trim()){
+      showModalStatus('Введите Telegram username',false); return;
+    }
+  }
   var data=new FormData();
   ['name','platform','profile_url','email','utm_slug','notes','ig_username','ig_user_id','tg_username'].forEach(function(f){
     data.append(f,document.getElementById('m-'+f).value.trim());
