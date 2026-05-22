@@ -20,6 +20,9 @@ SHOP_ID = os.environ.get('SHOP_ID', '1343976')
 SHEET_ID = '11mZ-sB0H7OiaF9yv2iCiTlA3vkMJW8u9D9ypuf4QeAs'
 REPLY_TO_EMAIL = os.environ.get('REPLY_TO_EMAIL', 'team.verevery@gmail.com')
 
+_PROXY_URL = os.environ.get('PROXY_URL', '')
+_PROXIES = {'http': _PROXY_URL, 'https': _PROXY_URL} if _PROXY_URL else None
+
 FREE_CARD_IDS_DEFAULT = ['А-02', 'З-03', 'В-03', 'В-11', 'З-01']
 FREE_CARDS_CONFIG = os.path.join(os.path.dirname(__file__), 'data', 'free_cards.json')
 
@@ -789,7 +792,7 @@ def send_instagram_dm(psid, text):
     body = {'recipient': {'id': psid}, 'message': {'text': text}}
     for attempt in range(2):
         try:
-            resp = _req.post(url, json=body, headers=headers, timeout=7)
+            resp = _req.post(url, json=body, headers=headers, timeout=7, proxies=_PROXIES)
             if resp.status_code < 400:
                 return {'ok': True, 'message_id': resp.json().get('message_id')}
             if resp.status_code >= 500 and attempt < 1:
@@ -817,7 +820,7 @@ def send_telegram_message(chat_id, text):
     body = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
     for attempt in range(3):
         try:
-            resp = _req.post(url, json=body, timeout=10)
+            resp = _req.post(url, json=body, timeout=10, proxies=_PROXIES)
             if resp.status_code < 400:
                 result = resp.json().get('result') or {}
                 return {'ok': True, 'message_id': str(result.get('message_id', ''))}
@@ -883,6 +886,7 @@ def _resolve_ig_psid_to_username(psid, timeout=15):
             f'https://graph.instagram.com/v23.0/{psid}',
             params={'fields': 'username,name', 'access_token': token},
             timeout=timeout,
+            proxies=_PROXIES,
         )
         if resp.status_code == 200:
             username = resp.json().get('username', '').strip().lower()
