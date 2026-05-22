@@ -157,6 +157,7 @@
       <td style="text-align:center;font-weight:600">{{ b.real_sales }}</td>
       <td style="text-align:center;{% if debt > 0 %}color:#a67c00;font-weight:600{% else %}color:var(--sand){% endif %}">{{ debt }} ₽</td>
       <td style="white-space:nowrap;">
+        <a href="/admin/bloggers/{{ b.id }}" class="btn-sm" title="Открыть карточку блогера" style="text-decoration:none">📄</a>
         <button class="btn-sm" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
         {% if b.email and b.status not in ('new',) %}
         <button class="btn-sm{% if b.partner_token %} ok{% endif %}"

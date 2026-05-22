@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Бюджет — verevery{% endblock %}
+{% block head %}
+<style>
+  body { padding-top: 58px; }
+  .adm-header { position:fixed;top:0;left:0;right:0;z-index:200;background:var(--dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px; }
+  .adm-logo { font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--cream);white-space:nowrap; }
+  .adm-logo span { color:var(--light-accent); }
+  .adm-nav { display:flex;gap:10px; }
+  .adm-link { font-size:12px;color:var(--sand);text-decoration:none;padding:6px 14px;border:1px solid rgba(255,255,255,0.15);border-radius:50px;white-space:nowrap; }
+  .adm-link:hover { color:white;border-color:rgba(255,255,255,0.4); }
+  .body { max-width:800px;margin:0 auto;padding:24px 20px 80px; }
+  .page-title { font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--dark);margin-bottom:4px; }
+  .overspent-banner { background:#fce4ec;border:1px solid #ef9a9a;border-radius:14px;padding:16px;margin-bottom:20px;color:#b71c1c;font-size:13px;font-weight:600; }
+  .stats-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px; }
+  @media(min-width:600px) { .stats-grid { grid-template-columns:repeat(4,1fr); } }
+  .stat-card { background:white;border:1px solid var(--beige);border-radius:14px;padding:16px; }
+  .stat-card.danger { background:#fce4ec;border-color:#ef9a9a; }
+  .stat-label { font-size:10px;letter-spacing:0.5px;color:var(--sand);text-transform:uppercase;margin-bottom:6px; }
+  .stat-card.danger .stat-label { color:#c62828; }
+  .stat-value { font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--dark);line-height:1; }
+  .stat-card.danger .stat-value { color:#b71c1c; }
+  .card { background:white;border:1px solid var(--beige);border-radius:16px;padding:20px;margin-bottom:20px; }
+  .card-title { font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--sand);margin-bottom:16px; }
+  .f-group { margin-bottom:12px; }
+  .f-label { font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--sand);margin-bottom:4px;display:block; }
+  .f-input,.f-select { width:100%;padding:9px 12px;border:1px solid var(--beige);border-radius:10px;font-family:'Exo 2',sans-serif;font-size:13px;color:var(--dark);background:var(--cream);outline:none;box-sizing:border-box; }
+  .f-input:focus,.f-select:focus { border-color:var(--accent); }
+  .btn-primary { padding:10px 18px;background:var(--dark);color:white;border:none;border-radius:50px;font-family:'Exo 2',sans-serif;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap; }
+  .btn-primary:hover { background:var(--accent); }
+  .data-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .data-table th { text-align:left;padding:8px 10px;border-bottom:2px solid var(--beige);color:var(--sand);font-size:10px;text-transform:uppercase;font-weight:500;letter-spacing:0.5px; }
+  .data-table td { padding:8px 10px;border-bottom:1px solid var(--beige);color:var(--dark); }
+  .progress-bar { height:8px;background:var(--beige);border-radius:4px;overflow:hidden;margin-top:8px; }
+  .progress-fill { height:100%;border-radius:4px;background:#2e7d32;transition:width .3s; }
+  .progress-fill.warn { background:#a67c00; }
+  .progress-fill.danger { background:#c0392b; }
+  .month-select { padding:8px 12px;border:1px solid var(--beige);border-radius:10px;font-size:13px;color:var(--dark);background:var(--cream);outline:none; }
+</style>
+{% endblock %}
+{% block nav %}
+<div class="adm-header">
+  <div class="adm-logo">vere<span>very</span> · Бюджет</div>
+  <div class="adm-nav">
+    <a href="/admin/placements" class="adm-link">📋 Размещения</a>
+    <a href="/admin/bloggers" class="adm-link">← CRM</a>
+    <a href="/admin" class="adm-link">Главная</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="body">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+    <div class="page-title">Рекламный бюджет</div>
+    <form method="get">
+      <select class="month-select" name="month" onchange="this.form.submit()">
+        {% for m in all_months %}
+        <option value="{{ m }}" {% if m == month_str %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  {% if stats.overspent > 0 %}
+  <div class="overspent-banner">
+    ⚠️ Превышение бюджета на {{ (stats.overspent // 100)|int }} ₽!
+    Запланировано + оплачено больше установленного лимита.
+  </div>
+  {% endif %}
+
+  <!-- Budget edit -->
+  <div class="card">
+    <div class="card-title">Лимит на {{ month_str }}</div>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="f-group" style="flex:1;min-width:160px;margin:0">
+        <label class="f-label">Бюджет, ₽</label>
+        <input class="f-input" type="number" id="budget-limit"
+               value="{{ (stats.limit_kopecks // 100)|int }}" placeholder="20000">
+      </div>
+      <div class="f-group" style="flex:2;min-width:200px;margin:0">
+        <label class="f-label">Заметка</label>
+        <input class="f-input" id="budget-notes" value="{{ stats.notes }}" placeholder="Необязательно">
+      </div>
+      <button class="btn-primary" onclick="saveBudget()">Сохранить</button>
+    </div>
+    <div id="budget-status" style="font-size:12px;color:#2e7d32;margin-top:8px;min-height:16px;"></div>
+
+    {% if stats.limit_kopecks > 0 %}
+    {% set used_pct = ((stats.paid_kopecks + stats.pending_kopecks) / stats.limit_kopecks * 100)|int %}
+    <div style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;">
+        <span>Использовано {{ [used_pct, 100]|min }}%</span>
+        <span>Лимит {{ (stats.limit_kopecks // 100)|int }} ₽</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill {% if used_pct > 100 %}danger{% elif used_pct > 80 %}warn{% endif %}"
+             style="width:{{ [used_pct, 100]|min }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">⏳ Запланировано</div>
+      <div class="stat-value">{{ (stats.pending_kopecks // 100)|int }} ₽</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">✅ Оплачено</div>
+      <div class="stat-value">{{ (stats.paid_kopecks // 100)|int }} ₽</div>
+    </div>
+    <div class="stat-card {% if stats.overspent > 0 %}danger{% endif %}">
+      <div class="stat-label">{% if stats.overspent > 0 %}🚨 Превышение{% else %}💚 Доступно{% endif %}</div>
+      <div class="stat-value">
+        {% if stats.overspent > 0 %}
+        {{ (stats.overspent // 100)|int }} ₽
+        {% else %}
+        {{ ([stats.available_kopecks, 0]|max // 100)|int }} ₽
+        {% endif %}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📊 Размещений</div>
+      <div class="stat-value">{{ stats.placements|length }}</div>
+    </div>
+  </div>
+
+  <!-- Placements this month -->
+  {% if stats.placements %}
+  <div class="card">
+    <div class="card-title">История трат в {{ month_str }}</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Блогер</th>
+          <th>Дата</th>
+          <th>Формат</th>
+          <th>Стоимость</th>
+          <th>Статус оплаты</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in stats.placements %}
+        <tr>
+          <td><a href="/admin/bloggers/{{ p.blogger_id }}" style="color:var(--accent);text-decoration:none;">{{ p.blogger_name }}</a></td>
+          <td>{{ p.placement_date or '—' }}</td>
+          <td>{{ p.format or '—' }}</td>
+          <td style="font-weight:600">{{ (p.cost // 100)|int if p.cost else '—' }} {% if p.cost %}₽{% endif %}</td>
+          <td>
+            {% if p.payment_status == 'paid' %}<span style="color:#2e7d32;">✅ Оплачено</span>
+            {% elif p.payment_status == 'pending' %}<span style="color:#e65100;">⏳ Ожидает</span>
+            {% else %}<span style="color:var(--sand);">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:32px;color:var(--sand);font-size:13px;">
+    В этом месяце размещений нет
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function saveBudget() {
+  var limit = parseInt(document.getElementById('budget-limit').value || '0');
+  var notes = document.getElementById('budget-notes').value;
+  fetch('/api/budgets', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({month: '{{ month_str }}', limit_rubles: limit, notes: notes})
+  }).then(function(r) {
+    var el = document.getElementById('budget-status');
+    if(r.ok) {
+      el.textContent = '✓ Бюджет сохранён';
+      el.style.color = '#2e7d32';
+      setTimeout(function(){ location.reload(); }, 800);
+    } else {
+      el.textContent = '✗ Ошибка';
+      el.style.color = '#c0392b';
+    }
+  });
+}
+</script>
+{% endblock %}

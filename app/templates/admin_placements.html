@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Размещения — verevery{% endblock %}
+{% block head %}
+<style>
+  body { padding-top: 58px; }
+  .adm-header { position:fixed;top:0;left:0;right:0;z-index:200;background:var(--dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px; }
+  .adm-logo { font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--cream);white-space:nowrap; }
+  .adm-logo span { color:var(--light-accent); }
+  .adm-nav { display:flex;gap:10px; }
+  .adm-link { font-size:12px;color:var(--sand);text-decoration:none;padding:6px 14px;border:1px solid rgba(255,255,255,0.15);border-radius:50px;white-space:nowrap; }
+  .adm-link:hover { color:white;border-color:rgba(255,255,255,0.4); }
+  .body { max-width:1200px;margin:0 auto;padding:24px 20px 80px; }
+  .page-title { font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--dark);margin-bottom:20px; }
+  .filters { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center; }
+  .f-select { padding:8px 12px;border:1px solid var(--beige);border-radius:10px;font-family:'Exo 2',sans-serif;font-size:12px;color:var(--dark);background:var(--cream);outline:none; }
+  .f-select:focus { border-color:var(--accent); }
+  .btn-primary { padding:8px 16px;background:var(--dark);color:white;border:none;border-radius:50px;font-family:'Exo 2',sans-serif;font-size:12px;cursor:pointer;white-space:nowrap; }
+  .btn-primary:hover { background:var(--accent); }
+  .data-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .data-table th { text-align:left;padding:8px 10px;border-bottom:2px solid var(--beige);color:var(--sand);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;cursor:pointer; }
+  .data-table th:hover { color:var(--dark); }
+  .data-table td { padding:8px 10px;border-bottom:1px solid var(--beige);color:var(--dark);vertical-align:middle; }
+  .data-table tr:hover td { background:#faf8f5; }
+  .roi-pos { color:#2e7d32;font-weight:600; } .roi-neg { color:#c0392b;font-weight:600; }
+  .cac-ok { color:#2e7d32; } .cac-warn { color:#a67c00; } .cac-bad { color:#c0392b; }
+  .profit-pos { color:#2e7d32; } .profit-neg { color:#c0392b; }
+  .empty { text-align:center;padding:48px;color:var(--sand);font-size:13px; }
+</style>
+{% endblock %}
+{% block nav %}
+<div class="adm-header">
+  <div class="adm-logo">vere<span>very</span> · Размещения</div>
+  <div class="adm-nav">
+    <a href="/admin/bloggers" class="adm-link">← CRM</a>
+    <a href="/admin/budget" class="adm-link">💰 Бюджет</a>
+    <a href="/admin" class="adm-link">Главная</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="body">
+  <div class="page-title">Все размещения</div>
+
+  <form method="get" class="filters">
+    <select class="f-select" name="model" onchange="this.form.submit()">
+      <option value="" {% if not model_filter %}selected{% endif %}>Все модели</option>
+      <option value="fix" {% if model_filter=='fix' %}selected{% endif %}>💳 Фикс</option>
+      <option value="partnership" {% if model_filter=='partnership' %}selected{% endif %}>🤝 Партнёрка</option>
+    </select>
+    <select class="f-select" name="payment_status" onchange="this.form.submit()">
+      <option value="" {% if not payment_filter %}selected{% endif %}>Все статусы оплаты</option>
+      <option value="pending" {% if payment_filter=='pending' %}selected{% endif %}>⏳ Ожидает</option>
+      <option value="paid" {% if payment_filter=='paid' %}selected{% endif %}>✅ Оплачено</option>
+      <option value="not_required" {% if payment_filter=='not_required' %}selected{% endif %}>— Не требуется</option>
+    </select>
+    <select class="f-select" name="format" onchange="this.form.submit()">
+      <option value="" {% if not format_filter %}selected{% endif %}>Все форматы</option>
+      {% for fk, fl in formats %}
+      <option value="{{ fk }}" {% if format_filter==fk %}selected{% endif %}>{{ fl }}</option>
+      {% endfor %}
+    </select>
+    <select class="f-select" name="month" onchange="this.form.submit()">
+      <option value="">Все месяцы</option>
+      {% for m in months %}
+      <option value="{{ m }}" {% if month_filter==m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+    {% if model_filter or payment_filter or format_filter or month_filter %}
+    <a href="/admin/placements" style="font-size:12px;color:var(--sand);text-decoration:none;">✕ Сбросить</a>
+    {% endif %}
+    <button type="button" class="btn-primary" onclick="exportCsv()" style="margin-left:auto;background:#555;">↓ CSV</button>
+  </form>
+
+  {% if placements %}
+  <div style="overflow-x:auto;">
+  <table class="data-table" id="ptable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Блогер</th>
+        <th onclick="sortTable(1)">Дата</th>
+        <th onclick="sortTable(2)">Формат</th>
+        <th onclick="sortTable(3)">Крет.</th>
+        <th onclick="sortTable(4)">Модель</th>
+        <th onclick="sortTable(5)">Цена ₽</th>
+        <th>Оплата</th>
+        <th onclick="sortTable(7)">Просм.</th>
+        <th onclick="sortTable(8)">Клики</th>
+        <th onclick="sortTable(9)">Продажи</th>
+        <th onclick="sortTable(10)">CAC ₽</th>
+        <th onclick="sortTable(11)">ROI %</th>
+        <th onclick="sortTable(12)">Прибыль ₽</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in placements %}
+    <tr>
+      <td><a href="/admin/bloggers/{{ p.blogger_id }}" style="color:var(--accent);text-decoration:none;">{{ p.blogger_name }}</a></td>
+      <td style="white-space:nowrap">{{ p.placement_date or '—' }}</td>
+      <td>{% for fk,fl in formats %}{% if fk==p.format %}{{ fl }}{% endif %}{% endfor %}</td>
+      <td>{{ p.creative_variant or '—' }}</td>
+      <td>
+        {% if p.model_at_placement == 'fix' %}<span style="color:#e65100">💳 Фикс</span>
+        {% else %}<span style="color:#2e7d32">🤝 Партн.</span>{% endif %}
+      </td>
+      <td data-val="{{ p.cost or 0 }}">{% if p.cost %}{{ (p.cost//100)|int }}{% else %}—{% endif %}</td>
+      <td>
+        {% if p.payment_status == 'paid' %}<span style="color:#2e7d32;font-size:11px;">✅</span>
+        {% elif p.payment_status == 'pending' %}<span style="color:#e65100;font-size:11px;">⏳</span>
+        {% else %}<span style="color:var(--sand);font-size:11px;">—</span>{% endif %}
+      </td>
+      <td data-val="{{ p.views or 0 }}">{{ p.views or '—' }}</td>
+      <td data-val="{{ p.clicks or 0 }}">{{ p.clicks or '—' }}</td>
+      <td data-val="{{ p.sales or 0 }}" style="font-weight:600">{{ p.sales or '—' }}</td>
+      <td data-val="{{ p.cac_rubles or 999999 }}">
+        {% if p.cac_rubles is not none %}
+        <span class="{% if p.cac_rubles < 300 %}cac-ok{% elif p.cac_rubles < 400 %}cac-warn{% else %}cac-bad{% endif %}">{{ p.cac_rubles|int }}</span>
+        {% else %}—{% endif %}
+      </td>
+      <td data-val="{{ p.roi or -999999 }}">
+        {% if p.roi is not none %}
+        <span class="{% if p.roi >= 0 %}roi-pos{% else %}roi-neg{% endif %}">{{ p.roi }}</span>
+        {% else %}—{% endif %}
+      </td>
+      <td data-val="{{ p.profit_kopecks or 0 }}">
+        {% if p.profit_kopecks is not none and p.cost %}
+        <span class="{% if p.profit_kopecks >= 0 %}profit-pos{% else %}profit-neg{% endif %}">{{ (p.profit_kopecks//100)|int }}</span>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty">Размещений пока нет</div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+var sortDir = {};
+function sortTable(col) {
+  var table = document.getElementById('ptable');
+  var tbody = table.querySelector('tbody');
+  var rows = Array.from(tbody.querySelectorAll('tr'));
+  var dir = sortDir[col] === 'asc' ? -1 : 1;
+  sortDir = {}; sortDir[col] = dir === 1 ? 'asc' : 'desc';
+  rows.sort(function(a, b) {
+    var av = a.cells[col].dataset.val || a.cells[col].textContent.trim();
+    var bv = b.cells[col].dataset.val || b.cells[col].textContent.trim();
+    var an = parseFloat(av), bn = parseFloat(bv);
+    if(!isNaN(an) && !isNaN(bn)) return dir * (an - bn);
+    return dir * av.localeCompare(bv);
+  });
+  rows.forEach(function(r) { tbody.appendChild(r); });
+}
+
+function exportCsv() {
+  var headers = ['Блогер','Дата','Формат','Крет.','Модель','Цена ₽','Оплата','Просм.','Клики','Продажи','CAC ₽','ROI %','Прибыль ₽'];
+  var rows = document.querySelectorAll('#ptable tbody tr');
+  var lines = [headers.join(';')];
+  rows.forEach(function(row) {
+    var vals = Array.from(row.cells).map(function(c){ return '"' + c.textContent.trim().replace(/"/g,'""') + '"'; });
+    lines.push(vals.join(';'));
+  });
+  var blob = new Blob(['﻿' + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'размещения_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+</script>
+{% endblock %}

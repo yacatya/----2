@@ -562,13 +562,39 @@ def admin_free_cards():
 COMMISSION_PER_SALE = 207  # 30% of 690 RUB
 
 BLOGGER_STATUSES = [
-    ('new',        'Новый',          '#8C7E72', '#F5F0EB'),
-    ('sent',       'Отправлено',     '#1a6fa6', '#e8f4fd'),
-    ('replied',    'Ответил',        '#a67c00', '#fff8e1'),
-    ('interested', 'Интересно',      '#2e7d32', '#e8f5e9'),
-    ('agreed',     'Сотрудничаем',   '#6a1b9a', '#f3e5f5'),
-    ('posted',     'Опубликовал',    '#1b5e20', '#c8e6c9'),
-    ('declined',   'Отказал',        '#c0392b', '#fbe9e7'),
+    ('new',             'Новый',          '#8C7E72', '#F5F0EB'),
+    ('sent',            'Отправлено',     '#1a6fa6', '#e8f4fd'),
+    ('replied',         'Ответил',        '#a67c00', '#fff8e1'),
+    ('interested',      'Интересно',      '#2e7d32', '#e8f5e9'),
+    ('agreed',          'Сотрудничаем',   '#6a1b9a', '#f3e5f5'),
+    ('price_agreed',    'Согласовано',    '#e65100', '#fff3e0'),
+    ('pending_payment', 'К оплате',       '#bf360c', '#fbe9e7'),
+    ('paid_placement',  'Оплачено',       '#558b2f', '#f1f8e9'),
+    ('posted',          'Опубликовал',    '#1b5e20', '#c8e6c9'),
+    ('completed',       'Завершено',      '#006064', '#e0f7fa'),
+    ('declined',        'Отказал',        '#c0392b', '#fce4ec'),
+]
+
+FIX_STATUSES = {'price_agreed', 'pending_payment', 'paid_placement', 'completed'}
+
+PLACEMENT_FORMATS = [
+    ('post',        'Пост'),
+    ('story_1_24',  'Сторис 1/24'),
+    ('story_1_48',  'Сторис 1/48'),
+    ('reels',       'Рилс'),
+    ('native',      'Нативная интеграция'),
+    ('video',       'Видео'),
+]
+
+BLOGGER_TOPICS = [
+    ('',              'Не указана'),
+    ('psychology',    'Психология'),
+    ('women',         'Для женщин'),
+    ('family',        'Семья'),
+    ('relationships', 'Отношения'),
+    ('esoteric',      'Эзотерика'),
+    ('lifestyle',     'Лайфстайл'),
+    ('other',         'Другое'),
 ]
 
 
@@ -1184,7 +1210,8 @@ def admin_bloggers_update(bid):
         return 'Forbidden', 403
     allowed = {'name', 'platform', 'profile_url', 'email', 'utm_slug',
                'status', 'notes', 'paid_out', 'reply_sentiment',
-               'channel', 'ig_username', 'ig_user_id', 'tg_username', 'tg_user_id'}
+               'channel', 'ig_username', 'ig_user_id', 'tg_username', 'tg_user_id',
+               'cooperation_model', 'audience_size', 'topic', 'er_percent'}
     updates = {k: request.form[k].strip() for k in allowed if k in request.form}
     if 'utm_slug' in updates:
         updates['utm_link'] = f'{BASE_URL}/free?utm={updates["utm_slug"]}'
@@ -2006,3 +2033,387 @@ def _magic_link_email(link):
 </div>
 </body>
 </html>'''
+
+
+# ── Placements helpers ────────────────────────────────────────────────────────
+
+def _calc_placement(p):
+    """Compute derived metrics for a placement dict. Returns updated dict."""
+    cost = p.get('cost') or 0
+    views = p.get('views')
+    clicks = p.get('clicks')
+    sales = p.get('sales')
+    model = p.get('model_at_placement', 'fix')
+
+    p['ctr'] = round(clicks / views * 100, 1) if views and clicks else None
+    p['conversion'] = round(sales / clicks * 100, 1) if clicks and sales else None
+
+    margin_per_sale = 69000 if model == 'fix' else 48300
+    total_margin = (sales or 0) * margin_per_sale
+    profit = total_margin - cost
+    p['profit_kopecks'] = profit
+    p['roi'] = round(profit / cost * 100, 1) if cost > 0 else None
+    p['cac_rubles'] = round(cost / sales / 100) if (sales and cost > 0) else None
+    p['revenue_kopecks'] = (sales or 0) * 69000
+    return p
+
+
+def _placement_summary(placements):
+    """Aggregate metrics for a list of placement dicts."""
+    total_cost = sum(p.get('cost') or 0 for p in placements)
+    total_sales = sum(p.get('sales') or 0 for p in placements)
+    total_revenue = sum(p.get('revenue_kopecks') or 0 for p in placements)
+    total_profit = sum(p.get('profit_kopecks') or 0 for p in placements)
+    roi = round(total_profit / total_cost * 100, 1) if total_cost > 0 else None
+    return {
+        'count': len(placements),
+        'total_cost': total_cost,
+        'total_sales': total_sales,
+        'total_revenue': total_revenue,
+        'total_profit': total_profit,
+        'roi': roi,
+    }
+
+
+# ── Blogger detail page ───────────────────────────────────────────────────────
+
+@main.route('/admin/bloggers/<int:bid>')
+def admin_blogger_detail(bid):
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT * FROM bloggers WHERE id=?', (bid,)).fetchone()
+    if not blogger:
+        conn.close()
+        return 'Блогер не найден', 404
+    blogger = dict(blogger)
+
+    sales_count = conn.execute(
+        'SELECT COUNT(*) FROM sales WHERE blogger=?', (blogger['utm_slug'],)
+    ).fetchone()[0]
+    blogger['real_sales'] = sales_count
+
+    raw = conn.execute(
+        'SELECT * FROM placements WHERE blogger_id=? AND deleted_at IS NULL ORDER BY placement_date DESC',
+        (bid,)
+    ).fetchall()
+    placements = [_calc_placement(dict(p)) for p in raw]
+    summary = _placement_summary(placements)
+
+    last_posted = next(
+        (p for p in placements if p.get('sales') and p.get('sales') > 0
+         and blogger.get('cooperation_model') == 'fix'),
+        None
+    )
+
+    _ensure_email_templates_table(conn)
+    fix_t1 = conn.execute("SELECT body_text FROM email_templates WHERE key='fix_first'").fetchone()
+    fix_t2 = conn.execute("SELECT body_text FROM email_templates WHERE key='fix_materials'").fetchone()
+    fix_t3 = conn.execute("SELECT body_text FROM email_templates WHERE key='fix_convert'").fetchone()
+    conn.close()
+
+    return render_template(
+        'admin_blogger_detail.html',
+        blogger=blogger,
+        placements=placements,
+        summary=summary,
+        last_posted=last_posted,
+        statuses=BLOGGER_STATUSES,
+        fix_statuses=FIX_STATUSES,
+        formats=PLACEMENT_FORMATS,
+        topics=BLOGGER_TOPICS,
+        fix_t1=fix_t1['body_text'] if fix_t1 else '',
+        fix_t2=fix_t2['body_text'] if fix_t2 else '',
+        fix_t3=fix_t3['body_text'] if fix_t3 else '',
+        cps=COMMISSION_PER_SALE,
+    )
+
+
+# ── Placements CRUD ───────────────────────────────────────────────────────────
+
+@main.route('/api/placements', methods=['POST'])
+def api_placement_create():
+    if not _admin_required():
+        return 'Forbidden', 403
+    data = request.get_json(force=True)
+    bid = int(data.get('blogger_id', 0))
+    if not bid:
+        return 'blogger_id required', 400
+    from .db import get_db
+    conn = get_db()
+    blogger = conn.execute('SELECT utm_slug FROM bloggers WHERE id=?', (bid,)).fetchone()
+    if not blogger:
+        conn.close()
+        return 'Blogger not found', 404
+
+    existing_count = conn.execute(
+        'SELECT COUNT(*) FROM placements WHERE blogger_id=? AND deleted_at IS NULL', (bid,)
+    ).fetchone()[0]
+    suffix = f'_{existing_count + 1}' if existing_count > 0 else ''
+    auto_clicks = conn.execute(
+        "SELECT COUNT(*) FROM link_clicks WHERE utm_slug=?", (blogger['utm_slug'] + suffix,)
+    ).fetchone()[0]
+
+    cost_rub = int(data.get('cost_rubles', 0) or 0)
+    model = data.get('model_at_placement', 'fix')
+    payment_status = 'not_required' if model == 'partnership' else data.get('payment_status', 'pending')
+
+    conn.execute('''
+        INSERT INTO placements
+          (blogger_id, placement_date, format, creative_variant, model_at_placement,
+           cost, payment_status, payment_date, views, clicks, sales, notes)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    ''', (
+        bid,
+        data.get('placement_date', ''),
+        data.get('format', 'post'),
+        data.get('creative_variant', ''),
+        model,
+        cost_rub * 100,
+        payment_status,
+        data.get('payment_date') or None,
+        data.get('views') or None,
+        data.get('clicks') or auto_clicks or None,
+        data.get('sales') or None,
+        data.get('notes', ''),
+    ))
+    conn.commit()
+    pid = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+    row = dict(conn.execute('SELECT * FROM placements WHERE id=?', (pid,)).fetchone())
+    conn.close()
+    return {'ok': True, 'placement': _calc_placement(row)}
+
+
+@main.route('/api/placements', methods=['GET'])
+def api_placements_list():
+    if not _admin_required():
+        return 'Forbidden', 403
+    from .db import get_db
+    conn = get_db()
+    conditions, params = ['p.deleted_at IS NULL'], []
+    if request.args.get('blogger_id'):
+        conditions.append('p.blogger_id=?')
+        params.append(int(request.args['blogger_id']))
+    if request.args.get('model'):
+        conditions.append('p.model_at_placement=?')
+        params.append(request.args['model'])
+    if request.args.get('payment_status'):
+        conditions.append('p.payment_status=?')
+        params.append(request.args['payment_status'])
+    if request.args.get('format'):
+        conditions.append('p.format=?')
+        params.append(request.args['format'])
+    if request.args.get('month'):
+        conditions.append("strftime('%Y-%m', p.placement_date)=?")
+        params.append(request.args['month'])
+    where = ' AND '.join(conditions)
+    rows = conn.execute(f'''
+        SELECT p.*, b.name as blogger_name, b.utm_slug
+        FROM placements p JOIN bloggers b ON b.id=p.blogger_id
+        WHERE {where} ORDER BY p.placement_date DESC
+    ''', params).fetchall()
+    conn.close()
+    return {'placements': [_calc_placement(dict(r)) for r in rows]}
+
+
+@main.route('/api/placements/<int:pid>', methods=['GET'])
+def api_placement_get(pid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    from .db import get_db
+    conn = get_db()
+    row = conn.execute('SELECT * FROM placements WHERE id=? AND deleted_at IS NULL', (pid,)).fetchone()
+    conn.close()
+    if not row:
+        return 'Not found', 404
+    return _calc_placement(dict(row))
+
+
+@main.route('/api/placements/<int:pid>', methods=['PATCH'])
+def api_placement_update(pid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    data = request.get_json(force=True)
+    allowed = {'placement_date', 'format', 'creative_variant', 'model_at_placement',
+               'payment_status', 'payment_date', 'views', 'clicks', 'sales', 'notes'}
+    updates = {k: v for k, v in data.items() if k in allowed}
+    if 'cost_rubles' in data:
+        updates['cost'] = int(data['cost_rubles'] or 0) * 100
+    if not updates:
+        return 'Nothing to update', 400
+    updates['updated_at'] = datetime.utcnow().isoformat()
+    from .db import get_db
+    conn = get_db()
+    set_clause = ', '.join(f'{k}=?' for k in updates)
+    conn.execute(f'UPDATE placements SET {set_clause} WHERE id=?', list(updates.values()) + [pid])
+    conn.commit()
+    row = conn.execute('SELECT * FROM placements WHERE id=?', (pid,)).fetchone()
+    conn.close()
+    return _calc_placement(dict(row))
+
+
+@main.route('/api/placements/<int:pid>', methods=['DELETE'])
+def api_placement_delete(pid):
+    if not _admin_required():
+        return 'Forbidden', 403
+    from .db import get_db
+    conn = get_db()
+    conn.execute('UPDATE placements SET deleted_at=? WHERE id=?',
+                 (datetime.utcnow().isoformat(), pid))
+    conn.commit()
+    conn.close()
+    return {'ok': True}
+
+
+# ── Budget routes ─────────────────────────────────────────────────────────────
+
+@main.route('/api/budgets', methods=['POST'])
+def api_budget_set():
+    if not _admin_required():
+        return 'Forbidden', 403
+    data = request.get_json(force=True)
+    month = data.get('month', '')  # YYYY-MM
+    if not month:
+        return 'month required', 400
+    month_date = month + '-01'
+    limit_rub = int(data.get('limit_rubles', 0) or 0)
+    notes = data.get('notes', '')
+    from .db import get_db
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO ad_budgets (month, budget_limit_kopecks, notes)
+        VALUES (?,?,?)
+        ON CONFLICT(month) DO UPDATE SET budget_limit_kopecks=excluded.budget_limit_kopecks,
+                                         notes=excluded.notes
+    ''', (month_date, limit_rub * 100, notes))
+    conn.commit()
+    conn.close()
+    return {'ok': True}
+
+
+def _budget_stats(conn, month_str):
+    """Returns budget stats dict for a given YYYY-MM string."""
+    month_date = month_str + '-01'
+    budget_row = conn.execute(
+        'SELECT * FROM ad_budgets WHERE month=?', (month_date,)
+    ).fetchone()
+    limit_kop = budget_row['budget_limit_kopecks'] if budget_row else 0
+
+    paid_kop = conn.execute('''
+        SELECT COALESCE(SUM(cost),0) FROM placements
+        WHERE payment_status='paid' AND deleted_at IS NULL
+          AND strftime('%Y-%m', payment_date)=?
+    ''', (month_str,)).fetchone()[0]
+
+    pending_kop = conn.execute('''
+        SELECT COALESCE(SUM(cost),0) FROM placements
+        WHERE payment_status='pending' AND deleted_at IS NULL
+          AND strftime('%Y-%m', placement_date)=?
+    ''', (month_str,)).fetchone()[0]
+
+    available_kop = limit_kop - paid_kop - pending_kop
+    placements = conn.execute('''
+        SELECT p.*, b.name as blogger_name FROM placements p
+        JOIN bloggers b ON b.id=p.blogger_id
+        WHERE deleted_at IS NULL AND strftime('%Y-%m', p.placement_date)=?
+        ORDER BY p.placement_date DESC
+    ''', (month_str,)).fetchall()
+
+    return {
+        'month': month_str,
+        'limit_kopecks': limit_kop,
+        'paid_kopecks': paid_kop,
+        'pending_kopecks': pending_kop,
+        'available_kopecks': available_kop,
+        'overspent': max(0, -available_kop),
+        'placements': [dict(p) for p in placements],
+        'notes': budget_row['notes'] if budget_row else '',
+    }
+
+
+@main.route('/api/budgets/current')
+def api_budget_current():
+    if not _admin_required():
+        return 'Forbidden', 403
+    from .db import get_db
+    conn = get_db()
+    month_str = datetime.utcnow().strftime('%Y-%m')
+    stats = _budget_stats(conn, month_str)
+    conn.close()
+    return stats
+
+
+@main.route('/api/budgets/<month>')
+def api_budget_month(month):
+    if not _admin_required():
+        return 'Forbidden', 403
+    from .db import get_db
+    conn = get_db()
+    stats = _budget_stats(conn, month)
+    conn.close()
+    return stats
+
+
+# ── Admin pages: placements list & budget ─────────────────────────────────────
+
+@main.route('/admin/placements')
+def admin_placements():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    from .db import get_db
+    conn = get_db()
+    model_filter = request.args.get('model', '')
+    payment_filter = request.args.get('payment_status', '')
+    format_filter = request.args.get('format', '')
+    month_filter = request.args.get('month', '')
+
+    conditions, params = ['p.deleted_at IS NULL'], []
+    if model_filter:
+        conditions.append('p.model_at_placement=?'); params.append(model_filter)
+    if payment_filter:
+        conditions.append('p.payment_status=?'); params.append(payment_filter)
+    if format_filter:
+        conditions.append('p.format=?'); params.append(format_filter)
+    if month_filter:
+        conditions.append("strftime('%Y-%m',p.placement_date)=?"); params.append(month_filter)
+    where = ' AND '.join(conditions)
+    rows = conn.execute(f'''
+        SELECT p.*, b.name as blogger_name, b.utm_slug, b.cooperation_model
+        FROM placements p JOIN bloggers b ON b.id=p.blogger_id
+        WHERE {where} ORDER BY p.placement_date DESC
+    ''', params).fetchall()
+    placements = [_calc_placement(dict(r)) for r in rows]
+
+    months = [r[0] for r in conn.execute('''
+        SELECT DISTINCT strftime('%Y-%m', placement_date) m FROM placements
+        WHERE deleted_at IS NULL AND placement_date IS NOT NULL ORDER BY m DESC
+    ''').fetchall()]
+    conn.close()
+    return render_template('admin_placements.html',
+                           placements=placements,
+                           formats=PLACEMENT_FORMATS,
+                           months=months,
+                           model_filter=model_filter,
+                           payment_filter=payment_filter,
+                           format_filter=format_filter,
+                           month_filter=month_filter)
+
+
+@main.route('/admin/budget')
+def admin_budget():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    from .db import get_db
+    conn = get_db()
+    month_str = request.args.get('month', datetime.utcnow().strftime('%Y-%m'))
+    stats = _budget_stats(conn, month_str)
+    all_months = [r[0] for r in conn.execute('''
+        SELECT DISTINCT strftime('%Y-%m', placement_date) m FROM placements
+        WHERE deleted_at IS NULL AND placement_date IS NOT NULL ORDER BY m DESC
+    ''').fetchall()]
+    if month_str not in all_months:
+        all_months.insert(0, month_str)
+    conn.close()
+    return render_template('admin_budget.html', stats=stats,
+                           month_str=month_str, all_months=all_months)
