@@ -95,14 +95,18 @@ a.btn-back:hover { opacity: .85; }
 .btn-export:hover { background: #1b5e20; }
 .filter-bar {
   background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-  padding: 16px 18px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  padding: 16px 18px; margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 .filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-group.full { grid-column: 1 / -1; }
 .filter-group label { font-size: 11px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
 .filter-group select, .filter-group input[type=date] {
-  border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px;
   font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--text);
-  background: var(--bg); outline: none;
+  background: var(--bg); outline: none; width: 100%; box-sizing: border-box; height: 38px;
 }
 .filter-group select:focus, .filter-group input[type=date]:focus { border-color: var(--accent); }
 .quick-periods { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -112,11 +116,6 @@ a.btn-back:hover { opacity: .85; }
   font-family: 'Exo 2', sans-serif; text-decoration: none; white-space: nowrap;
 }
 .qp-btn:hover, .qp-btn.active { background: var(--header-bg); color: #fff; border-color: var(--header-bg); }
-.btn-apply {
-  padding: 8px 18px; background: var(--header-bg); color: #fff; border: none;
-  border-radius: 7px; font-size: 13px; cursor: pointer; font-family: 'Exo 2', sans-serif;
-}
-.btn-apply:hover { opacity: .85; }
 .filter-active-badge {
   display: inline-block; background: #fff3e0; color: #e65100;
   border: 1px solid #ffcc80; border-radius: 50px; font-size: 11px;
@@ -158,7 +157,7 @@ a.btn-back:hover { opacity: .85; }
       <label>Добавлен по</label>
       <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
     </div>
-    <div class="filter-group">
+    <div class="filter-group full">
       <label>Быстрый период</label>
       <div class="quick-periods">
         <a class="qp-btn" href="#" onclick="setQuickPeriod(7);return false;">7 дней</a>
