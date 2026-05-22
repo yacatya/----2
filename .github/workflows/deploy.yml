@@ -99,7 +99,7 @@ jobs:
             grep -q "INSTAGRAM_USER_ID"       /opt/verevery/.env || echo "INSTAGRAM_USER_ID=" >> /opt/verevery/.env
             grep -q "TELEGRAM_BOT_TOKEN"      /opt/verevery/.env || echo "TELEGRAM_BOT_TOKEN=" >> /opt/verevery/.env
             grep -q "TELEGRAM_WEBHOOK_SECRET" /opt/verevery/.env || echo "TELEGRAM_WEBHOOK_SECRET=" >> /opt/verevery/.env
-            sed -i '/^PROXY_URL=/d' /opt/verevery/.env && echo "PROXY_URL=http://GNQafP:UoaE4W@68.209.61.111:8000" >> /opt/verevery/.env
+            sed -i '/^PROXY_URL=/d' /opt/verevery/.env && echo "PROXY_URL=socks5://GNQafP:UoaE4W@68.209.61.111:8000" >> /opt/verevery/.env
 
             echo "=== Fixing permissions ==="
             chown -R verevery:verevery /opt/verevery/app /opt/verevery/run.py /opt/verevery/requirements.txt 2>/dev/null || true
