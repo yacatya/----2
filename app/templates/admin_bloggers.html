@@ -156,9 +156,9 @@
       </td>
       <td style="text-align:center;font-weight:600">{{ b.real_sales }}</td>
       <td style="text-align:center;{% if debt > 0 %}color:#a67c00;font-weight:600{% else %}color:var(--sand){% endif %}">{{ debt }} ₽</td>
-      <td style="white-space:nowrap;">
-        <a href="/admin/bloggers/{{ b.id }}" class="btn-sm" title="Открыть карточку блогера" style="text-decoration:none">📄</a>
-        <button class="btn-sm" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
+      <td style="white-space:nowrap;min-width:120px;">
+        <a href="/admin/bloggers/{{ b.id }}" class="btn-sm" title="Открыть карточку" style="text-decoration:none;padding:4px 8px;">📄</a>
+        <button class="btn-sm" style="padding:4px 8px;" onclick='openEditModal({{ b.id }}, {{ b|tojson }})'>✏️</button>
         {% if b.email and b.status not in ('new',) %}
         <button class="btn-sm{% if b.partner_token %} ok{% endif %}"
                 onclick="sendInvite({{ b.id }}, this)"
@@ -193,6 +193,25 @@
   <div class="modal-box">
     <button class="modal-close" onclick="closeModalBtn()">&#x2715;</button>
     <div class="modal-title" id="modal-title">Добавить блогера</div>
+
+    <!-- Модель сотрудничества -->
+    <div class="f-group" id="model-group">
+      <label class="f-label">Модель сотрудничества</label>
+      <div style="display:flex;gap:0;border:1px solid var(--beige);border-radius:10px;overflow:hidden;">
+        <button type="button" id="model-btn-partnership"
+                onclick="setModalModel('partnership')"
+                style="flex:1;padding:9px 6px;border:none;background:var(--dark);color:white;font-family:'Exo 2',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;">
+          🤝 Партнёрка
+        </button>
+        <button type="button" id="model-btn-fix"
+                onclick="setModalModel('fix')"
+                style="flex:1;padding:9px 6px;border:none;background:var(--cream);color:var(--muted);font-family:'Exo 2',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;">
+          💳 Разовая реклама
+        </button>
+      </div>
+      <input type="hidden" id="m-cooperation_model" value="partnership">
+    </div>
+
     <div class="f-row">
       <div class="f-group">
         <label class="f-label">Имя / ник *</label>
@@ -213,6 +232,25 @@
     <div class="f-group">
       <label class="f-label">Ссылка на профиль / канал</label>
       <input class="f-input" id="m-profile_url" placeholder="https://t.me/channel" oninput="autoSlugFromUrl()">
+    </div>
+
+    <!-- Поля только для фикс-модели -->
+    <div id="fix-fields" style="display:none;transition:all .2s;">
+      <div class="f-row">
+        <div class="f-group">
+          <label class="f-label">Цена размещения, ₽ <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
+          <input class="f-input" type="number" id="m-fix_cost_rubles" placeholder="5000">
+        </div>
+        <div class="f-group">
+          <label class="f-label">Формат <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
+          <select class="f-select" id="m-fix_format" onchange="updateTemplatePreview()">
+            <option value="">— не указан</option>
+            {% for fk, fl in formats %}
+            <option value="{{ fk }}">{{ fl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
     </div>
     <div class="f-group">
       <label class="f-label">Канал отправки</label>
@@ -263,10 +301,16 @@
     </div>
     <div id="msg-preview-section" style="margin-top:16px;border-top:1px solid var(--beige);padding-top:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span class="f-label" style="margin:0" id="msg-preview-label">Письмо 1 — текст для отправки</span>
-        <button type="button" class="btn-sm" id="copy-msg-btn" onclick="copyMsgTemplate()">📋 Копировать</button>
+        <span class="f-label" style="margin:0" id="msg-preview-label">Письмо 1</span>
+        <button type="button" class="btn-sm" id="copy-msg-btn" onclick="copyMsgTemplate(1)">📋 Копировать</button>
       </div>
-      <div id="msg-preview-text" style="background:var(--cream);border:1px solid var(--beige);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--dark);line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto;"></div>
+      <div id="msg-preview-text" style="background:var(--cream);border:1px solid var(--beige);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--dark);line-height:1.7;white-space:pre-wrap;max-height:160px;overflow-y:auto;"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 8px;">
+        <span class="f-label" style="margin:0" id="msg-preview-label2">Письмо 2</span>
+        <button type="button" class="btn-sm" id="copy-msg-btn2" onclick="copyMsgTemplate(2)">📋 Копировать</button>
+      </div>
+      <div id="msg-preview-text2" style="background:var(--cream);border:1px solid var(--beige);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--dark);line-height:1.7;white-space:pre-wrap;max-height:160px;overflow-y:auto;"></div>
     </div>
     <div class="modal-footer" style="margin-top:16px;">
       <button class="btn-primary" id="modal-submit-btn" onclick="submitModal()">Сохранить</button>
@@ -310,17 +354,37 @@
 <script>
 var editingId = null;
 var EMAIL_TEMPLATES = {{ email_templates|tojson }};
+var PLACEMENT_FORMATS = {{ formats|tojson }};
+
+function setModalModel(model) {
+  document.getElementById('m-cooperation_model').value = model;
+  var btnP = document.getElementById('model-btn-partnership');
+  var btnF = document.getElementById('model-btn-fix');
+  if(model === 'fix') {
+    btnF.style.background = 'var(--dark)'; btnF.style.color = 'white';
+    btnP.style.background = 'var(--cream)'; btnP.style.color = 'var(--muted)';
+    document.getElementById('fix-fields').style.display = '';
+  } else {
+    btnP.style.background = 'var(--dark)'; btnP.style.color = 'white';
+    btnF.style.background = 'var(--cream)'; btnF.style.color = 'var(--muted)';
+    document.getElementById('fix-fields').style.display = 'none';
+  }
+  updateTemplatePreview();
+}
 function openAddModal() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Добавить блогера';
   document.getElementById('modal-submit-btn').textContent = 'Добавить';
-  ['name','platform','profile_url','email','utm_slug','notes','ig_username','ig_user_id','tg_username'].forEach(function(f){
+  ['name','platform','profile_url','email','utm_slug','notes','ig_username','ig_user_id','tg_username','fix_cost_rubles'].forEach(function(f){
     var el = document.getElementById('m-'+f); if(el) el.value='';
   });
   document.getElementById('m-channel').value='email';
+  document.getElementById('m-fix_format').value='';
   updateChannelFields();
   document.getElementById('status-group').style.display='none';
   document.getElementById('paid-group').style.display='none';
+  document.getElementById('model-group').style.display='';
+  setModalModel('partnership');
   updateUtmPreview();
   updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
@@ -346,6 +410,8 @@ function openEditModal(id,b) {
   updateChannelFields();
   document.getElementById('status-group').style.display='block';
   document.getElementById('paid-group').style.display='block';
+  document.getElementById('model-group').style.display='none';
+  document.getElementById('fix-fields').style.display='none';
   updateUtmPreview();
   updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
@@ -417,20 +483,45 @@ function updateUtmPreview(){
 function updateTemplatePreview(){
   var statusEl=document.getElementById('m-status');
   var status=statusEl?statusEl.value:'new';
-  var name=document.getElementById('m-name').value.trim()||'блогер';
+  var name=document.getElementById('m-name').value.trim()||'[имя]';
   var slug=document.getElementById('m-utm_slug').value.trim();
   var utm=slug?'verevery.ru/free?utm='+slug:'verevery.ru/free';
-  var isSecond=status==='interested';
-  var isThird=status==='agreed'||status==='posted';
-  var tmpl=isThird?(EMAIL_TEMPLATES.third||''):isSecond?(EMAIL_TEMPLATES.second||''):(EMAIL_TEMPLATES.first||'');
-  var text=tmpl.replace(/{name}/g,name).replace(/{utm_link}/g,utm);
-  document.getElementById('msg-preview-text').textContent=text;
-  var label=isThird?'Письмо 3 — рекомендации по контенту':isSecond?'Письмо 2 — текст для отправки':'Письмо 1 — текст для отправки';
-  document.getElementById('msg-preview-label').textContent=label;
+  var model=document.getElementById('m-cooperation_model').value;
+  var fmtEl=document.getElementById('m-fix_format');
+  var fmtVal=fmtEl?fmtEl.value:'';
+  var fmtLabel='[формат]';
+  if(fmtVal && PLACEMENT_FORMATS) {
+    PLACEMENT_FORMATS.forEach(function(f){ if(f[0]===fmtVal) fmtLabel=f[1]; });
+  }
+  var priceEl=document.getElementById('m-fix_cost_rubles');
+  var price=priceEl&&priceEl.value?priceEl.value+'₽':'[укажите цену]';
+
+  function render(tmpl) {
+    return (tmpl||'')
+      .replace(/{name}/g,name).replace(/{utm_link}/g,utm)
+      .replace(/{price}/g,price).replace(/{format}/g,fmtLabel);
+  }
+
+  if(model==='fix') {
+    document.getElementById('msg-preview-label').textContent='Письмо 1 — первое обращение';
+    document.getElementById('msg-preview-text').textContent=render(EMAIL_TEMPLATES.fix_first||'');
+    document.getElementById('msg-preview-label2').textContent='Письмо 2 — после согласования';
+    document.getElementById('msg-preview-text2').textContent=render(EMAIL_TEMPLATES.fix_materials||'');
+  } else {
+    var isSecond=status==='interested';
+    var tmpl1=EMAIL_TEMPLATES.first||'';
+    var tmpl2=isSecond?(EMAIL_TEMPLATES.second||''):(EMAIL_TEMPLATES.second||'');
+    document.getElementById('msg-preview-label').textContent='Письмо 1 — первое обращение';
+    document.getElementById('msg-preview-text').textContent=render(tmpl1);
+    document.getElementById('msg-preview-label2').textContent='Письмо 2 — после интереса';
+    document.getElementById('msg-preview-text2').textContent=render(tmpl2);
+  }
 }
-function copyMsgTemplate(){
-  var text=document.getElementById('msg-preview-text').textContent;
-  var btn=document.getElementById('copy-msg-btn');
+function copyMsgTemplate(num){
+  var id=num===2?'msg-preview-text2':'msg-preview-text';
+  var btnId=num===2?'copy-msg-btn2':'copy-msg-btn';
+  var text=document.getElementById(id).textContent;
+  var btn=document.getElementById(btnId);
   navigator.clipboard.writeText(text).then(function(){
     btn.textContent='✓ Скопировано';
     setTimeout(function(){btn.textContent='📋 Копировать';},2000);
@@ -447,6 +538,13 @@ function submitModal(){
   if(editingId){
     data.append('status',document.getElementById('m-status').value);
     data.append('paid_out',document.getElementById('m-paid_out').value);
+  } else {
+    var model=document.getElementById('m-cooperation_model').value;
+    data.append('cooperation_model', model);
+    if(model==='fix') {
+      data.append('fix_cost_rubles', document.getElementById('m-fix_cost_rubles').value||'0');
+      data.append('fix_format', document.getElementById('m-fix_format').value||'');
+    }
   }
   var url=editingId?'/admin/bloggers/'+editingId+'/update':'/admin/bloggers/add';
   fetch(url,{method:'POST',body:data}).then(function(r){
