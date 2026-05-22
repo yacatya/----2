@@ -96,12 +96,11 @@ a.btn-back:hover { opacity: .85; }
 .filter-bar {
   background: var(--card); border: 1px solid var(--border); border-radius: 10px;
   padding: 16px 18px; margin-bottom: 24px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  display: flex; flex-direction: column; gap: 12px;
 }
+.filter-row { display: flex; gap: 12px; }
+.filter-row .filter-group { flex: 1; }
 .filter-group { display: flex; flex-direction: column; gap: 5px; }
-.filter-group.full { grid-column: 1 / -1; }
 .filter-group label { font-size: 11px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
 .filter-group select, .filter-group input[type=date] {
   border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px;
@@ -149,15 +148,17 @@ a.btn-back:hover { opacity: .85; }
         <option value="telegram"  {% if channel_filter=='telegram' %}selected{% endif %}>✈️ Telegram</option>
       </select>
     </div>
-    <div class="filter-group">
-      <label>Добавлен с</label>
-      <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Добавлен с</label>
+        <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()">
+      </div>
+      <div class="filter-group">
+        <label>Добавлен по</label>
+        <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
+      </div>
     </div>
     <div class="filter-group">
-      <label>Добавлен по</label>
-      <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
-    </div>
-    <div class="filter-group full">
       <label>Быстрый период</label>
       <div class="quick-periods">
         <a class="qp-btn" href="#" onclick="setQuickPeriod(7);return false;">7 дней</a>
