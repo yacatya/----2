@@ -407,8 +407,8 @@ function openEditModal(id,b) {
   updateChannelFields();
   document.getElementById('status-group').style.display='block';
   document.getElementById('paid-group').style.display='block';
-  document.getElementById('model-group').style.display='none';
-  document.getElementById('fix-fields').style.display='none';
+  document.getElementById('model-group').style.display='block';
+  setModalModel(b.cooperation_model||'partnership');
   updateUtmPreview();
   updateTemplatePreview();
   document.getElementById('modal-status').textContent='';
@@ -548,12 +548,12 @@ function submitModal(){
     data.append(f,document.getElementById('m-'+f).value.trim());
   });
   data.append('channel',document.getElementById('m-channel').value);
+  var model=document.getElementById('m-cooperation_model').value;
+  data.append('cooperation_model', model);
   if(editingId){
     data.append('status',document.getElementById('m-status').value);
     data.append('paid_out',document.getElementById('m-paid_out').value);
   } else {
-    var model=document.getElementById('m-cooperation_model').value;
-    data.append('cooperation_model', model);
     if(model==='fix') {
       data.append('fix_cost_rubles', document.getElementById('m-fix_cost_rubles').value||'0');
       data.append('fix_format', document.getElementById('m-fix_format').value||'');
