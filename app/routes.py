@@ -1151,10 +1151,14 @@ def admin_bloggers():
     t1 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_first'").fetchone()
     t2 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_second'").fetchone()
     t3 = conn.execute("SELECT body_text FROM email_templates WHERE key='blogger_third'").fetchone()
+    fx1 = conn.execute("SELECT body_text FROM email_templates WHERE key='fix_first'").fetchone()
+    fx2 = conn.execute("SELECT body_text FROM email_templates WHERE key='fix_materials'").fetchone()
     email_templates = {
-        'first': t1['body_text'] if t1 else '',
+        'first':  t1['body_text'] if t1 else '',
         'second': t2['body_text'] if t2 else '',
-        'third': t3['body_text'] if t3 else '',
+        'third':  t3['body_text'] if t3 else '',
+        'fix_first':     fx1['body_text'] if fx1 else '',
+        'fix_materials': fx2['body_text'] if fx2 else '',
     }
     conn.close()
 
@@ -1168,6 +1172,7 @@ def admin_bloggers():
                            now=now,
                            cps=COMMISSION_PER_SALE,
                            blogger_warning=_blogger_warning,
+                           formats=PLACEMENT_FORMATS,
                            email_templates=email_templates)
 
 
@@ -1189,15 +1194,28 @@ def admin_bloggers_add():
     ig_user_id = request.form.get('ig_user_id', '').strip()[:100]
     tg_username = request.form.get('tg_username', '').strip()[:200]
     tg_user_id = request.form.get('tg_user_id', '').strip()[:50]
+    cooperation_model = request.form.get('cooperation_model', 'partnership').strip()
+    fix_cost_rub = int(request.form.get('fix_cost_rubles', 0) or 0)
+    fix_format = request.form.get('fix_format', '').strip()
     try:
         from .db import get_db
         conn = get_db()
         conn.execute(
-            'INSERT INTO bloggers (name, platform, profile_url, email, utm_slug, utm_link, notes, channel, ig_username, ig_user_id, tg_username, tg_user_id) '
-            'VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-            (name, platform, profile_url, email, utm_slug, utm_link, notes, channel, ig_username, ig_user_id, tg_username, tg_user_id)
+            'INSERT INTO bloggers (name, platform, profile_url, email, utm_slug, utm_link, notes, channel, '
+            'ig_username, ig_user_id, tg_username, tg_user_id, cooperation_model) '
+            'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            (name, platform, profile_url, email, utm_slug, utm_link, notes, channel,
+             ig_username, ig_user_id, tg_username, tg_user_id, cooperation_model)
         )
         conn.commit()
+        bid = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+        if cooperation_model == 'fix' and (fix_cost_rub > 0 or fix_format):
+            conn.execute(
+                'INSERT INTO placements (blogger_id, format, model_at_placement, cost, payment_status) '
+                'VALUES (?,?,?,?,?)',
+                (bid, fix_format or 'post', 'fix', fix_cost_rub * 100, 'pending')
+            )
+            conn.commit()
         conn.close()
         return '', 200
     except Exception as e:
