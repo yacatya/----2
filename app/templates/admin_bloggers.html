@@ -235,21 +235,19 @@
     </div>
 
     <!-- Поля только для фикс-модели -->
-    <div id="fix-fields" style="display:none;transition:all .2s;">
-      <div class="f-row">
-        <div class="f-group">
-          <label class="f-label">Цена размещения, ₽ <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
-          <input class="f-input" type="number" id="m-fix_cost_rubles" placeholder="5000">
-        </div>
-        <div class="f-group">
-          <label class="f-label">Формат <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
-          <select class="f-select" id="m-fix_format" onchange="updateTemplatePreview()">
-            <option value="">— не указан</option>
-            {% for fk, fl in formats %}
-            <option value="{{ fk }}">{{ fl }}</option>
-            {% endfor %}
-          </select>
-        </div>
+    <div id="fix-fields" style="display:none;">
+      <div class="f-group">
+        <label class="f-label">Цена размещения, ₽ <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
+        <input class="f-input" type="number" id="m-fix_cost_rubles" placeholder="5000">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Формат <span style="color:var(--muted);font-size:10px;">(необязательно)</span></label>
+        <select class="f-select" id="m-fix_format" onchange="updateTemplatePreview()">
+          <option value="">— не указан</option>
+          {% for fk, fl in formats %}
+          <option value="{{ fk }}">{{ fl }}</option>
+          {% endfor %}
+        </select>
       </div>
     </div>
     <div class="f-group">

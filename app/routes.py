@@ -1657,8 +1657,11 @@ def admin_bloggers_templates():
     t1 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_first'").fetchone()
     t2 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_second'").fetchone()
     t3 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='blogger_third'").fetchone()
+    fx1 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='fix_first'").fetchone()
+    fx2 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='fix_materials'").fetchone()
+    fx3 = conn.execute("SELECT key, subject, body_text FROM email_templates WHERE key='fix_convert'").fetchone()
     conn.close()
-    return render_template('admin_bloggers_templates.html', t1=t1, t2=t2, t3=t3)
+    return render_template('admin_bloggers_templates.html', t1=t1, t2=t2, t3=t3, fx1=fx1, fx2=fx2, fx3=fx3)
 
 
 @main.route('/admin/bloggers/templates/save', methods=['POST'])
