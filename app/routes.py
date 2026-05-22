@@ -1566,6 +1566,18 @@ def webhook_telegram_health():
     return {'status': 'ok', 'channel': 'telegram'}, 200
 
 
+@main.route('/admin/server-ip')
+def admin_server_ip():
+    if not session.get('admin_logged_in'):
+        return 'Forbidden', 403
+    import requests as _req
+    try:
+        ip = _req.get('https://api.ipify.org', timeout=5).text.strip()
+    except Exception as e:
+        ip = f'Ошибка: {e}'
+    return f'IP сервера verevery.ru: <b>{ip}</b><br><br>Добавьте этот IP в «Привязка к IP» на proxy6.net', 200
+
+
 @main.route('/admin/telegram/setup')
 def admin_telegram_setup():
     if not session.get('admin_logged_in'):
