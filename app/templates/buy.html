@@ -118,8 +118,16 @@
 })();
 
 function getUtm() {
+  try {
+    var stored = JSON.parse(localStorage.getItem('_utm') || 'null');
+    if (stored && stored.s && (Date.now() - stored.ts) < 7 * 86400000) return stored.s;
+  } catch(e) {}
   var m = document.cookie.match(/utm_source=([^;]+)/);
   return m ? decodeURIComponent(m[1]) : 'direct';
+}
+function getVid() {
+  var m = document.cookie.match(/(?:^|;\s*)_vid=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
 }
 
 {% if error == 'email' %}
@@ -152,7 +160,7 @@ document.getElementById('btn-pay').addEventListener('click', function(e) {
   form.method = 'POST';
   form.action = '/pay';
 
-  [['email', email], ['utm', getUtm()]].forEach(function(pair) {
+  [['email', email], ['utm', getUtm()], ['session_id', getVid()]].forEach(function(pair) {
     var f = document.createElement('input');
     f.type = 'hidden'; f.name = pair[0]; f.value = pair[1];
     form.appendChild(f);

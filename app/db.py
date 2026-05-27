@@ -144,6 +144,23 @@ def init_db():
             created_at   TEXT DEFAULT (datetime('now')),
             UNIQUE(channel, message_id)
         );
+        CREATE TABLE IF NOT EXISTS utm_visits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL DEFAULT '',
+            ip TEXT NOT NULL DEFAULT '',
+            user_agent TEXT DEFAULT '',
+            referrer TEXT DEFAULT '',
+            landing_page TEXT DEFAULT '',
+            utm_source TEXT DEFAULT '',
+            utm_medium TEXT DEFAULT '',
+            utm_campaign TEXT DEFAULT '',
+            utm_content TEXT DEFAULT '',
+            is_unique INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_utm_visits_source ON utm_visits(utm_source);
+        CREATE INDEX IF NOT EXISTS idx_utm_visits_session ON utm_visits(session_id);
+        CREATE INDEX IF NOT EXISTS idx_utm_visits_created ON utm_visits(created_at);
     ''')
     default_templates = [
         (
@@ -193,6 +210,13 @@ def init_db():
                 'INSERT OR IGNORE INTO email_templates (key, subject, body_text) VALUES (?, ?, ?)',
                 (key, subject, body_text)
             )
+        except Exception:
+            pass
+    for col, definition in [
+        ('session_id', "TEXT DEFAULT ''"),
+    ]:
+        try:
+            conn.execute(f'ALTER TABLE sales ADD COLUMN {col} {definition}')
         except Exception:
             pass
     for col, definition in [

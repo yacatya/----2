@@ -23,6 +23,20 @@ REPLY_TO_EMAIL = os.environ.get('REPLY_TO_EMAIL', 'team.verevery@gmail.com')
 _PROXY_URL = os.environ.get('PROXY_URL', '')
 _PROXIES = {'http': _PROXY_URL, 'https': _PROXY_URL} if _PROXY_URL else None
 
+import time as _time
+_rate_cache: dict = {}
+
+
+def _check_rate_limit(ip: str) -> bool:
+    now = _time.time()
+    bucket = _rate_cache.setdefault(ip, [])
+    bucket[:] = [t for t in bucket if t > now - 60]
+    if len(bucket) >= 60:
+        return False
+    bucket.append(now)
+    return True
+
+
 FREE_CARD_IDS_DEFAULT = ['А-02', 'З-03', 'В-03', 'В-11', 'З-01']
 FREE_CARDS_CONFIG = os.path.join(os.path.dirname(__file__), 'data', 'free_cards.json')
 
@@ -85,14 +99,14 @@ def _upsert_user(conn, email):
     conn.commit()
 
 
-def _save_sale(conn, payment_id, date, email, utm, amount):
+def _save_sale(conn, payment_id, date, email, utm, amount, session_id=''):
     try:
         blogger = utm if utm not in ('direct', '', None) else ''
         commission = round(float(amount) * 0.30, 2)
         conn.execute(
-            '''INSERT OR IGNORE INTO sales (payment_id, date, email, utm, blogger, amount, commission)
-               VALUES (?, ?, ?, ?, ?, ?, ?)''',
-            (payment_id, date, email, utm, blogger, float(amount), commission)
+            '''INSERT OR IGNORE INTO sales (payment_id, date, email, utm, blogger, amount, commission, session_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+            (payment_id, date, email, utm, blogger, float(amount), commission, session_id)
         )
         conn.commit()
     except Exception:
@@ -142,6 +156,7 @@ def pay():
     from yookassa import Payment as YooPayment
     email = request.form.get('email', '').strip().lower()
     utm = request.form.get('utm', 'direct')
+    session_id = request.form.get('session_id', '')
 
     if not email or '@' not in email or '.' not in email.split('@')[-1]:
         return redirect(url_for('main.buy') + '?error=email')
@@ -155,7 +170,7 @@ def pay():
         },
         'capture': True,
         'description': 'Колода «Ближе» — постоянный доступ',
-        'metadata': {'email': email, 'utm': utm},
+        'metadata': {'email': email, 'utm': utm, 'session_id': session_id},
     }
     receipt_params = {
         'receipt': {
@@ -205,8 +220,10 @@ def webhook_payment():
         if payment.status != 'succeeded':
             return '', 200
 
-        email = (payment.metadata or {}).get('email', '').strip().lower()
-        utm = (payment.metadata or {}).get('utm', 'direct')
+        meta = payment.metadata or {}
+        email = meta.get('email', '').strip().lower()
+        utm = meta.get('utm', 'direct')
+        session_id = meta.get('session_id', '')
         amount = str(payment.amount.value)
         date = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
 
@@ -220,8 +237,20 @@ def webhook_payment():
             'SELECT 1 FROM sales WHERE payment_id=?', (payment.id,)
         ).fetchone()
 
+        # Last-click attribution: if utm is direct/empty but session has a recent visit
+        if session_id and utm in ('direct', '', None):
+            visit = conn.execute(
+                """SELECT utm_source FROM utm_visits
+                   WHERE session_id=? AND utm_source!=''
+                   AND created_at >= datetime('now', '-7 days')
+                   ORDER BY created_at DESC LIMIT 1""",
+                (session_id,)
+            ).fetchone()
+            if visit:
+                utm = visit['utm_source']
+
         _upsert_user(conn, email)
-        _save_sale(conn, payment.id, date, email, utm, amount)
+        _save_sale(conn, payment.id, date, email, utm, amount, session_id)
 
         if not already_processed:
             _send_magic_link(email, conn)
@@ -232,6 +261,165 @@ def webhook_payment():
         pass
 
     return '', 200
+
+
+@main.route('/api/track-visit', methods=['POST'])
+def track_visit():
+    try:
+        from flask import jsonify
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+        if not _check_rate_limit(ip):
+            return '', 429
+
+        data = request.get_json(silent=True) or {}
+        utm_source = (data.get('utm_source') or '').strip()[:100]
+        if not utm_source:
+            return '', 200
+
+        session_id = (data.get('session_id') or '').strip()[:64]
+        utm_medium = (data.get('utm_medium') or '').strip()[:100]
+        utm_campaign = (data.get('utm_campaign') or '').strip()[:100]
+        utm_content = (data.get('utm_content') or '').strip()[:100]
+        referrer = (data.get('referrer') or '').strip()[:500]
+        landing_page = (data.get('landing_page') or '/').strip()[:200]
+        user_agent = request.headers.get('User-Agent', '')[:300]
+
+        from .db import get_db
+        conn = get_db()
+
+        today = datetime.utcnow().strftime('%Y-%m-%d')
+        existing = conn.execute(
+            """SELECT 1 FROM utm_visits
+               WHERE utm_source=? AND date(created_at)=? AND (session_id=? OR (ip=? AND user_agent=?))
+               LIMIT 1""",
+            (utm_source, today, session_id, ip, user_agent)
+        ).fetchone()
+        is_unique = 0 if existing else 1
+
+        conn.execute(
+            """INSERT INTO utm_visits
+               (session_id, ip, user_agent, referrer, landing_page,
+                utm_source, utm_medium, utm_campaign, utm_content, is_unique)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (session_id, ip, user_agent, referrer, landing_page,
+             utm_source, utm_medium, utm_campaign, utm_content, is_unique)
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return '', 200
+
+
+@main.route('/admin/utm-analytics')
+def admin_utm_analytics():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    from .db import get_db
+    conn = get_db()
+
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    utm_filter = request.args.get('utm', '')
+
+    where_parts = ["utm_source != ''"]
+    params = []
+    if date_from:
+        where_parts.append("date(v.created_at) >= ?")
+        params.append(date_from)
+    if date_to:
+        where_parts.append("date(v.created_at) <= ?")
+        params.append(date_to)
+    if utm_filter:
+        where_parts.append("v.utm_source = ?")
+        params.append(utm_filter)
+
+    where_sql = ' AND '.join(where_parts)
+
+    rows = conn.execute(f"""
+        SELECT
+            v.utm_source,
+            COUNT(*) AS visits,
+            SUM(v.is_unique) AS unique_visits
+        FROM utm_visits v
+        WHERE {where_sql}
+        GROUP BY v.utm_source
+        ORDER BY visits DESC
+    """, params).fetchall()
+
+    source_names = [r['utm_source'] for r in rows]
+
+    # Orders + revenue per utm_source from sales table
+    order_data = {}
+    if source_names:
+        placeholders = ','.join('?' * len(source_names))
+        sales_rows = conn.execute(
+            f"SELECT utm, COUNT(*) cnt, COALESCE(SUM(amount),0) rev FROM sales WHERE utm IN ({placeholders}) GROUP BY utm",
+            source_names
+        ).fetchall()
+        for sr in sales_rows:
+            order_data[sr['utm']] = {'orders': sr['cnt'], 'revenue': sr['rev']}
+
+    # Placement costs per utm_slug
+    cost_data = {}
+    if source_names:
+        placeholders = ','.join('?' * len(source_names))
+        cost_rows = conn.execute(f"""
+            SELECT b.utm_slug, COALESCE(SUM(p.cost), 0) total_cost
+            FROM bloggers b
+            LEFT JOIN placements p ON p.blogger_id = b.id AND p.deleted_at IS NULL
+            WHERE b.utm_slug IN ({placeholders})
+            GROUP BY b.utm_slug
+        """, source_names).fetchall()
+        for cr in cost_rows:
+            cost_data[cr['utm_slug']] = cr['total_cost']
+
+    # All utm sources for filter dropdown
+    all_sources = [r['utm_source'] for r in conn.execute(
+        "SELECT DISTINCT utm_source FROM utm_visits WHERE utm_source!='' ORDER BY utm_source"
+    ).fetchall()]
+
+    # Build final stats list
+    stats = []
+    for r in rows:
+        src = r['utm_source']
+        od = order_data.get(src, {'orders': 0, 'revenue': 0.0})
+        orders = od['orders']
+        revenue = od['revenue']
+        unique = r['unique_visits'] or 0
+        cost_kopecks = cost_data.get(src, 0)
+        cost_rub = cost_kopecks / 100.0 if cost_kopecks else 0.0
+        cr = (orders / unique * 100) if unique > 0 else 0.0
+        cac = (cost_rub / orders) if orders > 0 and cost_rub > 0 else None
+        margin = revenue * 0.7
+        roi = ((margin - cost_rub) / cost_rub * 100) if cost_rub > 0 else None
+        stats.append({
+            'utm_source': src,
+            'visits': r['visits'],
+            'unique_visits': unique,
+            'orders': orders,
+            'revenue': revenue,
+            'cr': cr,
+            'cost_rub': cost_rub,
+            'cac': cac,
+            'roi': roi,
+        })
+
+    totals = {
+        'visits': sum(s['visits'] for s in stats),
+        'unique_visits': sum(s['unique_visits'] for s in stats),
+        'orders': sum(s['orders'] for s in stats),
+        'revenue': sum(s['revenue'] for s in stats),
+    }
+
+    conn.close()
+    return render_template('admin_utm_analytics.html',
+                           stats=stats,
+                           totals=totals,
+                           all_sources=all_sources,
+                           date_from=date_from,
+                           date_to=date_to,
+                           utm_filter=utm_filter)
 
 
 @main.route('/cards')

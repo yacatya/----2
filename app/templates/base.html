@@ -131,5 +131,48 @@
 {% endblock %}
 {% block content %}{% endblock %}
 {% block scripts %}{% endblock %}
+<script>
+(function() {
+  function getOrCreateVid() {
+    var m = document.cookie.match(/(?:^|;\s*)_vid=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+    var vid = 'v' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    var exp = new Date(); exp.setDate(exp.getDate() + 30);
+    document.cookie = '_vid=' + vid + '; expires=' + exp.toUTCString() + '; path=/; SameSite=Lax';
+    return vid;
+  }
+  var vid = getOrCreateVid();
+  var p = new URLSearchParams(window.location.search);
+  var utmSource = p.get('utm') || p.get('utm_source') || '';
+  var utmMedium = p.get('utm_medium') || '';
+  var utmCampaign = p.get('utm_campaign') || '';
+  var utmContent = p.get('utm_content') || '';
+  if (utmSource) {
+    try { localStorage.setItem('_utm', JSON.stringify({s: utmSource, m: utmMedium, c: utmCampaign, n: utmContent, ts: Date.now()})); } catch(e) {}
+  }
+  var src = utmSource;
+  if (!src) {
+    try {
+      var stored = JSON.parse(localStorage.getItem('_utm') || 'null');
+      if (stored && stored.s && (Date.now() - stored.ts) < 7 * 86400000) {
+        src = stored.s; utmMedium = stored.m || ''; utmCampaign = stored.c || ''; utmContent = stored.n || '';
+      }
+    } catch(e) {}
+  }
+  if (!src) return;
+  var payload = JSON.stringify({
+    session_id: vid, utm_source: src, utm_medium: utmMedium,
+    utm_campaign: utmCampaign, utm_content: utmContent,
+    referrer: document.referrer, landing_page: window.location.pathname
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/track-visit', new Blob([payload], {type: 'application/json'}));
+    } else {
+      fetch('/api/track-visit', {method:'POST', headers:{'Content-Type':'application/json'}, body:payload, keepalive:true});
+    }
+  } catch(e) {}
+})();
+</script>
 </body>
 </html>

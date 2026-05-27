@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UTM-аналитика — Verevery Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F5F0EB;
+  --card: #FDFAF7;
+  --border: #E8E0D5;
+  --text: #3D3530;
+  --muted: #8C7E72;
+  --accent: #C17D3C;
+  --header-bg: #2D2420;
+  --header-text: #F5F0EB;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Exo 2', sans-serif; background: var(--bg); color: var(--text); }
+header {
+  background: var(--header-bg); color: var(--header-text);
+  padding: 12px 24px; display: flex; align-items: center; gap: 16px;
+}
+header h1 { font-size: 18px; font-weight: 600; }
+header a { color: var(--header-text); text-decoration: none; font-size: 14px; opacity: .7; }
+header a:hover { opacity: 1; }
+.sep { opacity: .3; }
+main { max-width: 1200px; margin: 0 auto; padding: 28px 20px 60px; }
+h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px; margin-bottom: 28px;
+}
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+.kpi .label { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.kpi .value { font-size: 24px; font-weight: 700; }
+.filter-bar {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 18px; margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+}
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-group label { font-size: 11px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
+.filter-group select, .filter-group input[type=date] {
+  border: 1px solid var(--border); border-radius: 7px; padding: 0 10px;
+  font-family: 'Exo 2', sans-serif; font-size: 13px; color: var(--text);
+  background: var(--bg); outline: none; height: 38px; -webkit-appearance: none; appearance: none;
+}
+.filter-group select:focus, .filter-group input[type=date]:focus { border-color: var(--accent); }
+.quick-periods { display: flex; gap: 6px; flex-wrap: wrap; align-self: flex-end; }
+.qp-btn {
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 50px;
+  font-size: 12px; background: var(--bg); color: var(--muted); cursor: pointer;
+  font-family: 'Exo 2', sans-serif; text-decoration: none; white-space: nowrap;
+}
+.qp-btn:hover { background: var(--header-bg); color: #fff; border-color: var(--header-bg); }
+.tbl-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.tbl-header {
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.tbl-title { font-size: 15px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--header-bg); color: var(--header-text);
+  padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px;
+  position: sticky; top: 0; z-index: 1; white-space: nowrap;
+}
+tbody tr:nth-child(even) { background: rgba(0,0,0,.025); }
+tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.no-data { text-align: center; padding: 36px; color: var(--muted); }
+.cr-good { color: #2e7d32; font-weight: 600; }
+.cr-mid  { color: #a67c00; font-weight: 600; }
+.cr-low  { color: var(--muted); }
+.roi-pos { color: #2e7d32; font-weight: 600; }
+.roi-neg { color: #c0392b; font-weight: 600; }
+.btn-export {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #2e7d32; color: #fff; border: none; border-radius: 6px;
+  padding: 7px 13px; font-size: 13px; cursor: pointer;
+  font-family: 'Exo 2', sans-serif; text-decoration: none;
+}
+.btn-export:hover { background: #1b5e20; }
+a.btn-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--header-bg); color: var(--header-text);
+  border-radius: 7px; padding: 7px 14px; font-size: 13px;
+  text-decoration: none; margin-bottom: 20px;
+}
+a.btn-back:hover { opacity: .85; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.filter-active-badge {
+  display: inline-block; background: #fff3e0; color: #e65100;
+  border: 1px solid #ffcc80; border-radius: 50px; font-size: 11px;
+  padding: 3px 10px; margin-left: 8px;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Verevery Admin</h1>
+  <span class="sep">|</span>
+  <a href="/admin">Панель</a>
+  <span class="sep">|</span>
+  <a href="/admin/bloggers">CRM блогеров</a>
+  <span class="sep">|</span>
+  <span>UTM-аналитика</span>
+</header>
+
+<main>
+  <a href="/admin" class="btn-back">← Назад</a>
+  <h2>Трекинг переходов по UTM{% if utm_filter or date_from or date_to %}<span class="filter-active-badge">фильтр активен</span>{% endif %}</h2>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="label">Всего визитов</div>
+      <div class="value">{{ totals.visits }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Уникальных</div>
+      <div class="value">{{ totals.unique_visits }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Заказов</div>
+      <div class="value">{{ totals.orders }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Выручка</div>
+      <div class="value">{{ "{:,.0f}".format(totals.revenue).replace(",", " ") }} ₽</div>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get" action="/admin/utm-analytics" id="filter-form">
+    <div class="filter-group">
+      <label>UTM Source</label>
+      <select name="utm" onchange="this.form.submit()">
+        <option value="" {% if not utm_filter %}selected{% endif %}>Все источники</option>
+        {% for src in all_sources %}
+        <option value="{{ src }}" {% if utm_filter == src %}selected{% endif %}>{{ src }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>С даты</label>
+      <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()">
+    </div>
+    <div class="filter-group">
+      <label>По дату</label>
+      <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
+    </div>
+    <div class="quick-periods">
+      <a class="qp-btn" href="#" onclick="setQuickPeriod(7);return false;">7 дней</a>
+      <a class="qp-btn" href="#" onclick="setQuickPeriod(30);return false;">30 дней</a>
+      <a class="qp-btn" href="#" onclick="setQuickPeriod(90);return false;">3 месяца</a>
+      <a class="qp-btn" href="/admin/utm-analytics{% if utm_filter %}?utm={{ utm_filter }}{% endif %}">Всё время</a>
+    </div>
+  </form>
+
+  <div class="tbl-wrap">
+    <div class="tbl-header">
+      <div class="tbl-title">По UTM-источникам</div>
+      <button class="btn-export" onclick="exportCsv()">↓ CSV</button>
+    </div>
+    <table id="utm-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>UTM Source</th>
+          <th>Визиты</th>
+          <th>Уникальные</th>
+          <th>Заказы</th>
+          <th>CR, %</th>
+          <th>Выручка, ₽</th>
+          <th>Затраты, ₽</th>
+          <th>CAC, ₽</th>
+          <th>ROI, %</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in stats %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ s.utm_source }}</strong></td>
+          <td>{{ s.visits }}</td>
+          <td>{{ s.unique_visits }}</td>
+          <td>{{ s.orders }}</td>
+          <td class="{% if s.cr >= 3 %}cr-good{% elif s.cr >= 1 %}cr-mid{% else %}cr-low{% endif %}">
+            {{ "%.1f"|format(s.cr) }}%
+          </td>
+          <td>{{ "{:,.0f}".format(s.revenue).replace(",", " ") }}</td>
+          <td>{% if s.cost_rub > 0 %}{{ "{:,.0f}".format(s.cost_rub).replace(",", " ") }}{% else %}—{% endif %}</td>
+          <td>{% if s.cac is not none %}{{ "{:,.0f}".format(s.cac).replace(",", " ") }}{% else %}—{% endif %}</td>
+          <td>{% if s.roi is not none %}<span class="{{ 'roi-pos' if s.roi >= 0 else 'roi-neg' }}">{{ "%.0f"|format(s.roi) }}%</span>{% else %}—{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="no-data">Нет данных. Переходы по UTM-ссылкам начнут появляться здесь автоматически.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not stats %}
+  <p class="hint">Совет: поделитесь ссылкой вида <code>https://verevery.ru/?utm=ваш_источник</code> и переходы начнут фиксироваться.</p>
+  {% endif %}
+</main>
+
+<script>
+function setQuickPeriod(days) {
+  var today = new Date();
+  var from = new Date(today);
+  from.setDate(today.getDate() - days + 1);
+  function fmt(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  document.querySelector('[name=date_from]').value = fmt(from);
+  document.querySelector('[name=date_to]').value = fmt(today);
+  document.getElementById('filter-form').submit();
+}
+function exportCsv() {
+  const table = document.getElementById('utm-table');
+  const rows = table.querySelectorAll('tr');
+  const lines = [];
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('th, td');
+    const line = Array.from(cells).map(c => {
+      let t = c.innerText.replace(/\s+/g, ' ').trim();
+      if (t.includes(';') || t.includes('"')) t = '"' + t.replace(/"/g, '""') + '"';
+      return t;
+    }).join(';');
+    lines.push(line);
+  });
+  const csv = '﻿' + lines.join('\r\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'utm_analytics.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
