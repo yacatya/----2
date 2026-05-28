@@ -529,6 +529,7 @@ def admin_utm_analytics():
     resp = make_response(render_template('admin_utm_analytics.html',
                            stats=stats,
                            totals=totals,
+                           funnel=funnel,
                            all_sources=all_sources,
                            date_from=date_from,
                            date_to=date_to,
