@@ -10,6 +10,10 @@ on:
       - 'app/**'
       - 'cards_*.json'
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
