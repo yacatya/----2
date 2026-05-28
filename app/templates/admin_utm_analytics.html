@@ -137,8 +137,8 @@ a.btn-back:hover { opacity: .85; }
     <form method="post" action="/admin/clear-test-mode" style="display:inline">
       <button class="btn-test btn-test-off">Выключить тест-режим</button>
     </form>
-    <form method="post" action="/admin/reset-test-data" style="display:inline">
-      <button class="btn-test btn-reset" onclick="return confirm('Удалить все тестовые визиты и события?')">Удалить тест-данные</button>
+    <form method="post" action="/admin/reset-test-data" style="display:inline" onsubmit="return confirm('Удалить все тестовые визиты и события?')">
+      <button type="submit" class="btn-test btn-reset">Удалить тест-данные</button>
     </form>
   </div>
   {% else %}

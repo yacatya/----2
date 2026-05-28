@@ -560,12 +560,23 @@ def admin_clear_test_mode():
 def admin_reset_test_data():
     if not _admin_required():
         return redirect(url_for('main.admin_login'))
-    from .db import get_db
-    conn = get_db()
-    conn.execute('DELETE FROM utm_visits WHERE is_test = 1')
-    conn.execute('DELETE FROM events WHERE is_test = 1')
-    conn.commit()
-    conn.close()
+    try:
+        from .db import get_db
+        conn = get_db()
+        try:
+            conn.execute('ALTER TABLE utm_visits ADD COLUMN is_test INTEGER DEFAULT 0')
+        except Exception:
+            pass
+        try:
+            conn.execute('ALTER TABLE events ADD COLUMN is_test INTEGER DEFAULT 0')
+        except Exception:
+            pass
+        conn.execute('DELETE FROM utm_visits WHERE is_test = 1')
+        conn.execute('DELETE FROM events WHERE is_test = 1')
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
     return redirect(request.referrer or url_for('main.admin_utm_analytics'))
 
 
