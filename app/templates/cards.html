@@ -99,6 +99,9 @@
   .btn-info.active { background: var(--dark); color: white; border-color: var(--dark); }
   .help-link { text-align: center; padding: 20px 0 4px; font-size: 12px; color: var(--sand); }
   .help-link a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--beige); cursor: pointer; }
+  .cards-social { display: flex; justify-content: center; gap: 16px; padding: 14px 0 8px; flex-wrap: wrap; }
+  .cards-social a { font-size: 12px; color: var(--sand); text-decoration: none; }
+  .cards-social a:hover { color: var(--muted); }
   .report-overlay { display: none; position: fixed; inset: 0; background: rgba(42,33,24,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
   .report-overlay.open { display: flex; }
   .report-sheet { background: var(--white); border-radius: 24px 24px 0 0; padding: 28px 24px max(28px, env(safe-area-inset-bottom)); width: 100%; max-width: 480px; }
@@ -149,6 +152,12 @@
     </div>
   </div>
   <div class="help-link"><a onclick="openReport()">Нужна помощь?</a></div>
+  <div class="cards-social">
+    <a href="https://instagram.com/vere.very" target="_blank" rel="noopener">Instagram</a>
+    <a href="https://t.me/vereverychat" target="_blank" rel="noopener">Telegram</a>
+    <a href="https://vk.ru/id1270193" target="_blank" rel="noopener">VK</a>
+    <a href="https://max.ru/join/ellIssIQFswFUxnCrdeYp-mL4N0jdolBxxG5N6PW4Zw" target="_blank" rel="noopener">Max</a>
+  </div>
 </div>
 
 <div class="screen-card" id="screen-card">
