@@ -367,15 +367,16 @@
   <!-- ══════════════ БЕСПЛАТНЫЕ ══════════════ -->
   <div class="nav-panel" id="panel-freecards">
     <div class="free-cards-panel">
-      <div class="grant-title">Бесплатные карточки (первая страница)</div>
+      <div class="grant-title">Бесплатные карточки для /try</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6;">По одной из каждого блока. Они показываются на бесплатной странице /try с полными объяснениями. Остальные — заблюрены.</p>
       <div class="free-cards-grid">
-        {% for i in range(5) %}
+        {% for block_key, block_label in [('action','Блок ДЕЙСТВИЕ'), ('question','Блок ВОПРОС'), ('care','Блок ЗАБОТА')] %}
         <div>
-          <span class="free-card-label">Карточка {{ i + 1 }}</span>
-          <select class="free-card-select" id="free-card-{{ i }}">
+          <span class="free-card-label">{{ block_label }}</span>
+          <select class="free-card-select" id="free-card-{{ block_key }}">
             <option value="">— не выбрана —</option>
-            {% for card in all_cards %}
-            <option value="{{ card.id }}" {% if i < free_ids|length and free_ids[i] == card.id %}selected{% endif %}>
+            {% for card in cards_by_block.get(block_key, []) %}
+            <option value="{{ card.id }}" {% if free_cards_by_block.get(block_key) == card.id %}selected{% endif %}>
               {{ card.id }} — {{ card.text }}
             </option>
             {% endfor %}
@@ -481,13 +482,14 @@ function copyUtm() {
 
 function saveFreeCards() {
   var form = new FormData();
-  for (var i = 0; i < 5; i++) {
-    form.append('card_' + i, document.getElementById('free-card-' + i).value);
-  }
+  ['action', 'question', 'care'].forEach(function(b) {
+    var el = document.getElementById('free-card-' + b);
+    if (el) form.append('card_' + b, el.value);
+  });
   var st = document.getElementById('free-status');
   fetch('/admin/free-cards', { method: 'POST', body: form })
     .then(function(r) {
-      if (r.ok) { st.className = 'grant-status ok'; st.textContent = 'Сохранено!'; }
+      if (r.ok) { st.className = 'grant-status ok'; st.textContent = 'Сохранено! Обновится на /try'; }
       else { st.className = 'grant-status err'; st.textContent = 'Ошибка'; }
     });
 }

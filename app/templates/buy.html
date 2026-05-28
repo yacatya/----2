@@ -156,6 +156,8 @@ document.getElementById('btn-pay').addEventListener('click', function(e) {
   btn.style.opacity = '0.65';
   btn.style.pointerEvents = 'none';
 
+  _trackEvent('reach_payment', {});
+
   var form = document.createElement('form');
   form.method = 'POST';
   form.action = '/pay';

@@ -161,6 +161,17 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_utm_visits_source ON utm_visits(utm_source);
         CREATE INDEX IF NOT EXISTS idx_utm_visits_session ON utm_visits(session_id);
         CREATE INDEX IF NOT EXISTS idx_utm_visits_created ON utm_visits(created_at);
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL DEFAULT '',
+            utm_source TEXT DEFAULT '',
+            event_name TEXT NOT NULL,
+            properties TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_events_name ON events(event_name);
+        CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
+        CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);
     ''')
     default_templates = [
         (

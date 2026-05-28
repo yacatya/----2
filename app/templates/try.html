@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Попробуйте бесплатно — Ближе{% endblock %}
+
+{% block head %}
+<style>
+/* ── NAV BACK ─────────────────────────────────────── */
+.nav-back { font-size: 13px; color: var(--muted); text-decoration: none; display: flex; align-items: center; gap: 4px; }
+.nav-back:hover { color: var(--dark); }
+
+/* ── TRY HERO ─────────────────────────────────────── */
+.try-hero { padding: 100px 20px 40px; background: var(--cream); text-align: center; }
+.try-hero-inner { max-width: 480px; margin: 0 auto; }
+.try-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 500; color: var(--dark); line-height: 1.2; margin-bottom: 12px; }
+.try-sub { font-size: 14px; font-weight: 300; color: var(--muted); line-height: 1.75; }
+.try-progress { display: flex; gap: 8px; justify-content: center; margin-top: 24px; }
+.try-pip { height: 4px; width: 48px; border-radius: 2px; background: var(--beige); }
+.try-pip.active { background: var(--accent); }
+
+/* ── BLOCK SECTION ────────────────────────────────── */
+.block-section { padding: 48px 20px 56px; }
+.block-section:nth-child(even) { background: var(--white); }
+.block-section:nth-child(odd) { background: var(--beige); }
+.block-section-inner { max-width: 480px; margin: 0 auto; }
+
+.block-header { margin-bottom: 20px; }
+.block-tag-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.btag-dot { width: 18px; height: 3px; border-radius: 2px; }
+.btag-label { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; font-weight: 500; }
+.block-name { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; color: var(--dark); margin-bottom: 2px; }
+.block-progress-text { font-size: 11px; font-weight: 300; color: var(--sand); letter-spacing: 1px; }
+
+/* ── CARD ─────────────────────────────────────────── */
+.card-body {
+  background: var(--white); border: 1px solid var(--beige);
+  border-radius: 20px; padding: 28px 24px;
+  box-shadow: 0 2px 24px rgba(42,33,24,0.07);
+}
+.card-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+.card-tag-dot { width: 16px; height: 3px; border-radius: 2px; }
+.card-level { font-size: 10px; font-weight: 400; color: var(--sand); letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+.level-pip { width: 6px; height: 6px; border-radius: 50%; background: var(--light-accent); flex-shrink: 0; }
+.card-text { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; line-height: 1.4; color: var(--dark); margin-bottom: 16px; }
+.card-hint { font-size: 12px; font-weight: 300; color: var(--muted); font-style: italic; line-height: 1.65; padding-top: 16px; border-top: 1px solid var(--beige); }
+.card-buttons { display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--beige); }
+.btn-detail {
+  flex: 1; padding: 9px 4px; border-radius: 50px;
+  border: 1px solid var(--sand); background: transparent;
+  font-family: 'Exo 2', sans-serif; font-size: 10px; font-weight: 500;
+  letter-spacing: 0.3px; color: var(--dark); cursor: pointer;
+  text-align: center; transition: all 0.2s;
+}
+.btn-detail.active { background: var(--dark); color: white; border-color: var(--dark); }
+
+/* ── BLUR SECTION ─────────────────────────────────── */
+.blur-section {
+  position: relative; margin-top: 12px;
+  border-radius: 16px; overflow: hidden;
+  cursor: pointer; min-height: 160px;
+  -webkit-tap-highlight-color: transparent;
+}
+.blur-cards-stack {
+  display: flex; flex-direction: column; gap: 8px;
+  filter: blur(5px); pointer-events: none; padding: 0;
+  user-select: none;
+}
+.blur-fake-card {
+  height: 76px; background: var(--white);
+  border: 1px solid var(--beige); border-radius: 14px;
+}
+.blur-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(250,247,242,0.72);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  gap: 4px;
+}
+.blur-lock { font-size: 26px; margin-bottom: 2px; }
+.blur-count { font-size: 15px; font-weight: 600; color: var(--dark); }
+.blur-in-block { font-size: 11px; font-weight: 300; color: var(--muted); }
+.blur-open { margin-top: 10px; font-size: 12px; font-weight: 500; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── BUY INLINE CTA ───────────────────────────────── */
+.block-buy { margin-top: 20px; }
+.btn-block-buy {
+  display: block; text-align: center;
+  background: var(--dark); color: var(--cream);
+  border: none; border-radius: 50px; padding: 14px 24px;
+  font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; text-decoration: none; transition: opacity 0.2s;
+}
+.btn-block-buy:hover { opacity: 0.85; }
+
+/* ── FINAL CTA ────────────────────────────────────── */
+.try-final { padding: 64px 20px; background: var(--dark); text-align: center; }
+.try-final-inner { max-width: 420px; margin: 0 auto; }
+.try-final-title { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: rgba(250,247,242,0.92); margin-bottom: 6px; font-weight: 500; }
+.try-final-blocks { font-size: 12px; font-weight: 300; color: rgba(250,247,242,0.38); margin-bottom: 8px; letter-spacing: 0.5px; }
+.try-price { font-family: 'Cormorant Garamond', serif; font-size: 44px; color: rgba(250,247,242,0.92); margin-bottom: 4px; font-weight: 500; }
+.try-price-sub { font-size: 12px; font-weight: 300; color: rgba(250,247,242,0.35); margin-bottom: 28px; }
+
+/* ── MODAL ────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(42,33,24,0.55);
+  z-index: 200; display: none; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: var(--white); border-radius: 20px 20px 0 0;
+  padding: 20px 24px 40px; width: 100%; max-width: 540px;
+  max-height: 80vh; overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle { width: 36px; height: 3px; background: var(--beige); border-radius: 2px; margin: 0 auto 20px; }
+.modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--dark); margin-bottom: 14px; }
+.modal-text .modal-item { font-size: 14px; font-weight: 300; color: var(--dark); line-height: 1.75; margin-bottom: 8px; }
+.modal-text .modal-result { font-size: 13px; font-style: italic; color: var(--muted); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--beige); line-height: 1.65; }
+</style>
+{% endblock %}
+
+{% block nav_right %}<a href="/" class="nav-back">← Лендинг</a>{% endblock %}
+
+{% block content %}
+
+<section class="try-hero">
+  <div class="try-hero-inner">
+    <span class="label">Бесплатная версия</span>
+    <h1 class="try-title">По одной карточке<br>из каждого блока</h1>
+    <p class="try-sub">Откройте объяснения, попробуйте механику — и решайте.</p>
+    <div class="try-progress">
+      <div class="try-pip active"></div>
+      <div class="try-pip active"></div>
+      <div class="try-pip active"></div>
+    </div>
+  </div>
+</section>
+
+{% set block_order = [('action', 'var(--accent)'), ('question', 'var(--muted)'), ('care', 'var(--light-accent)')] %}
+
+{% for block_key, block_color in block_order %}
+{% set card = free_cards.get(block_key) %}
+{% if card %}
+{% set remaining = remaining_counts.get(block_key, 19) %}
+<section class="block-section" id="block-{{ block_key }}">
+  <div class="block-section-inner">
+    <div class="block-header">
+      <div class="block-tag-row">
+        <span class="btag-dot" style="background:{{ block_color }}"></span>
+        <span class="btag-label" style="color:{{ block_color }}">{{ card.label }}</span>
+      </div>
+      <div class="block-name">{{ card.name }}</div>
+      <div class="block-progress-text">карточка 1 из 20</div>
+    </div>
+
+    <!-- Живая карточка -->
+    <div class="card-body" data-block="{{ block_key }}">
+      <div class="card-tag" style="color:{{ block_color }}">
+        <span class="card-tag-dot" style="background:{{ block_color }}"></span>
+        {{ card.label }}
+      </div>
+      <div class="card-level"><span class="level-pip"></span>{{ card.level }}</div>
+      <div class="card-text">{{ card.text }}</div>
+      {% if card.hint %}<div class="card-hint">{{ card.hint }}</div>{% endif %}
+      <div class="card-buttons">
+        <button class="btn-detail" onclick="openModal('why','{{ block_key }}',this)">Зачем это</button>
+        <button class="btn-detail" onclick="openModal('brain','{{ block_key }}',this)">Мозг</button>
+        <button class="btn-detail" onclick="openModal('science','{{ block_key }}',this)">Наука</button>
+      </div>
+    </div>
+
+    <!-- Заблюренные оставшиеся -->
+    <div class="blur-section" onclick="clickBlur('{{ block_key }}')">
+      <div class="blur-cards-stack">
+        <div class="blur-fake-card"></div>
+        <div class="blur-fake-card"></div>
+        <div class="blur-fake-card"></div>
+      </div>
+      <div class="blur-overlay">
+        <div class="blur-lock">🔒</div>
+        <div class="blur-count">ещё {{ remaining }} карточек</div>
+        <div class="blur-in-block">в этом блоке</div>
+        <div class="blur-open">Открыть все →</div>
+      </div>
+    </div>
+
+    <div class="block-buy">
+      <a href="/buy" class="btn-block-buy" onclick="_trackEvent('click_buy',{source:'try_block',block:'{{ block_key }}'})">Открыть все {{ remaining + 1 }} карточек · 690 ₽</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endfor %}
+
+<!-- Финальный CTA -->
+<section class="try-final">
+  <div class="try-final-inner">
+    <div class="try-final-title">Все 60 карточек</div>
+    <div class="try-final-blocks">Действие · Вопрос · Забота</div>
+    <div class="try-price">690 ₽</div>
+    <div class="try-price-sub">Постоянный доступ · Без подписки</div>
+    <a href="/buy" class="btn-accent" style="display:block;text-align:center;padding:16px 24px;font-size:15px;" onclick="_trackEvent('click_buy',{source:'try_bottom'})">Получить полный доступ</a>
+    <p style="font-size:11px;font-weight:300;color:rgba(250,247,242,0.28);margin-top:14px;">Оплата картой или СБП · Доступ сразу после оплаты</p>
+  </div>
+</section>
+
+<footer>© 2025 verevery · Карточки для двоих</footer>
+
+<!-- Модалка -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-text" id="modal-body"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var CARDS_DATA = {{ free_cards | tojson }};
+
+_trackEvent('free_page_view', {});
+
+// Track card view on scroll into view
+if (window.IntersectionObserver) {
+  document.querySelectorAll('.card-body[data-block]').forEach(function(el) {
+    new IntersectionObserver(function(entries, obs) {
+      if (entries[0].isIntersecting) {
+        _trackEvent('free_card_swipe', {block: el.dataset.block});
+        obs.unobserve(el);
+      }
+    }, {threshold: 0.5}).observe(el);
+  });
+}
+
+function brainHtml(brain) {
+  if (!brain) return '';
+  return brain.map(function(item) {
+    var parts = item.split(' — ');
+    if (parts.length > 1) return '<div class="modal-item"><strong>' + parts[0] + '</strong> — ' + parts.slice(1).join(' — ') + '</div>';
+    return '<div class="modal-item">' + item + '</div>';
+  }).join('');
+}
+
+function openModal(type, blockKey, btn) {
+  var card = CARDS_DATA[blockKey];
+  if (!card) return;
+  var titles = {why: 'Зачем это', brain: 'Что происходит в мозге', science: 'Научная база'};
+  var body = '';
+  if (type === 'why') body = '<div class="modal-item">' + (card.why || '') + '</div>';
+  else if (type === 'brain') body = brainHtml(card.brain);
+  else {
+    body = '<div class="modal-item">' + (card.science || '') + '</div>';
+    if (card.result) body += '<div class="modal-result">' + card.result + '</div>';
+  }
+  document.getElementById('modal-title').textContent = titles[type];
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal').classList.add('open');
+  btn.closest('.card-buttons').querySelectorAll('.btn-detail').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+    document.querySelectorAll('.btn-detail').forEach(function(b) { b.classList.remove('active'); });
+  }
+}
+
+function clickBlur(blockKey) {
+  _trackEvent('click_blur', {block: blockKey});
+  window.location.href = '/buy';
+}
+</script>
+{% endblock %}

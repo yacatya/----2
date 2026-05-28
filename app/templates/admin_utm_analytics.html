@@ -203,6 +203,51 @@ a.btn-back:hover { opacity: .85; }
   {% if not stats %}
   <p class="hint">Совет: поделитесь ссылкой вида <code>https://verevery.ru/?utm=ваш_источник</code> и переходы начнут фиксироваться.</p>
   {% endif %}
+
+  <!-- Воронка по событиям -->
+  <div class="tbl-wrap" style="margin-top:28px;">
+    <div class="tbl-header">
+      <div class="tbl-title">Воронка событий{% if utm_filter %} — <em>{{ utm_filter }}</em>{% endif %}</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Шаг</th>
+          <th>Сессий</th>
+          <th>↓ к предыдущему</th>
+          <th>Прогресс</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set top_count = funnel[0].count if funnel and funnel[0].count > 0 else 1 %}
+        {% for step in funnel %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ step.label }}</td>
+          <td>{{ step.count }}</td>
+          <td>
+            {% if step.cr is not none %}
+              <span class="{{ 'roi-pos' if step.cr >= 30 else ('cr-mid' if step.cr >= 10 else 'cr-low') }}">
+                {{ "%.1f"|format(step.cr) }}%
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="min-width:100px;">
+            {% if top_count > 0 and step.count > 0 %}
+            <div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden;">
+              <div style="background:var(--header-bg);height:100%;width:{{ [(step.count / top_count * 100)|round|int, 100]|min }}%;border-radius:3px;"></div>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="no-data">Событий пока нет. Они появятся после первых переходов по новому лендингу.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:10px;">Воронка считает уникальные сессии на каждом шаге. «↓ к предыдущему» — конверсия относительно предыдущего ненулевого шага.</p>
 </main>
 
 <script>

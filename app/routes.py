@@ -263,6 +263,47 @@ def webhook_payment():
     return '', 200
 
 
+@main.route('/try')
+def try_page():
+    all_blocks = {b: load_block(b) for b in BLOCK_INFO}
+    free_ids = set(get_free_card_ids())
+    free_cards = {}
+    remaining_counts = {}
+    for block_key, block_info in BLOCK_INFO.items():
+        cards = all_blocks[block_key]
+        free_card = next((c for c in cards if c['id'] in free_ids), None)
+        if free_card:
+            free_cards[block_key] = {**free_card, 'block': block_key, **block_info}
+        remaining_counts[block_key] = sum(1 for c in cards if c['id'] not in free_ids)
+    return render_template('try.html', free_cards=free_cards, remaining_counts=remaining_counts)
+
+
+@main.route('/api/track-event', methods=['POST'])
+def track_event():
+    try:
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+        if not _check_rate_limit(ip):
+            return '', 429
+        data = request.get_json(silent=True) or {}
+        event_name = (data.get('event') or '').strip()[:64]
+        if not event_name:
+            return '', 200
+        session_id = (data.get('session_id') or '').strip()[:64]
+        utm_source = (data.get('utm_source') or '').strip()[:100]
+        properties = json.dumps(data.get('properties') or {})[:500]
+        from .db import get_db
+        conn = get_db()
+        conn.execute(
+            'INSERT INTO events (session_id, utm_source, event_name, properties) VALUES (?, ?, ?, ?)',
+            (session_id, utm_source, event_name, properties)
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return '', 200
+
+
 @main.route('/api/track-visit', methods=['POST'])
 def track_visit():
     try:
@@ -412,10 +453,73 @@ def admin_utm_analytics():
         'revenue': sum(s['revenue'] for s in stats),
     }
 
+    # Events funnel
+    funnel_steps = [
+        ('page_view',       'Визит лендинга'),
+        ('scroll_50',       'Доскролл 50%'),
+        ('click_free',      'Клик «Попробовать»'),
+        ('free_page_view',  'Открытие пробной страницы'),
+        ('free_card_swipe', 'Просмотр карточки'),
+        ('click_blur',      'Клик по заблюренным'),
+        ('click_buy',       'Клик «Купить»'),
+        ('reach_payment',   'Переход к оплате'),
+        ('purchase',        'Покупка'),
+    ]
+
+    def _funnel_where(extra_parts, extra_params):
+        parts = list(extra_parts)
+        p = list(extra_params)
+        if date_from:
+            parts.append("date(created_at) >= ?")
+            p.append(date_from)
+        if date_to:
+            parts.append("date(created_at) <= ?")
+            p.append(date_to)
+        return ' AND '.join(parts) if parts else '1=1', p
+
+    funnel = []
+    prev_count = None
+    for event_name, label in funnel_steps:
+        if event_name == 'page_view':
+            ep = ["utm_source != ''"]
+            ep_p = []
+            if utm_filter:
+                ep.append("utm_source = ?")
+                ep_p.append(utm_filter)
+            w, p2 = _funnel_where(ep, ep_p)
+            w = w.replace('created_at', 'v.created_at')
+            row = conn.execute(
+                f"SELECT COUNT(DISTINCT session_id) cnt FROM utm_visits v WHERE {w}", p2
+            ).fetchone()
+        elif event_name == 'purchase':
+            ep = []
+            ep_p = []
+            if utm_filter:
+                ep.append("utm = ?")
+                ep_p.append(utm_filter)
+            w, p2 = _funnel_where(ep, ep_p)
+            row = conn.execute(f"SELECT COUNT(*) cnt FROM sales WHERE {w}", p2).fetchone()
+        else:
+            ep = ["event_name = ?"]
+            ep_p = [event_name]
+            if utm_filter:
+                ep.append("utm_source = ?")
+                ep_p.append(utm_filter)
+            w, p2 = _funnel_where(ep, ep_p)
+            row = conn.execute(
+                f"SELECT COUNT(DISTINCT session_id) cnt FROM events WHERE {w}", p2
+            ).fetchone()
+        count = (row['cnt'] if row else 0) or 0
+        cr = (count / prev_count * 100) if prev_count and prev_count > 0 else None
+        funnel.append({'label': label, 'event': event_name, 'count': count, 'cr': cr})
+        if count > 0:
+            prev_count = count
+
     conn.close()
     return render_template('admin_utm_analytics.html',
                            stats=stats,
                            totals=totals,
+                           funnel=funnel,
                            all_sources=all_sources,
                            date_from=date_from,
                            date_to=date_to,
@@ -623,10 +727,20 @@ def admin():
         'SELECT id, email, has_access, created_at FROM users ORDER BY id DESC LIMIT 1000'
     ).fetchall()
     all_cards_flat = []
+    cards_by_block = {'action': [], 'question': [], 'care': []}
     for block in ['action', 'question', 'care']:
         for card in load_block(block):
-            all_cards_flat.append({'id': card['id'], 'text': card.get('text', '')[:50], 'block': block})
+            entry = {'id': card['id'], 'text': card.get('text', '')[:60], 'block': block}
+            all_cards_flat.append(entry)
+            cards_by_block[block].append(entry)
     free_ids = get_free_card_ids()
+    free_ids_set = set(free_ids)
+    free_cards_by_block = {}
+    for block in ['action', 'question', 'care']:
+        for card in cards_by_block[block]:
+            if card['id'] in free_ids_set:
+                free_cards_by_block[block] = card['id']
+                break
     blogger_stats = conn.execute('''
         SELECT
             CASE WHEN blogger = '' THEN 'Прямые продажи' ELSE blogger END as blogger,
@@ -650,6 +764,8 @@ def admin():
     return render_template('admin.html', blocks=blocks_data, users=users,
                            blogger_stats=blogger_stats, sales=sales,
                            all_cards=all_cards_flat, free_ids=free_ids,
+                           cards_by_block=cards_by_block,
+                           free_cards_by_block=free_cards_by_block,
                            reports=reports)
 
 
@@ -742,8 +858,11 @@ def admin_save():
 def admin_free_cards():
     if not _admin_required():
         return 'Forbidden', 403
-    ids = [request.form.get(f'card_{i}', '').strip() for i in range(5)]
-    ids = [cid for cid in ids if cid]
+    ids = []
+    for block in ['action', 'question', 'care']:
+        cid = request.form.get(f'card_{block}', '').strip()
+        if cid:
+            ids.append(cid)
     save_free_card_ids(ids)
     return '', 200
 
