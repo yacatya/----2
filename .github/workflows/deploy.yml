@@ -110,8 +110,8 @@ jobs:
             printf '[Unit]\nDescription=verevery Flask app\nAfter=network.target\n\n[Service]\nUser=verevery\nGroup=verevery\nWorkingDirectory=/opt/verevery\nEnvironmentFile=/opt/verevery/.env\nExecStart=/opt/verevery/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --access-logfile - run:app\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/verevery.service
 
             systemctl daemon-reload
-            systemctl start verevery
-            sleep 3
+            systemctl restart verevery
+            sleep 5
 
             echo "=== Service status ==="
             systemctl status verevery --no-pager
