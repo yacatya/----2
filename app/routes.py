@@ -1770,7 +1770,8 @@ def admin_bloggers_analytics():
                  conn.execute(f'SELECT b.status, COUNT(*) as cnt FROM bloggers b {where_sql} GROUP BY b.status', params)}
 
     rows = conn.execute(f'''
-        SELECT b.id, b.name, b.platform, b.channel, b.profile_url, b.utm_slug, b.status, b.paid_out,
+        SELECT b.id, b.name, b.platform, b.channel, b.profile_url, b.utm_slug, b.status,
+               b.paid_out, b.cooperation_model,
             COALESCE(s.cnt, 0) as real_sales
         FROM bloggers b
         LEFT JOIN (
@@ -1782,8 +1783,9 @@ def admin_bloggers_analytics():
     ''', params).fetchall()
     conn.close()
     total_sales = sum(r['real_sales'] for r in rows)
-    total_commission = total_sales * COMMISSION_PER_SALE
-    total_paid = sum(r['paid_out'] for r in rows)
+    partner_sales = sum(r['real_sales'] for r in rows if (r['cooperation_model'] or 'partnership') == 'partnership')
+    total_commission = partner_sales * COMMISSION_PER_SALE
+    total_paid = sum(r['paid_out'] for r in rows if (r['cooperation_model'] or 'partnership') == 'partnership')
     return render_template('admin_bloggers_analytics.html',
                            total_bloggers=total,
                            funnel=by_status,
