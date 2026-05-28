@@ -9,7 +9,7 @@ import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, render_template, redirect, url_for, session, request
+from flask import Blueprint, render_template, redirect, url_for, session, request, make_response
 
 main = Blueprint('main', __name__)
 logger = logging.getLogger(__name__)
@@ -253,6 +253,11 @@ def webhook_payment():
         _save_sale(conn, payment.id, date, email, utm, amount, session_id)
 
         if not already_processed:
+            conn.execute(
+                'INSERT INTO events (session_id, utm_source, event_name, properties) VALUES (?, ?, ?, ?)',
+                (session_id, utm, 'purchase', '{}')
+            )
+            conn.commit()
             _send_magic_link(email, conn)
 
         conn.close()
@@ -260,6 +265,48 @@ def webhook_payment():
     except Exception:
         pass
 
+    return '', 200
+
+
+@main.route('/try')
+def try_page():
+    all_blocks = {b: load_block(b) for b in BLOCK_INFO}
+    free_ids = set(get_free_card_ids())
+    free_cards = {}
+    remaining_counts = {}
+    for block_key, block_info in BLOCK_INFO.items():
+        cards = all_blocks[block_key]
+        free_card = next((c for c in cards if c['id'] in free_ids), None)
+        if free_card:
+            free_cards[block_key] = {**free_card, 'block': block_key, **block_info}
+        remaining_counts[block_key] = sum(1 for c in cards if c['id'] not in free_ids)
+    return render_template('try.html', free_cards=free_cards, remaining_counts=remaining_counts)
+
+
+@main.route('/api/track-event', methods=['POST'])
+def track_event():
+    try:
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+        if not _check_rate_limit(ip):
+            return '', 429
+        data = request.get_json(silent=True) or {}
+        event_name = (data.get('event') or '').strip()[:64]
+        if not event_name:
+            return '', 200
+        session_id = (data.get('session_id') or '').strip()[:64]
+        utm_source = (data.get('utm_source') or '').strip()[:100]
+        properties = json.dumps(data.get('properties') or {})[:500]
+        is_test = 1 if request.cookies.get('_test_mode') == '1' else 0
+        from .db import get_db
+        conn = get_db()
+        conn.execute(
+            'INSERT INTO events (session_id, utm_source, event_name, properties, is_test) VALUES (?, ?, ?, ?, ?)',
+            (session_id, utm_source, event_name, properties, is_test)
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
     return '', 200
 
 
@@ -296,13 +343,14 @@ def track_visit():
         ).fetchone()
         is_unique = 0 if existing else 1
 
+        is_test = 1 if request.cookies.get('_test_mode') == '1' else 0
         conn.execute(
             """INSERT INTO utm_visits
                (session_id, ip, user_agent, referrer, landing_page,
-                utm_source, utm_medium, utm_campaign, utm_content, is_unique)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                utm_source, utm_medium, utm_campaign, utm_content, is_unique, is_test)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (session_id, ip, user_agent, referrer, landing_page,
-             utm_source, utm_medium, utm_campaign, utm_content, is_unique)
+             utm_source, utm_medium, utm_campaign, utm_content, is_unique, is_test)
         )
         conn.commit()
         conn.close()
@@ -322,7 +370,7 @@ def admin_utm_analytics():
     date_to = request.args.get('date_to', '')
     utm_filter = request.args.get('utm', '')
 
-    where_parts = ["utm_source != ''"]
+    where_parts = ["utm_source != ''", "v.is_test = 0"]
     params = []
     if date_from:
         where_parts.append("date(v.created_at) >= ?")
@@ -412,14 +460,112 @@ def admin_utm_analytics():
         'revenue': sum(s['revenue'] for s in stats),
     }
 
+    # Events funnel
+    funnel_steps = [
+        ('page_view',       'Визит лендинга'),
+        ('scroll_50',       'Доскролл 50%'),
+        ('click_free',      'Клик «Попробовать»'),
+        ('free_page_view',  'Открытие пробной страницы'),
+        ('free_card_swipe', 'Просмотр карточки'),
+        ('click_blur',      'Клик по заблюренным'),
+        ('click_buy',       'Клик «Купить»'),
+        ('reach_payment',   'Переход к оплате'),
+        ('purchase',        'Покупка'),
+    ]
+
+    def _funnel_where(extra_parts, extra_params):
+        parts = list(extra_parts)
+        p = list(extra_params)
+        if date_from:
+            parts.append("date(created_at) >= ?")
+            p.append(date_from)
+        if date_to:
+            parts.append("date(created_at) <= ?")
+            p.append(date_to)
+        return ' AND '.join(parts) if parts else '1=1', p
+
+    funnel = []
+    prev_count = None
+    for event_name, label in funnel_steps:
+        if event_name == 'page_view':
+            ep = ["utm_source != ''", "is_test = 0"]
+            ep_p = []
+            if utm_filter:
+                ep.append("utm_source = ?")
+                ep_p.append(utm_filter)
+            w, p2 = _funnel_where(ep, ep_p)
+            w = w.replace('created_at', 'v.created_at')
+            row = conn.execute(
+                f"SELECT COUNT(DISTINCT session_id) cnt FROM utm_visits v WHERE {w}", p2
+            ).fetchone()
+        elif event_name == 'purchase':
+            ep = ["event_name = 'purchase'", "is_test = 0"]
+            ep_p = []
+            if utm_filter:
+                ep.append("utm_source = ?")
+                ep_p.append(utm_filter)
+            w, p2 = _funnel_where(ep, ep_p)
+            row = conn.execute(
+                f"SELECT COUNT(DISTINCT session_id) cnt FROM events WHERE {w}", p2
+            ).fetchone()
+        else:
+            ep = ["event_name = ?", "is_test = 0"]
+            ep_p = [event_name]
+            if utm_filter:
+                ep.append("utm_source = ?")
+                ep_p.append(utm_filter)
+            w, p2 = _funnel_where(ep, ep_p)
+            row = conn.execute(
+                f"SELECT COUNT(DISTINCT session_id) cnt FROM events WHERE {w}", p2
+            ).fetchone()
+        count = (row['cnt'] if row else 0) or 0
+        cr = (count / prev_count * 100) if prev_count and prev_count > 0 else None
+        funnel.append({'label': label, 'event': event_name, 'count': count, 'cr': cr})
+        if count > 0:
+            prev_count = count
+
+    is_test_mode = request.cookies.get('_test_mode') == '1'
     conn.close()
-    return render_template('admin_utm_analytics.html',
+    resp = make_response(render_template('admin_utm_analytics.html',
                            stats=stats,
                            totals=totals,
                            all_sources=all_sources,
                            date_from=date_from,
                            date_to=date_to,
-                           utm_filter=utm_filter)
+                           utm_filter=utm_filter,
+                           is_test_mode=is_test_mode))
+    return resp
+
+
+@main.route('/admin/set-test-mode', methods=['POST'])
+def admin_set_test_mode():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    resp = make_response(redirect(request.referrer or url_for('main.admin_utm_analytics')))
+    resp.set_cookie('_test_mode', '1', max_age=86400 * 365, path='/', samesite='Lax')
+    return resp
+
+
+@main.route('/admin/clear-test-mode', methods=['POST'])
+def admin_clear_test_mode():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    resp = make_response(redirect(request.referrer or url_for('main.admin_utm_analytics')))
+    resp.delete_cookie('_test_mode', path='/')
+    return resp
+
+
+@main.route('/admin/reset-test-data', methods=['POST'])
+def admin_reset_test_data():
+    if not _admin_required():
+        return redirect(url_for('main.admin_login'))
+    from .db import get_db
+    conn = get_db()
+    conn.execute('DELETE FROM utm_visits WHERE is_test = 1')
+    conn.execute('DELETE FROM events WHERE is_test = 1')
+    conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for('main.admin_utm_analytics'))
 
 
 @main.route('/cards')
