@@ -231,6 +231,20 @@ def init_db():
         except Exception:
             pass
     for col, definition in [
+        ('is_test', 'INTEGER DEFAULT 0'),
+    ]:
+        try:
+            conn.execute(f'ALTER TABLE utm_visits ADD COLUMN {col} {definition}')
+        except Exception:
+            pass
+    for col, definition in [
+        ('is_test', 'INTEGER DEFAULT 0'),
+    ]:
+        try:
+            conn.execute(f'ALTER TABLE events ADD COLUMN {col} {definition}')
+        except Exception:
+            pass
+    for col, definition in [
         ('has_access', 'INTEGER DEFAULT 0'),
         ('created_at', "TEXT DEFAULT (datetime('now'))"),
     ]:

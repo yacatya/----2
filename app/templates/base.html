@@ -130,7 +130,6 @@
 </nav>
 {% endblock %}
 {% block content %}{% endblock %}
-{% block scripts %}{% endblock %}
 <script>
 function _trackEvent(name, props) {
   try {
@@ -147,7 +146,9 @@ function _trackEvent(name, props) {
     }
   } catch(e) {}
 }
-
+</script>
+{% block scripts %}{% endblock %}
+<script>
 (function() {
   function getOrCreateVid() {
     var m = document.cookie.match(/(?:^|;\s*)_vid=([^;]+)/);
