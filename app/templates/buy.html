@@ -58,7 +58,7 @@
 {% block nav %}
 <nav class="nav-buy">
   <a href="/" class="logo">vere<span>very</span></a>
-  <a href="/free" class="nav-back">← Назад</a>
+  <a href="{{ return_to or '/' }}" class="nav-back" id="btn-back-nav">← Назад</a>
 </nav>
 {% endblock %}
 
@@ -99,14 +99,24 @@
 </div>
 
 <footer>
-  <a href="/free">← Попробовать бесплатно</a>
+  <a href="{{ return_to or '/try' }}">← Попробовать бесплатно</a>
   &nbsp;·&nbsp;
-  © 2024 verevery
+  © 2025 verevery
 </footer>
 {% endblock %}
 
 {% block scripts %}
 <script>
+// Трекинг возврата с оплаты
+(function() {
+  var backEl = document.getElementById('btn-back-nav');
+  if (backEl) {
+    backEl.addEventListener('click', function() {
+      _trackEvent('back_from_buy', {return_to: backEl.getAttribute('href')});
+    });
+  }
+})();
+
 // Сохраняем UTM при заходе
 (function() {
   var p = new URLSearchParams(window.location.search);

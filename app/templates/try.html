@@ -242,7 +242,7 @@
     </div>
 
     <div class="block-buy">
-      <a href="/buy" class="btn-block-buy" onclick="_trackEvent('click_buy',{source:'try_block',block:'{{ block_key }}'})">Открыть все {{ remaining + 1 }} карточек · 690 ₽</a>
+      <a href="/buy?return_to=/try" class="btn-block-buy" onclick="_trackEvent('click_buy',{source:'try_block',block:'{{ block_key }}'})">Открыть все {{ remaining + 1 }} карточек · 690 ₽</a>
     </div>
   </div>
 </section>
@@ -256,7 +256,7 @@
     <div class="try-final-blocks">Действие · Вопрос · Забота</div>
     <div class="try-price">690 ₽</div>
     <div class="try-price-sub">Постоянный доступ · Без подписки</div>
-    <a href="/buy" class="btn-accent" style="display:block;text-align:center;padding:16px 24px;font-size:15px;" onclick="_trackEvent('click_buy',{source:'try_bottom'})">Получить полный доступ</a>
+    <a href="/buy?return_to=/try" class="btn-accent" style="display:block;text-align:center;padding:16px 24px;font-size:15px;" onclick="_trackEvent('click_buy',{source:'try_bottom'})">Получить полный доступ</a>
     <p style="font-size:11px;font-weight:300;color:rgba(250,247,242,0.28);margin-top:14px;">Оплата картой или СБП · Доступ сразу после оплаты</p>
   </div>
 </section>
@@ -302,7 +302,7 @@
     </div>
     <div class="buy-actions">
       <button class="buy-btn-secondary" onclick="closeBuyModal('free')">Смотреть бесплатные</button>
-      <a href="/buy" class="buy-btn-primary" onclick="_trackEvent('click_buy',{source:'buy_modal'})">Открыть все · 690 ₽</a>
+      <a href="/buy?return_to=/try" class="buy-btn-primary" onclick="_trackEvent('click_buy',{source:'buy_modal'})">Открыть все · 690 ₽</a>
     </div>
   </div>
 </div>

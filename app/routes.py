@@ -148,7 +148,11 @@ def free():
 @main.route('/buy')
 def buy():
     error = request.args.get('error', '')
-    return render_template('buy.html', error=error)
+    return_to = request.args.get('return_to', '')
+    allowed = {'/try', '/free', '/'}
+    if return_to not in allowed:
+        return_to = ''
+    return render_template('buy.html', error=error, return_to=return_to)
 
 
 @main.route('/pay', methods=['POST'])
