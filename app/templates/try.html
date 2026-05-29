@@ -100,7 +100,7 @@
 .try-price { font-family: 'Cormorant Garamond', serif; font-size: 44px; color: rgba(250,247,242,0.92); margin-bottom: 4px; font-weight: 500; }
 .try-price-sub { font-size: 12px; font-weight: 300; color: rgba(250,247,242,0.35); margin-bottom: 28px; }
 
-/* ── MODAL ────────────────────────────────────────── */
+/* ── INFO MODAL (карточные детали) ───────────────── */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(42,33,24,0.55);
   z-index: 200; display: none; align-items: flex-end; justify-content: center;
@@ -117,6 +117,62 @@
 .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--dark); margin-bottom: 14px; }
 .modal-text .modal-item { font-size: 14px; font-weight: 300; color: var(--dark); line-height: 1.75; margin-bottom: 8px; }
 .modal-text .modal-result { font-size: 13px; font-style: italic; color: var(--muted); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--beige); line-height: 1.65; }
+
+/* ── BUY MODAL ────────────────────────────────────── */
+.buy-overlay {
+  position: fixed; inset: 0; background: rgba(42,33,24,0.55);
+  z-index: 300;
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.buy-overlay.open { opacity: 1; pointer-events: auto; }
+.buy-sheet {
+  background: var(--white); border-radius: 24px 24px 0 0;
+  padding: 28px 24px max(36px, env(safe-area-inset-bottom));
+  width: 100%; max-width: 540px; position: relative;
+  transform: translateY(16px);
+  transition: transform 0.2s ease;
+}
+.buy-overlay.open .buy-sheet { transform: translateY(0); }
+.buy-close {
+  position: absolute; top: 18px; right: 20px;
+  background: none; border: none; font-size: 17px;
+  color: var(--sand); cursor: pointer; padding: 6px 8px; line-height: 1;
+}
+.buy-close:hover { color: var(--dark); }
+.buy-lock { font-size: 28px; margin-bottom: 10px; }
+.buy-heading {
+  font-family: 'Cormorant Garamond', serif; font-size: 26px;
+  font-weight: 500; color: var(--dark); margin-bottom: 4px;
+}
+.buy-sub { font-size: 14px; font-weight: 300; color: var(--muted); margin-bottom: 22px; }
+.buy-features {
+  border-top: 1px solid var(--beige); border-bottom: 1px solid var(--beige);
+  padding: 16px 0; margin-bottom: 22px;
+  display: flex; flex-direction: column; gap: 0;
+}
+.buy-feature { padding: 10px 0; }
+.buy-feature-name { font-size: 13px; font-weight: 500; color: var(--dark); margin-bottom: 3px; }
+.buy-feature-desc { font-size: 12px; font-weight: 300; color: var(--muted); }
+.buy-sep { height: 1px; background: var(--beige); }
+.buy-actions { display: flex; flex-direction: column; gap: 10px; }
+.buy-btn-secondary {
+  display: block; width: 100%; padding: 14px 24px; text-align: center;
+  background: transparent; color: var(--dark);
+  border: 1px solid var(--sand); border-radius: 50px;
+  font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: background 0.2s;
+}
+.buy-btn-secondary:hover { background: var(--beige); }
+.buy-btn-primary {
+  display: block; width: 100%; padding: 14px 24px; text-align: center;
+  background: var(--dark); color: white;
+  border: 1px solid var(--dark); border-radius: 50px;
+  font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 500;
+  text-decoration: none; transition: opacity 0.2s; box-sizing: border-box;
+}
+.buy-btn-primary:hover { opacity: 0.85; }
 </style>
 {% endblock %}
 
@@ -215,12 +271,39 @@
   <div>© 2025 verevery · Карточки для двоих</div>
 </footer>
 
-<!-- Модалка -->
+<!-- Модалка карточки (Зачем/Мозг/Наука) -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-title"></div>
     <div class="modal-text" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Модалка покупки -->
+<div class="buy-overlay" id="buy-modal"
+     role="dialog" aria-modal="true" aria-labelledby="buy-modal-heading"
+     onclick="if(event.target===this)closeBuyModal('overlay')">
+  <div class="buy-sheet">
+    <button class="buy-close" id="buy-close-btn" onclick="closeBuyModal('close')" aria-label="Закрыть">✕</button>
+    <div class="buy-lock">🔒</div>
+    <h2 class="buy-heading" id="buy-modal-heading">Эта карточка платная</h2>
+    <p class="buy-sub">Открой все 60 — навсегда</p>
+    <div class="buy-features">
+      <div class="buy-feature">
+        <div class="buy-feature-name">Доказательная база</div>
+        <div class="buy-feature-desc">Готтман · теория привязанности · нейробиология</div>
+      </div>
+      <div class="buy-sep"></div>
+      <div class="buy-feature">
+        <div class="buy-feature-name">На каждой карточке — объяснения</div>
+        <div class="buy-feature-desc">Зачем · что в мозге · к чему приведёт</div>
+      </div>
+    </div>
+    <div class="buy-actions">
+      <button class="buy-btn-secondary" onclick="closeBuyModal('free')">Смотреть бесплатные</button>
+      <a href="/buy" class="buy-btn-primary" onclick="_trackEvent('click_buy',{source:'buy_modal'})">Открыть все · 690 ₽</a>
+    </div>
   </div>
 </div>
 
@@ -278,9 +361,54 @@ function closeModal(e) {
   }
 }
 
+// ── Buy modal ──────────────────────────────────────
+var _buyScrollY = 0;
+
 function clickBlur(blockKey) {
-  _trackEvent('click_blur', {block: blockKey});
-  window.location.href = '/buy';
+  openBuyModal(blockKey);
 }
+
+function openBuyModal(blockKey) {
+  _trackEvent('click_blur', {block: blockKey});
+  _trackEvent('open_buy_modal', {block: blockKey});
+  _buyScrollY = window.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.top = '-' + _buyScrollY + 'px';
+  document.body.style.width = '100%';
+  document.getElementById('buy-modal').classList.add('open');
+  setTimeout(function() { document.getElementById('buy-close-btn').focus(); }, 50);
+}
+
+function closeBuyModal(reason) {
+  if (reason === 'free') _trackEvent('close_buy_free', {});
+  document.getElementById('buy-modal').classList.remove('open');
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  window.scrollTo(0, _buyScrollY);
+}
+
+// Esc closes both modals
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('buy-modal').classList.contains('open')) {
+    closeBuyModal('esc');
+  } else if (document.getElementById('modal').classList.contains('open')) {
+    document.getElementById('modal').classList.remove('open');
+    document.querySelectorAll('.btn-detail').forEach(function(b) { b.classList.remove('active'); });
+  }
+});
+
+// Focus trap inside buy modal
+document.getElementById('buy-modal').addEventListener('keydown', function(e) {
+  if (e.key !== 'Tab') return;
+  var focusable = this.querySelectorAll('button, a[href]');
+  if (!focusable.length) return;
+  var first = focusable[0], last = focusable[focusable.length - 1];
+  if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  }
+});
 </script>
 {% endblock %}

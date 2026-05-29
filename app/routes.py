@@ -468,6 +468,8 @@ def admin_utm_analytics():
         ('free_page_view',  'Открытие пробной страницы'),
         ('free_card_swipe', 'Просмотр карточки'),
         ('click_blur',      'Клик по заблюренным'),
+        ('open_buy_modal',  'Открытие модалки покупки'),
+        ('close_buy_free',  'Клик «Смотреть бесплатные»'),
         ('click_buy',       'Клик «Купить»'),
         ('reach_payment',   'Переход к оплате'),
         ('purchase',        'Покупка'),
